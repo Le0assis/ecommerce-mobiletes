@@ -35,7 +35,7 @@ async function MotoBody({ params }: PageProps<"/motos/[slug]">) {
     "@type": "Product",
     name: product.name,
     description: product.description,
-    brand: "LUME",
+    brand: product.brand,
     offers: {
       "@type": "Offer",
       priceCurrency: "BRL",

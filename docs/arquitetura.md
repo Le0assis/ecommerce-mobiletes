@@ -35,7 +35,7 @@ A página abre com a API desligada. O configurador muda cor e acessório sem esp
 
 Chave `lume-shop-v1`: linhas do carrinho, slugs da lista de desejos e códigos de pedido. Carrinho antigo, sem `orderCodes`, continua válido: o parse assume lista vazia.
 
-Também locais: perfil (`lume-profile`), aceite de cookie (`lume-cookies`), reviews pendentes (`lume-reviews-pending`), mensagens de contato (`lume-messages`) e token de admin na `sessionStorage` (`lume-admin-token`).
+Também locais: perfil (`lume-profile`), aviso de cookie (`lume-cookies`: `ok`, `essential` ou `analytics`), reviews pendentes (`lume-reviews-pending`), mensagens de contato (`lume-messages`) e token de admin na `sessionStorage` (`lume-admin-token`).
 
 Nada disso é conta. Não há CPF.
 

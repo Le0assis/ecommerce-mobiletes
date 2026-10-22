@@ -6,7 +6,9 @@ Sem prazo em dias. A ordem é a dependência. Status de outubro de 2026, neste r
 
 Fundação: monorepo, domínio testado, API com checkout simulado, Compose, CI, requisitos.
 
-Vitrine: home, catálogo com filtro e ordem, PDP com cor, acessório, 360° esquemático, autonomia, parcelas, review com fallback local, comparação, quiz, test ride, lojas com esquema, carrinho, checkout com prévia, conta local, pedidos, desejos, financiamento e páginas institucionais. Camada `lib/catalog.ts` e `lib/shop-api.ts`.
+Vitrine em seis etapas empilhadas, sem merge: fundação multimarca, configurador com bateria e economia, checkout com cupom e sandbox, mapa, WhatsApp e troca, conteúdo (guias, legislação, FAQ, serviço) e operação (admin ampliado, SEO, medição local, aviso de cookie em duas escolhas, Playwright extra e [guia de deploy](deploy.md)).
+
+A loja que essas etapas somam: home, catálogo com marca, galeria, configurador, comparador, quiz, calculadora, carrinho, checkout, conta sandbox, pedidos, desejos, financiamento, test ride, lojas, troca, guias, legislação, FAQ, serviço e admin em memória. Camada `lib/catalog.ts` e `lib/shop-api.ts`.
 
 ## MVP-a — cobrar de verdade
 
@@ -18,7 +20,7 @@ Boleto e cartão na Pagar.me com webhook, idempotência de webhook duplicado, qu
 
 ## MVP-c — operação
 
-Segundo adquirente se o contrato pedir. Payload para banner e página. Meilisearch de fato. Mapa com coordenada. Pedido de exclusão de conta que apaga a linha. Funil observado.
+Segundo adquirente se o contrato pedir. Payload no lugar de `guides.ts`. Meilisearch de fato. Tiles de mapa no lugar da projeção. Pedido de exclusão de conta que apaga a linha. Funil num coletor, no lugar do `console`.
 
 ## v2
 
@@ -28,4 +30,4 @@ Fora até alguém reabrir: assinatura, troca de bateria no modelo de estação, 
 
 ## Como saber se regrediu
 
-`pnpm test` no domínio e na API. Playwright na troca de cor da Apex. A pessoa, no navegador: home, filtro do catálogo, configurador, quiz, test ride, checkout Pix e a lista de pedidos.
+`pnpm test` no domínio e na API. Playwright na troca de cor da Apex e no filtro VOLTIS mais a página de legislação. A pessoa, no navegador: home, filtro do catálogo, configurador, quiz, test ride, checkout Pix e a lista de pedidos.

@@ -6,6 +6,7 @@ import { InstallmentTable } from "@/components/installment-table";
 import { ProductCard } from "@/components/product-card";
 import { ReviewForm, usePendingReviews } from "@/components/review-form";
 import { useShop } from "@/components/shop-provider";
+import { track } from "@/lib/analytics";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   accessoriesFor,
@@ -84,6 +85,7 @@ export function Configurator({ product }: { product: Motorcycle }) {
 
   function reserve() {
     if (!quote) return;
+    track("reservar", { product: product.slug, color: colorId });
     shop.addLine({ productId: product.id, colorId, accessoryIds: picked, batteryId });
     router.push("/checkout");
   }

@@ -25,14 +25,14 @@ pnpm test
 pnpm --filter @lume/storefront exec playwright test
 ```
 
-`pnpm test` cobre o domínio (preço, 21x, juros quando a carência cai, CEP, quiz) e a API (checkout simulado). O Playwright abre a home, troca a Apex para Cobre, espera R$ 64.700,00 e cai no checkout. Ele exige `html[data-configurator=ready]`.
+`pnpm test` cobre o domínio (preço, 21x, juros quando a carência cai, CEP, quiz) e a API (checkout simulado, cupom, troca, serviço e a visão do admin). O Playwright abre a home, troca a Apex para Cobre, espera R$ 64.700,00 e cai no checkout. Ele exige `html[data-configurator=ready]`. Outro teste filtra `marca=VOLTIS` e abre a legislação.
 
 O typecheck da vitrine roda `next typegen` antes do `tsc`, porque `PageProps` e `LayoutProps` nascem aí.
 
 ## Publicar
 
-Ainda não há ambiente de produção. O CI (`.github/workflows/ci.yml`) faz lint, typecheck, teste, build da vitrine e, noutro job, Playwright contra `next start`.
+O passo a passo está em [deploy.md](deploy.md). O CI (`.github/workflows/ci.yml`) faz lint, typecheck, teste, build da vitrine e, noutro job, Playwright contra `next start`.
 
-Quando houver hospedagem: vitrine na Vercel ou OpenNext; API e Postgres em sa-east-1; `STOREFRONT_ORIGIN` travando o CORS; `ADMIN_TOKEN` obrigatório em produção; segredo fora do git. Não publique com o token `dev-admin-token`.
+Vitrine na Vercel ou OpenNext. API e Postgres em sa-east-1. `STOREFRONT_ORIGIN` trava o CORS. `ADMIN_TOKEN` é obrigatório com `NODE_ENV=production`. Segredo fora do git. Não publique com o token `dev-admin-token`.
 
 Build local da vitrine: `pnpm --filter @lume/storefront build`. Páginas dinâmicas que leem `params` precisam do `Suspense` já usado em `/motos/[slug]` e `/pedido/[code]`.

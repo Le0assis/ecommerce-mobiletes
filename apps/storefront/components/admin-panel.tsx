@@ -2,13 +2,36 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { formatBRL } from "@/lib/catalog";
 import { useEffect, useState } from "react";
 
 type Overview = {
-  products: { id: string; name: string; colors: { id: string; name: string; stock: number }[] }[];
+  products: {
+    id: string;
+    name: string;
+    brand: string;
+    batteries: { id: string; name: string; priceDeltaCents: number }[];
+    colors: { id: string; name: string; stock: number }[];
+  }[];
   banners: { id: string; title: string; active: boolean }[];
   orders: number;
   bookings: number;
+  tradeIns: number;
+  serviceBookings: number;
+  recentOrders: { code: string; status: string; method: string; totalCents: number }[];
+  recentTradeIns: { id: string; brand: string; model: string; city: string }[];
+  recentService: { id: string; dealerId: string; productId: string; preferredDate: string }[];
+  coupons: { code: string; label: string }[];
+  guides: { slug: string; title: string }[];
+};
+
+const statusLabel: Record<string, string> = {
+  aguardando_pagamento: "Aguardando pagamento",
+  pago: "Pago",
+  em_preparo: "Em preparo",
+  em_transporte: "Em transporte",
+  entregue: "Entregue",
+  recusado: "Recusado",
 };
 
 export function AdminPanel() {
@@ -53,7 +76,7 @@ export function AdminPanel() {
   }, []);
 
   return (
-    <div className="mt-8 grid gap-6">
+    <div className="mt-8 grid gap-8">
       <form
         className="flex flex-wrap gap-3"
         onSubmit={(event) => {
@@ -71,15 +94,84 @@ export function AdminPanel() {
       {data ? (
         <>
           <p className="text-sm text-muted-foreground">
-            Pedidos em memória: {data.orders}. Test rides em memória: {data.bookings}.
+            Pedidos em memória: {data.orders}. Test rides: {data.bookings}. Trocas: {data.tradeIns}. Serviços: {data.serviceBookings}. O estoque desta tela não muda a vitrine.
           </p>
-          <ul className="grid gap-3">
-            {data.banners.map((banner) => (
-              <li key={banner.id} className="rounded-2xl border border-white/10 px-4 py-3 text-sm">
-                {banner.title} · {banner.active ? "ativo" : "oculto"}
-              </li>
-            ))}
-          </ul>
+          <section>
+            <h2 className="text-2xl font-light">Pedidos</h2>
+            {data.recentOrders.length === 0 ? (
+              <p className="mt-2 text-sm text-muted-foreground">Nenhum pedido neste processo.</p>
+            ) : (
+              <ul className="mt-3 grid gap-2">
+                {data.recentOrders.map((order) => (
+                  <li key={order.code} className="flex flex-wrap justify-between gap-2 rounded-2xl border border-white/10 px-4 py-3 text-sm">
+                    <span className="nums">{order.code}</span>
+                    <span>{statusLabel[order.status] ?? order.status}</span>
+                    <span>{order.method}</span>
+                    <span className="nums">{formatBRL(order.totalCents)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+          <section>
+            <h2 className="text-2xl font-light">Cupons</h2>
+            <ul className="mt-3 grid gap-2">
+              {data.coupons.map((coupon) => (
+                <li key={coupon.code} className="rounded-2xl border border-white/10 px-4 py-3 text-sm">
+                  <span className="nums">{coupon.code}</span> · {coupon.label}
+                </li>
+              ))}
+            </ul>
+          </section>
+          <section>
+            <h2 className="text-2xl font-light">Conteúdo</h2>
+            <ul className="mt-3 grid gap-2">
+              {data.guides.map((guide) => (
+                <li key={guide.slug} className="rounded-2xl border border-white/10 px-4 py-3 text-sm">
+                  {guide.title}
+                </li>
+              ))}
+              {data.banners.map((banner) => (
+                <li key={banner.id} className="rounded-2xl border border-white/10 px-4 py-3 text-sm">
+                  {banner.title} · {banner.active ? "ativo" : "oculto"}
+                </li>
+              ))}
+            </ul>
+          </section>
+          <section>
+            <h2 className="text-2xl font-light">Trocas e serviço</h2>
+            {data.recentTradeIns.length === 0 && data.recentService.length === 0 ? (
+              <p className="mt-2 text-sm text-muted-foreground">Nenhum pedido neste processo.</p>
+            ) : (
+              <ul className="mt-3 grid gap-2">
+                {data.recentTradeIns.map((item) => (
+                  <li key={item.id} className="rounded-2xl border border-white/10 px-4 py-3 text-sm">
+                    Troca · {item.brand} {item.model} · {item.city}
+                  </li>
+                ))}
+                {data.recentService.map((item) => (
+                  <li key={item.id} className="rounded-2xl border border-white/10 px-4 py-3 text-sm">
+                    Serviço · {item.productId} · {item.dealerId} · {item.preferredDate}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+          <section>
+            <h2 className="text-2xl font-light">Variantes</h2>
+            <ul className="mt-3 grid gap-2">
+              {data.products.map((product) => (
+                <li key={product.id} className="rounded-2xl border border-white/10 px-4 py-3 text-sm">
+                  <span>
+                    {product.brand} {product.name}
+                  </span>
+                  <span className="mt-1 block text-muted-foreground">
+                    {product.batteries.map((battery) => `${battery.name} (${battery.priceDeltaCents > 0 ? `+${formatBRL(battery.priceDeltaCents)}` : "série"})`).join(" · ")}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead className="text-muted-foreground">
@@ -109,7 +201,7 @@ export function AdminPanel() {
                             await load(token);
                           }}
                         >
-                          <Input name="stock" type="number" min={0} defaultValue={color.stock} key={color.stock} className="h-10 w-24 rounded-full px-3" />
+                          <Input name="stock" type="number" min={0} defaultValue={color.stock} key={color.stock} className="h-10 w-24 rounded-full px-3" aria-label={`Estoque de ${product.name} ${color.name}`} />
                           <Button type="submit" variant="outline" className="rounded-full">
                             Salvar
                           </Button>

@@ -58,7 +58,7 @@ A loja precisa ter o slug em `testRideSlugs`. A confirmação humana é v1. O pr
 
 `app/lojas/page.tsx`, `components/locator-map.tsx`, `components/dealer-stories.tsx`.
 
-O esquema é um desenho com pinos proporcionais. A legenda diz que não é mapa. O filtro por cidade usa a lista. Mapa com coordenada real é RF-LOJA-02, v1.
+A projeção usa latitude e longitude num desenho do Brasil. A legenda diz que não é um mapa de tiles. O filtro por cidade usa a lista.
 
 ## Carrinho
 
@@ -92,7 +92,7 @@ Depois do sucesso, `rememberOrder` grava o código e `clear` esvazia o carrinho.
 
 ## Admin
 
-`components/admin-panel.tsx`. Token em `sessionStorage`. `GET /v1/admin/overview` e `PATCH /v1/admin/stock`. Não muda a vitrine.
+`components/admin-panel.tsx`. Token em `sessionStorage` (`lume-admin-token`). `GET /v1/admin/overview` lista produto, variante de bateria, estoque, pedido, cupom, guia, troca e serviço. `PATCH /v1/admin/stock` altera só a memória da API. Não muda a vitrine.
 
 ## Barra de test ride e menu
 

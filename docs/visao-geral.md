@@ -9,16 +9,17 @@ O dono do produto é o Gustavo. A marca ainda não tem CNPJ publicado neste repo
 A vitrine está completa como experiência, com dado e pagamento simulados:
 
 - Home com filme (canvas, e mp4 se o arquivo existir), busca por categoria e cidade, faixa de confiança, capítulo com os números da Apex, linha, comparação curta, quiz e lojas.
-- Catálogo com categoria, cidade, texto e ordem.
-- Página do modelo com cor, acessório, preço ao vivo, 360° sob demanda, autonomia, parcelas, ficha, relatos, formulário de review e modelos próximos.
+- Catálogo com marca, categoria, cidade, texto e ordem.
+- Página do modelo com galeria, cor, bateria, acessório, preço ao vivo, 360° sob demanda, autonomia, economia contra gasolina, parcelas, ficha, relatos com foto e modelos próximos.
 - Comparador de até três modelos.
 - Quiz “me ajude a escolher”.
 - Test ride.
-- Lojas, com um esquema visual que não é mapa.
-- Carrinho, checkout (Pix, boleto, cartão) e página do pedido.
-- Conta local, lista de desejos e lista de pedidos deste navegador.
+- Lojas com projeção por coordenada, WhatsApp e pedido de troca sem preço.
+- Carrinho, checkout (Pix, boleto, cartão, cupom, CEP) e página do pedido com sandbox.
+- Conta de sandbox, lista de desejos e lista de pedidos deste navegador.
+- Guias, legislação, FAQ, garantia e agendamento de serviço.
 - Páginas institucionais: sobre, energia, garantia, trocas, financiamento, contato, privacidade.
-- Admin de estoque em memória, que a vitrine ainda não obedece.
+- Admin em memória: estoque, variantes, pedidos, cupons, guias, trocas e serviços. A vitrine ainda lê o catálogo do código.
 
 ## O que esta versão não entrega
 

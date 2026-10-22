@@ -13,6 +13,10 @@ export default function PrivacyPage() {
       <p className="mt-2">
         Nome, e-mail e telefone no test ride e no checkout. CEP para cotar frete. O carrinho e a lista de desejos ficam no seu navegador. Não pedimos CPF nesta versão e não guardamos cartão.
       </p>
+      <h2 className="mt-8 text-xl text-paper">Cookies neste navegador</h2>
+      <p className="mt-2">
+        O essencial lembra o carrinho, a lista e a escolha do aviso. A medição local só acontece se você escolher “Permitir medição local” e a vitrine estiver com <span className="nums">NEXT_PUBLIC_ANALYTICS=console</span>. Nesse caso o evento aparece no console deste computador. Não há anúncio de terceiro. Um aceite antigo gravado como <span className="nums">ok</span> continua valendo como essencial, sem medição.
+      </p>
       <h2 className="mt-8 text-xl text-paper">Para que serve</h2>
       <p className="mt-2">
         Agendar test ride, calcular entrega, montar o pedido e, no futuro, emitir nota e avisar sobre o pagamento. A base é a execução do pedido e o consentimento para mensagens que não sejam o próprio pedido.

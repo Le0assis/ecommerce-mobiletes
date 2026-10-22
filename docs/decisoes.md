@@ -41,3 +41,7 @@ Vermelho `#ff2d2d` no CTA, no ponto e num detalhe da moto. Verde-água oficial d
 ## ADR 10 — Next em 127.0.0.1
 
 O dev server escuta em `127.0.0.1:43123`. Origem `localhost` no Next 16 não entrega o asset de hidratação para quem abre pelo IP, e o configurador parece quebrado. `allowedDevOrigins` lista os dois hosts.
+
+## ADR 11 — Medição só no console, com escolha separada
+
+Não há script de anúncio. `track` não faz nada até `NEXT_PUBLIC_ANALYTICS=console` e `lume-cookies` ser `analytics`. `ok` e `essential` escondem o aviso e não medem. O evento leva slug, cor, meio ou código de pedido, nunca e-mail.

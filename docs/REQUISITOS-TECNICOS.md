@@ -139,7 +139,7 @@ Identificadores estáveis para o backlog. O que está marcado como vitrine já e
 
 ### Admin e conteúdo
 
-- RF-ADM-01. Visão de estoque por cor e de banners, com token. Vitrine. O ajuste de estoque desta versão vale para a memória do processo, não para a vitrine, que lê o catálogo do código.
+- RF-ADM-01. Visão de estoque por cor, variantes de bateria, banners, cupons, guias, pedidos recentes, trocas e serviços, com token. Etapa 6. O ajuste de estoque desta versão vale para a memória do processo, não para a vitrine, que lê o catálogo do código. Serviço e troca ficam na mesma memória até o processo cair.
 - RF-ADM-02. CRUD de produto, preço, cor, acessório, banner e pedido, com papel de operador. v1.
 - RF-CMS-01. Páginas de campanha e filme editáveis no Payload, no mesmo Postgres. v1, depois que a compra funcionar. Não usar Sanity: o conteúdo ficaria fora da conta e o time passaria a operar outro idioma de conteúdo.
 
@@ -155,12 +155,12 @@ Identificadores estáveis para o backlog. O que está marcado como vitrine já e
 - LCP abaixo de 2,5 s em 4G mediano. O hero não espera o mp4: o canvas (ou o poster) pinta primeiro. O vídeo entra quando o arquivo existir e o browser puder tocá-lo.
 - INP abaixo de 200 ms. O configurador não faz requisição para mudar cor ou acessório.
 - CLS abaixo de 0,1. Fonte via `next/font`, preços com casa estável.
-- O bundle do Three.js fica fora da home. Só o clique “Ver em 360°” o pede.
+- O bundle do Three.js fica fora da home. Só o clique “Ver em 360°” o pede, por import dinâmico. Etapa 6 confirma que GSAP não entra.
 - Orçamento de JavaScript da home, sem o viewer: manter o que o build já separa e não acrescentar GSAP nem um segundo player.
 
 ### SEO
 
-- Título e descrição por modelo, `lang="pt-BR"`, canonical via `metadataBase`, sitemap e robots. Rotas em português. Admin, checkout e conta fora do índice. Vitrine.
+- Título e descrição por modelo, `lang="pt-BR"`, canonical via `metadataBase`, Open Graph, cartão do Twitter, sitemap e robots. JSON-LD de produto, de guia e de FAQ. Rotas em português. Admin, checkout e conta fora do índice. Etapa 6.
 - Páginas de modelo são o ativo de busca. Não depender de render só no cliente para o nome, o preço e o texto.
 
 ### Acessibilidade
@@ -169,13 +169,13 @@ Identificadores estáveis para o backlog. O que está marcado como vitrine já e
 - Configurador por teclado, com `aria-pressed` em cor e acessório.
 - O 360° não é a única forma de ver a cor. A ilustração permanece.
 - Foco visível no vermelho. Contraste do botão: texto quase preto sobre `#ff2d2d`.
-- Link “Pular para o conteúdo”.
+- Link “Pular para o conteúdo”. O botão de WhatsApp tem nome acessível. Etapa 6.
 
 ### LGPD e consumo
 
 - Página de privacidade com o que se coleta, a finalidade, o compartilhamento futuro, o prazo e os direitos. Vitrine. O nome do operador e do encarregado entram antes do go-live.
 - Sem CPF no MVP. Sem número de cartão no nosso servidor: o cartão tokeniza no provedor.
-- Carrinho e cookie essencial explicados. Sem anúncio de terceiro nesta versão.
+- Carrinho e cookie explicados. O aviso oferece essencial ou medição local. O valor antigo `ok` continua aceito e não liga medição. `NEXT_PUBLIC_ANALYTICS=console` escreve o evento no console só com a escolha de medição. Sem anúncio de terceiro. Etapa 6.
 - Compra online: lembrar o arrependimento de 7 dias do CDC no fluxo real, com a ressalva do jurídico para veículo.
 
 ### Segurança

@@ -46,6 +46,6 @@ A resposta traz `order` recalculado e a frase de que nenhum pagamento foi ao Mer
 
 Cabeçalho `x-admin-token`. Fora de produção, se `ADMIN_TOKEN` não existir, o token é `dev-admin-token`.
 
-`GET /v1/admin/overview` estoque efetivo, banners, contagem de pedidos e agendamentos.
+`GET /v1/admin/overview` estoque efetivo por cor, variantes de bateria, banners, cupons, títulos de guia, contagem de pedidos, test rides, trocas e serviços, e as listas recentes (pedido sem e-mail, troca sem telefone). Serviço gravado em `POST /v1/service-bookings` entra nessa memória.
 
 `PATCH /v1/admin/stock` — `productId`, `colorId`, `stock`. Não altera `@lume/domain`.

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { amountForMethod, configurePrice, formatBRL, formatCep, installmentByCount, quoteShipping } from "@/lib/catalog";
+import { track } from "@/lib/analytics";
 import { placeOrder } from "@/lib/shop-api";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -58,6 +59,7 @@ export function CheckoutForm() {
           phone: String(formData.get("phone")),
         },
       });
+      track("checkout", { method, code: order.code });
       shop.rememberOrder(order.code);
       shop.clear();
       router.push(`/pedido/${order.code}`);

@@ -6,6 +6,7 @@ import {
   authVerifyBody,
   applyDiscount,
   couponDiscount,
+  coupons,
   banners,
   checkoutBody,
   configureBody,
@@ -14,6 +15,8 @@ import {
   filterShowroom,
   getDealer,
   getMotorcycle,
+  guides,
+  packsFor,
   installmentByCount,
   installmentsBody,
   motorcycles,
@@ -362,7 +365,8 @@ export function createApp(deps: CommerceDeps = {}) {
   });
 
   const sessions = new Map<string, string>();
-  const tradeIns: { id: string; createdAt: string }[] = [];
+  const tradeIns: { id: string; createdAt: string; brand: string; model: string; city: string }[] = [];
+  const serviceBookings: { id: string; createdAt: string; dealerId: string; productId: string; preferredDate: string }[] = [];
 
   app.post("/v1/service-bookings", async (c) =>
     read(c, serviceBody, (input) => {
@@ -370,8 +374,10 @@ export function createApp(deps: CommerceDeps = {}) {
       const product = getMotorcycle(input.productId);
       if (!dealer) throw new DomainError("loja_inexistente", "Loja não encontrada.");
       if (!product) throw new DomainError("produto_inexistente", "Modelo não encontrado.");
+      const booking = { id: crypto.randomUUID(), ...input, createdAt: now().toISOString() };
+      serviceBookings.push(booking);
       return {
-        booking: { id: crypto.randomUUID(), ...input, createdAt: now().toISOString() },
+        booking,
         message: "Horário de serviço pedido. A loja confirma.",
       };
     }),
@@ -419,6 +425,12 @@ export function createApp(deps: CommerceDeps = {}) {
       products: motorcycles.map((product) => ({
         id: product.id,
         name: product.name,
+        brand: product.brand,
+        batteries: packsFor(product).map((battery) => ({
+          id: battery.id,
+          name: battery.name,
+          priceDeltaCents: battery.priceDeltaCents,
+        })),
         colors: product.colors.map((color) => ({
           ...color,
           stock: stock.get(`${product.id}:${color.id}`) ?? color.stock,
@@ -427,6 +439,31 @@ export function createApp(deps: CommerceDeps = {}) {
       banners: banners.map((item) => ({ ...item, active: bannerState.get(item.id) ?? item.active })),
       orders: orders.size,
       bookings: bookings.length,
+      tradeIns: tradeIns.length,
+      serviceBookings: serviceBookings.length,
+      recentOrders: [...orders.values()].slice(-8).reverse().map((order) => ({
+        code: order.code,
+        status: order.status,
+        method: order.method,
+        totalCents: order.totalCents,
+        createdAt: order.createdAt,
+      })),
+      recentTradeIns: tradeIns.slice(-5).reverse().map((item) => ({
+        id: item.id,
+        brand: item.brand,
+        model: item.model,
+        city: item.city,
+        createdAt: item.createdAt,
+      })),
+      recentService: serviceBookings.slice(-5).reverse().map((item) => ({
+        id: item.id,
+        dealerId: item.dealerId,
+        productId: item.productId,
+        preferredDate: item.preferredDate,
+        createdAt: item.createdAt,
+      })),
+      coupons: coupons.map((coupon) => ({ code: coupon.code, label: coupon.label })),
+      guides: guides.map((guide) => ({ slug: guide.slug, title: guide.title })),
     });
   });
 

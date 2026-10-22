@@ -11,7 +11,7 @@ Você não precisa saber programar para seguir este guia. Cada passo diz o que f
 ## O que você vai ter rodando
 
 - A home, o catálogo com marca, categoria e cidade, a galeria do modelo, o configurador (cor, acessório, 360°, autonomia, preço, 21x e Pix), a comparação, o quiz, as lojas, o test ride, o carrinho, o checkout, a conta, os pedidos, a lista de desejos e as páginas institucionais.
-- A construção segue seis etapas empilhadas, descritas em [docs/REQUISITOS-TECNICOS.md](docs/REQUISITOS-TECNICOS.md). A etapa 1 acrescenta a grade multimarca, a galeria e o enquadramento de habilitação. A etapa 2 acrescenta bateria no configurador, a comparação com marca e habilitação, e a estimativa contra gasolina. A etapa 3 acrescenta cupom, rastreio de sandbox e sessão por código visível. A etapa 4 acrescenta o mapa por coordenada, o WhatsApp e o pedido de troca. A etapa 5 acrescenta guias, legislação, FAQ, foto nos relatos e agendamento de serviço.
+- A construção segue seis etapas empilhadas, descritas em [docs/REQUISITOS-TECNICOS.md](docs/REQUISITOS-TECNICOS.md). A etapa 1 acrescenta a grade multimarca, a galeria e o enquadramento de habilitação. A etapa 2 acrescenta bateria no configurador, a comparação com marca e habilitação, e a estimativa contra gasolina. A etapa 3 acrescenta cupom, rastreio de sandbox e sessão por código visível. A etapa 4 acrescenta o mapa por coordenada, o WhatsApp e o pedido de troca. A etapa 5 acrescenta guias, legislação, FAQ, foto nos relatos e agendamento de serviço. A etapa 6 acrescenta o admin com pedido, cupom e conteúdo, o aviso de cookie em duas escolhas, a medição local e o [guia de publicação](docs/deploy.md).
 - Uma API que recalcula o pedido. Pix, boleto e cartão são simulados: nenhum dinheiro sai da conta.
 - Opcionalmente, Postgres, Redis e Meilisearch via Docker.
 
@@ -243,6 +243,8 @@ cp apps/storefront/.env.example apps/storefront/.env.local
 | --- | --- | --- |
 | `NEXT_PUBLIC_SITE_URL` | `http://127.0.0.1:43123` | Endereço público do site, usado no mapa do site e nos metadados. O prefixo `NEXT_PUBLIC_` é o que o Next permite chegar ao navegador. |
 | `COMMERCE_API_URL` | `http://127.0.0.1:8787` | Para onde o servidor da vitrine encaminha `/api/commerce/...`. O navegador não fala direto com a porta 8787. |
+| `NEXT_PUBLIC_WHATSAPP` | `551140001900` | Número do botão WhatsApp, sem `+` e sem espaços. |
+| `NEXT_PUBLIC_ANALYTICS` | vazio | Só o valor `console` escreve evento no navegador, e só se o aviso de cookie for “Permitir medição local”. Deixe vazio. |
 
 Não coloque segredo em variável `NEXT_PUBLIC_`. Ela aparece no JavaScript do site.
 
@@ -456,7 +458,7 @@ pnpm install
 
 ### Limpar o que ficou no navegador
 
-O carrinho, o aviso de cookie e o perfil de demonstração ficam no navegador, não no banco. No DevTools → Application → Local Storage, apague `lume-shop-v1`, `lume-cookies` e `lume-profile`. O token do admin está em Session Storage como `lume-admin-token`.
+O carrinho, o aviso de cookie e o perfil de demonstração ficam no navegador, não no banco. No DevTools → Application → Local Storage, apague `lume-shop-v1`, `lume-cookies` e `lume-profile`. `lume-cookies` pode ser `ok` (aceite antigo), `essential` ou `analytics`. O token do admin está em Session Storage como `lume-admin-token`.
 
 ## 11. Mapa do repositório
 
@@ -492,3 +494,15 @@ pnpm --filter @lume/storefront start
 ```
 
 A API de produção local é `pnpm --filter @lume/commerce start`.
+
+## 12. Publicar
+
+O passo a passo de hospedagem, variáveis e o que continua simulado está em [docs/deploy.md](docs/deploy.md). Resumo para quem vai colocar no ar:
+
+1. Rode `pnpm lint`, `pnpm typecheck` e `pnpm test` na raiz. Os três precisam terminar sem erro.
+2. Rode `pnpm --filter @lume/storefront build`.
+3. Na API, defina `NODE_ENV=production` e um `ADMIN_TOKEN` que não seja `dev-admin-token`. Sem esse token o admin recusa todo mundo, e é assim que deve ser.
+4. Aponte `STOREFRONT_ORIGIN` para o endereço exato da vitrine e `COMMERCE_API_URL` para a API.
+5. Deixe `NEXT_PUBLIC_ANALYTICS` vazio. Pix de demonstração continua começando com `LUME-MOCK-PIX`.
+
+Não há conta de Mercado Pago nem de Pagar.me neste repositório. Publicar não passa a cobrar.

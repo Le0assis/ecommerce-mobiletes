@@ -122,6 +122,9 @@ describe("API de commerce", () => {
     expect(response.status).toBe(200);
     expect(body.tradeIn.id).toBeTruthy();
     expect(body.message).toContain("Nenhum valor");
+    const overview = await app.request("/v1/admin/overview", { headers: { "x-admin-token": "dev-admin-token" } });
+    const listed = await overview.json();
+    expect(listed.recentTradeIns.some((item: { brand: string }) => item.brand === "Usada")).toBe(true);
   });
 
   it("agenda serviço numa loja existente", async () => {
@@ -141,6 +144,10 @@ describe("API de commerce", () => {
     expect(response.status).toBe(200);
     const body = await response.json();
     expect(body.booking.id).toBeTruthy();
+    const overview = await app.request("/v1/admin/overview", { headers: { "x-admin-token": "dev-admin-token" } });
+    const listed = await overview.json();
+    expect(listed.serviceBookings).toBeGreaterThanOrEqual(1);
+    expect(listed.recentService.some((item: { productId: string }) => item.productId === "apex")).toBe(true);
   });
 
   it("protege o admin", async () => {
@@ -148,5 +155,10 @@ describe("API de commerce", () => {
     expect(denied.status).toBe(401);
     const allowed = await app.request("/v1/admin/overview", { headers: { "x-admin-token": "dev-admin-token" } });
     expect(allowed.status).toBe(200);
+    const overview = await allowed.json();
+    expect(overview.coupons.map((item: { code: string }) => item.code)).toEqual(["LUME10", "OFICINA"]);
+    expect(overview.guides.map((item: { slug: string }) => item.slug)).toContain("carregar-em-casa");
+    expect(overview.products.find((item: { id: string }) => item.id === "lume-apex").batteries.map((item: { id: string }) => item.id)).toEqual(["serie", "longa"]);
+    expect(Array.isArray(overview.recentOrders)).toBe(true);
   });
 });

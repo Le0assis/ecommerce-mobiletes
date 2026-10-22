@@ -26,8 +26,16 @@ async function GuideBody({ params }: PageProps<"/guias/[slug]">) {
   const { slug } = await params;
   const guide = getGuide(slug);
   if (!guide) notFound();
+  const article = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: guide.title,
+    description: guide.lede,
+    inLanguage: "pt-BR",
+  };
   return (
     <main id="conteudo" className="mx-auto max-w-3xl px-5 pt-28 pb-20">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(article) }} />
       <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Guia</p>
       <h1 className="display mt-3 text-6xl md:text-8xl">{guide.title}</h1>
       <p className="mt-6 text-lg text-muted-foreground">{guide.lede}</p>

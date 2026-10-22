@@ -8,8 +8,18 @@ export const metadata: Metadata = {
 };
 
 export default function FaqPage() {
+  const structured = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faq.map((item) => ({
+      "@type": "Question",
+      name: item.question,
+      acceptedAnswer: { "@type": "Answer", text: item.answer },
+    })),
+  };
   return (
     <PageShell eyebrow="Ajuda" title="FAQ." lede="Respostas curtas. O contrato e o jurídico vencem este texto.">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structured) }} />
       <div className="grid gap-3">
         {faq.map((item) => (
           <details key={item.question} className="rounded-[1.5rem] border border-white/10 p-5">

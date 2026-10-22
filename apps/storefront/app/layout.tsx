@@ -31,6 +31,11 @@ export const metadata: Metadata = {
     siteName: "LUME",
     type: "website",
   },
+  twitter: {
+    card: "summary",
+    title: "LUME — motos e mobiletes elétricas",
+    description: "21x sem juros, Pix com 5% e frete por CEP.",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
