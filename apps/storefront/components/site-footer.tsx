@@ -20,6 +20,7 @@ export function SiteFooter() {
           <Link href="/financiamento">21× e Pix</Link>
           <Link href="/lojas">Lojas</Link>
           <Link href="/test-ride">Test ride</Link>
+          <Link href="/troca">Troca do usado</Link>
         </div>
         <div className="flex flex-col gap-2 text-sm text-muted-foreground">
           <Link href="/sobre">Sobre</Link>

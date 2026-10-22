@@ -1,13 +1,13 @@
 import { dealers, type Dealer } from "@/lib/catalog";
 import Link from "next/link";
 
-const pins: Record<string, { x: number; y: number }> = {
-  "sp-vila-madalena": { x: 63, y: 64 },
-  "rj-botafogo": { x: 72, y: 62 },
-  "bh-savassi": { x: 66, y: 52 },
-  "cwb-batel": { x: 58, y: 72 },
-  "poa-moinhos": { x: 55, y: 86 },
-};
+const bounds = { north: 6, south: -34, west: -74, east: -34 };
+
+function project(lat: number, lng: number) {
+  const x = ((lng - bounds.west) / (bounds.east - bounds.west)) * 100;
+  const y = ((bounds.north - lat) / (bounds.north - bounds.south)) * 100;
+  return { x, y };
+}
 
 export function LocatorMap({ active }: { active: Dealer[] }) {
   const visible = new Set(active.map((dealer) => dealer.id));
@@ -15,8 +15,8 @@ export function LocatorMap({ active }: { active: Dealer[] }) {
   return (
     <figure className="overflow-hidden rounded-[2rem] border border-white/10 bg-[#101013]">
       <figcaption className="flex items-center justify-between gap-4 px-5 pt-5 text-xs tracking-[0.16em] text-muted-foreground uppercase">
-        <span>Esquema das lojas</span>
-        <span>Não é mapa geográfico</span>
+        <span>Coordenadas de demonstração</span>
+        <span>Projeção simples, sem mapa de terceiros</span>
       </figcaption>
       <div className="relative mx-auto aspect-[4/5] max-h-[28rem] w-full max-w-md">
         <svg viewBox="0 0 100 120" className="absolute inset-0 h-full w-full" aria-hidden="true">
@@ -27,8 +27,7 @@ export function LocatorMap({ active }: { active: Dealer[] }) {
           />
         </svg>
         {dealers.map((dealer) => {
-          const pin = pins[dealer.id];
-          if (!pin) return null;
+          const pin = project(dealer.lat, dealer.lng);
           const on = visible.has(dealer.id);
           return (
             <Link
@@ -43,6 +42,9 @@ export function LocatorMap({ active }: { active: Dealer[] }) {
           );
         })}
       </div>
+      <p className="px-5 pb-5 text-xs text-muted-foreground">
+        Os pontos usam latitude e longitude de referência dos bairros. Não é tile de mapa e o endereço comercial real ainda não existe.
+      </p>
     </figure>
   );
 }

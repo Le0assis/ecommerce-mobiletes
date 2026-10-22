@@ -103,6 +103,27 @@ describe("API de commerce", () => {
     expect(account.orders.map((item: { code: string }) => item.code)).toContain(body.order.code);
   });
 
+  it("registra pedido de troca sem oferecer preço", async () => {
+    const response = await app.request("/v1/trade-ins", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        name: "Gustavo Teste",
+        email: "gustavo@example.com",
+        phone: "11999990000",
+        brand: "Usada",
+        model: "150",
+        year: 2018,
+        km: 18000,
+        city: "São Paulo",
+      }),
+    });
+    const body = await response.json();
+    expect(response.status).toBe(200);
+    expect(body.tradeIn.id).toBeTruthy();
+    expect(body.message).toContain("Nenhum valor");
+  });
+
   it("protege o admin", async () => {
     const denied = await app.request("/v1/admin/overview");
     expect(denied.status).toBe(401);

@@ -115,7 +115,9 @@ Identificadores estáveis para o backlog. O que está marcado como vitrine já e
 - RF-QUIZ-01. Perguntas de uso, km/dia, velocidade, orçamento, tomada e garupa. Duas recomendações com motivo. Vitrine, calculado no domínio. A API expõe o mesmo contrato.
 - RF-RIDE-01. Agendar test ride: modelo, loja que tenha o modelo, nome, e-mail, telefone e data. Vitrine. Confirmação humana da loja é v1.
 - RF-LOJA-01. Lista de lojas e filtro por cidade, com atalho para o test ride. Endereço comercial real substitui o de demonstração. Vitrine.
-- RF-LOJA-02. Mapa com coordenada real. v1, quando o ponto existir. A vitrine mostra um esquema do Brasil, explicitamente não geográfico.
+- RF-LOJA-02. Mapa com coordenada. Etapa 4 plota latitude e longitude de demonstração numa projeção simples, sem tile de terceiro. O endereço comercial real continua pendente.
+- RF-WA-01. Botão de WhatsApp com mensagem pronta. O número padrão é o das lojas de demonstração. Etapa 4.
+- RF-TRD-01. Pedido de avaliação do usado, sem preço automático. Etapa 4.
 
 ### Carrinho, frete e checkout
 

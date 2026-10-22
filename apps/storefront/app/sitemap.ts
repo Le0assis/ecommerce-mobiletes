@@ -16,6 +16,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/garantia",
     "/trocas",
     "/contato",
+    "/troca",
     "/privacidade",
     ...motorcycles.map((product) => `/motos/${product.slug}`),
   ];

@@ -71,6 +71,17 @@ export const reviewBody = z.object({
   body: z.string().trim().min(10).max(800),
 });
 
+export const tradeInBody = z.object({
+  name: z.string().trim().min(3).max(80),
+  email: z.email(),
+  phone: z.string().trim().min(10).max(20),
+  brand: z.string().trim().min(2).max(40),
+  model: z.string().trim().min(1).max(60),
+  year: z.number().int().min(1990).max(2030),
+  km: z.number().int().min(0).max(500_000),
+  city: z.string().trim().min(2).max(60),
+});
+
 export const authRequestBody = z.object({
   email: z.email(),
 });

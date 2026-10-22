@@ -1,4 +1,5 @@
 import { CookieNotice } from "@/components/cookie-notice";
+import { WhatsAppButton } from "@/components/whatsapp-button";
 import { FloatingNav } from "@/components/floating-nav";
 import { ShopProvider } from "@/components/shop-provider";
 import { SiteFooter } from "@/components/site-footer";
@@ -51,6 +52,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <Suspense fallback={null}>
             <StickyTestRide />
           </Suspense>
+          <WhatsAppButton />
           <CookieNotice />
         </ShopProvider>
       </body>

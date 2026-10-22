@@ -27,6 +27,7 @@ import {
   quoteShipping,
   stockPatchBody,
   testRideBody,
+  tradeInBody,
   type PaymentMethod,
 } from "@lume/domain";
 import { Hono } from "hono";
@@ -360,6 +361,15 @@ export function createApp(deps: CommerceDeps = {}) {
   });
 
   const sessions = new Map<string, string>();
+  const tradeIns: { id: string; createdAt: string }[] = [];
+
+  app.post("/v1/trade-ins", async (c) =>
+    read(c, tradeInBody, (input) => {
+      const tradeIn = { id: crypto.randomUUID(), ...input, createdAt: now().toISOString() };
+      tradeIns.push(tradeIn);
+      return { tradeIn, message: "Pedido de avaliação recebido. Nenhum valor foi oferecido." };
+    }),
+  );
 
   app.post("/v1/auth/request", async (c) =>
     read(c, authRequestBody, (input) => ({
