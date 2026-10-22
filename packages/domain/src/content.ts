@@ -40,7 +40,7 @@ export const dealers: Dealer[] = [
     cep: "05435-000",
     phone: "(11) 4000-1900",
     hours: "Ter–sáb, 11h–19h",
-    testRideSlugs: ["s", "city", "via", "apex"],
+    testRideSlugs: ["s", "city", "via", "apex", "pico", "onda", "rua"],
   },
   {
     id: "rj-botafogo",

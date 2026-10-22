@@ -24,7 +24,7 @@ Segundo adquirente se o contrato pedir. Payload para banner e página. Meilisear
 
 NF-e (Focus NFe, NFe.io ou eNotas), com o contador, porque veículo tem emplacamento. glTF no 360° e filme HLS. GSAP só se houver cena pinada. CDC bancário, além da parcela do cartão. Troca de usado. Manual e garantia operacionais. Rede de recarga. Multi-depósito. Indicação.
 
-Fora até alguém reabrir: assinatura, troca de bateria no modelo de estação, aplicativo nativo, multi-marca.
+Fora até alguém reabrir: assinatura, troca de bateria no modelo de estação, aplicativo nativo. A grade multimarca foi reaberta pelo dono na etapa 1, só com marcas de demonstração.
 
 ## Como saber se regrediu
 

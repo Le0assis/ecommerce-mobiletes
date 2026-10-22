@@ -7,7 +7,7 @@ import { Suspense } from "react";
 
 export const metadata: Metadata = {
   title: "Motos",
-  description: "Linha LUME. Filtre por categoria e pela cidade da loja.",
+  description: "Linha da casa e marcas parceiras. Filtre por marca, categoria e cidade da loja.",
 };
 
 export default function MotosPage(props: PageProps<"/motos">) {
@@ -23,16 +23,18 @@ async function Catalog({ searchParams }: PageProps<"/motos">) {
   const category = typeof query.categoria === "string" ? query.categoria : undefined;
   const city = typeof query.cidade === "string" ? query.cidade : undefined;
   const q = typeof query.q === "string" ? query.q : undefined;
+  const brand = typeof query.marca === "string" ? query.marca : undefined;
   const order = typeof query.ordem === "string" && isCatalogOrder(query.ordem) ? query.ordem : "destaque";
-  const result = filterShowroom({ category, city, q });
+  const result = filterShowroom({ category, city, q, brand });
   const products = sortProducts(result.products, order);
 
   return (
     <main id="conteudo" className="mx-auto max-w-6xl px-5 pt-28 pb-16">
       <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Catálogo</p>
-      <h1 className="display mt-3 text-6xl md:text-8xl">A linha.</h1>
+      <h1 className="display mt-3 text-6xl md:text-8xl">A grade.</h1>
+      <p className="mt-4 max-w-xl text-muted-foreground">LUME e três marcas parceiras de demonstração. Nenhuma delas é um fabricante real.</p>
       <div className="mt-8">
-        <CategorySearch category={category} city={city} q={q} order={order} />
+        <CategorySearch category={category} city={city} q={q} order={order} brand={brand} />
       </div>
       <p className="mt-6 text-sm text-muted-foreground">
         {products.length === 0 ? "Nenhum modelo" : products.length === 1 ? "1 modelo" : `${products.length} modelos`}

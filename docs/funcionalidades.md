@@ -14,7 +14,7 @@ Estender: novo capítulo entra como `<section>` na home. Banner editável é v1 
 
 `app/motos/page.tsx` e `components/category-search.tsx`.
 
-`filterShowroom` aplica categoria, cidade e texto. Cidade filtra onde há test ride, não o frete. A busca ignora acento. `sortProducts` em `lib/catalog.ts` ordena por preço, autonomia ou velocidade. O parâmetro é `ordem`.
+`filterShowroom` aplica categoria, marca, cidade e texto. Cidade filtra onde há test ride, não o frete. A busca ignora acento e encontra o nome da marca. `sortProducts` em `lib/catalog.ts` ordena por preço, autonomia ou velocidade. Os parâmetros são `ordem` e `marca`. VOLTIS, BRUMA e SENDA são marcas de demonstração.
 
 Estado vazio oferece limpar o filtro. Cor sem estoque não entra no preço do card: o card usa a primeira cor com estoque.
 

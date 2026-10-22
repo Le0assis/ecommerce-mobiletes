@@ -1,5 +1,22 @@
 export type Category = "mobilete" | "scooter" | "naked" | "adventure" | "sport";
 
+/** Enquadramento de referência. Não substitui parecer jurídico nem a resolução vigente. */
+export type RegistrationClass = "autopropelido" | "ciclomotor" | "moto";
+
+export const registrationLabel: Record<RegistrationClass, string> = {
+  autopropelido: "Autopropelido",
+  ciclomotor: "Ciclomotor",
+  moto: "Moto",
+};
+
+export const registrationNote: Record<RegistrationClass, string> = {
+  autopropelido:
+    "Veículo de baixa velocidade. CNH, placa e capacete dependem da regra vigente para essa faixa. Confirme com o jurídico antes de uma campanha.",
+  ciclomotor:
+    "Faixa de ciclomotor: velocidade limitada, em geral ACC ou habilitação própria, emplacamento e capacete. O texto de potência contínua entra na homologação.",
+  moto: "Condução na categoria A, emplacamento e capacete. A potência de cada modelo só vale depois da homologação.",
+};
+
 const categoryIds: Category[] = ["mobilete", "scooter", "naked", "adventure", "sport"];
 
 export function isCategory(value: string): value is Category {
@@ -38,6 +55,9 @@ export type Motorcycle = {
   name: string;
   tagline: string;
   category: Category;
+  /** Marca da vitrine. LUME é a casa. As outras são linhas parceiras de demonstração, não catálogos de terceiros. */
+  brand: string;
+  registrationClass: RegistrationClass;
   description: string;
   basePriceCents: number;
   topSpeedKmh: number;
@@ -162,6 +182,8 @@ export const motorcycles: Motorcycle[] = [
     name: "LUME S",
     tagline: "A mobilete da volta curta.",
     category: "mobilete",
+    brand: "LUME",
+    registrationClass: "ciclomotor",
     description:
       "Para o raio em que o carro é desperdício e a bicicleta não chega. Passo baixo, rodas menores, bateria no assoalho e silêncio de verdade até 45 km/h.",
     basePriceCents: 1_490_000,
@@ -186,6 +208,8 @@ export const motorcycles: Motorcycle[] = [
     name: "LUME City",
     tagline: "Scooter para a cidade inteira.",
     category: "scooter",
+    brand: "LUME",
+    registrationClass: "moto",
     description:
       "Escudo frontal, assoalho plano e autonomia para ir e voltar sem pensar em tomada. Feita para corredor, não para planilha de pista.",
     basePriceCents: 2_190_000,
@@ -209,6 +233,8 @@ export const motorcycles: Motorcycle[] = [
     name: "LUME Via",
     tagline: "Naked urbana, torque imediato.",
     category: "naked",
+    brand: "LUME",
+    registrationClass: "moto",
     description:
       "Quadro à vista, bateria no centro e uma resposta que o semáforo não espera. O meio de linha para quem quer moto, não scooter.",
     basePriceCents: 3_490_000,
@@ -232,6 +258,8 @@ export const motorcycles: Motorcycle[] = [
     name: "LUME Serra",
     tagline: "Adventure para a estrada que sobra.",
     category: "adventure",
+    brand: "LUME",
+    registrationClass: "moto",
     description:
       "Suspensão alta, bico contra o vento e autonomia de quem sai da cidade no feriado. A bateria maior também é o tanque.",
     basePriceCents: 4_690_000,
@@ -255,6 +283,8 @@ export const motorcycles: Motorcycle[] = [
     name: "LUME Apex",
     tagline: "A flagship. Silêncio em 180 km/h.",
     category: "sport",
+    brand: "LUME",
+    registrationClass: "moto",
     description:
       "Carenagem fechada, bateria de 14,6 kWh e a autonomia mais longa da linha. O número grande do hero é este: 180 km/h, até 280 km.",
     basePriceCents: 6_290_000,
@@ -271,6 +301,81 @@ export const motorcycles: Motorcycle[] = [
     colors: [obsidiana(5), nevoa(3), sal(2), cobre(2), circuito(2)],
     accessoryIds: ["protetor", "banco", "bolsa", "carregador", "garupa"],
     optimalSpeedKmh: 90,
+  },
+  {
+    id: "voltis-pico",
+    slug: "pico",
+    name: "VOLTIS Pico",
+    tagline: "Autopropelido para o quarteirão.",
+    category: "mobilete",
+    brand: "VOLTIS",
+    registrationClass: "autopropelido",
+    description:
+      "Linha parceira de demonstração. Passo baixo, teto de 25 km/h e bateria pequena. Não é um produto de outra marca real: a VOLTIS existe só nesta vitrine.",
+    basePriceCents: 990_000,
+    topSpeedKmh: 25,
+    rangeKm: 30,
+    powerKw: 0.8,
+    torqueNm: 28,
+    batteryKwh: 0.6,
+    weightKg: 48,
+    seatHeightMm: 740,
+    chargeHours: 3,
+    fastChargeMin: null,
+    licenseNote: "Enquadramento de autopropelido a confirmar. Não publique exigência de CNH sem o jurídico.",
+    colors: [obsidiana(10), nevoa(6)],
+    accessoryIds: ["bolsa", "carregador"],
+    optimalSpeedKmh: 20,
+  },
+  {
+    id: "bruma-onda",
+    slug: "onda",
+    name: "BRUMA Onda",
+    tagline: "Ciclomotor parceiro, escudo curto.",
+    category: "scooter",
+    brand: "BRUMA",
+    registrationClass: "ciclomotor",
+    description:
+      "Segunda marca da vitrine, no desenho de um catálogo denso: preço de entrada, velocidade limitada e assoalho plano. A BRUMA não existe fora desta demonstração.",
+    basePriceCents: 1_690_000,
+    topSpeedKmh: 50,
+    rangeKm: 55,
+    powerKw: 2.4,
+    torqueNm: 48,
+    batteryKwh: 1.6,
+    weightKg: 92,
+    seatHeightMm: 760,
+    chargeHours: 4,
+    fastChargeMin: null,
+    licenseNote: "Tratar como ciclomotor até a homologação dizer o contrário.",
+    colors: [obsidiana(7), sal(4, 20_000)],
+    accessoryIds: ["bolsa", "banco", "carregador"],
+    optimalSpeedKmh: 40,
+  },
+  {
+    id: "senda-rua",
+    slug: "rua",
+    name: "SENDA Rua",
+    tagline: "Naked parceira para o corredor.",
+    category: "naked",
+    brand: "SENDA",
+    registrationClass: "moto",
+    description:
+      "Terceira marca da grade. Quadro à vista, teto de via expressa e o mesmo checkout da casa. A SENDA é nome de demonstração.",
+    basePriceCents: 3_190_000,
+    topSpeedKmh: 120,
+    rangeKm: 140,
+    powerKw: 11,
+    torqueNm: 140,
+    batteryKwh: 6.2,
+    weightKg: 158,
+    seatHeightMm: 800,
+    chargeHours: 6,
+    fastChargeMin: 40,
+    licenseNote: "Condução na categoria A.",
+    colors: [obsidiana(5), cobre(2)],
+    accessoryIds: ["protetor", "bolsa", "garupa", "carregador"],
+    optimalSpeedKmh: 60,
   },
 ];
 
@@ -294,9 +399,11 @@ export function searchCatalog(query: string): Motorcycle[] {
   return motorcycles.filter((item) => {
     const haystack = [
       item.name,
+      item.brand,
       item.tagline,
       item.category,
       categoryLabel[item.category],
+      registrationLabel[item.registrationClass],
       item.description,
       `${item.topSpeedKmh}`,
       `${item.rangeKm}`,

@@ -1,6 +1,6 @@
 "use client";
 
-import { BikeSvg } from "@/components/bike-svg";
+import { ProductGallery } from "@/components/product-gallery";
 import { InstallmentTable } from "@/components/installment-table";
 import { ProductCard } from "@/components/product-card";
 import { ReviewForm, usePendingReviews } from "@/components/review-form";
@@ -12,6 +12,8 @@ import {
   estimateRange,
   formatBRL,
   installmentByCount,
+  registrationLabel,
+  registrationNote,
   relatedMotorcycles,
   reviewsFor,
   type Accessory,
@@ -91,7 +93,7 @@ export function Configurator({ product }: { product: Motorcycle }) {
                 <BikeViewer color={color.hex} />
               </div>
             ) : (
-              <BikeSvg variant={product.category} color={color?.hex ?? "#f4f4f2"} title={product.name} className="h-[28rem] w-full" />
+              <ProductGallery name={product.name} variant={product.category} color={color?.hex ?? "#f4f4f2"} />
             )}
             <Button variant="outline" className="absolute top-4 right-4 rounded-full border-white/20" onClick={() => setSpin((value) => !value)}>
               {spin ? "Ver ilustração" : "Ver em 360°"}
@@ -113,9 +115,16 @@ export function Configurator({ product }: { product: Motorcycle }) {
           </dl>
           <p className="mt-4 max-w-xl text-sm text-muted-foreground">{product.description}</p>
           <p className="mt-3 text-xs text-muted-foreground">{product.licenseNote}</p>
+          <aside className="mt-4 max-w-xl rounded-2xl border border-white/10 p-4">
+            <p className="text-xs tracking-[0.16em] text-muted-foreground uppercase">Habilitação e emplacamento</p>
+            <p className="mt-2 text-paper">{registrationLabel[product.registrationClass]}</p>
+            <p className="mt-2 text-sm text-muted-foreground">{registrationNote[product.registrationClass]}</p>
+          </aside>
         </div>
         <div>
-          <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">{product.tagline}</p>
+          <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
+          {product.brand} · {product.tagline}
+        </p>
           <h1 className="display mt-3 text-7xl">{product.name.replace("LUME ", "")}</h1>
           <div className="nums mt-6 grid grid-cols-2 gap-4">
             <p>

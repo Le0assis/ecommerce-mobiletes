@@ -122,6 +122,12 @@ describe("vitrine por categoria e cidade", () => {
     expect(result.dealers).toHaveLength(1);
   });
 
+  it("filtra a marca parceira sem misturar a casa", () => {
+    const result = filterShowroom({ brand: "voltis" });
+    expect(result.products.map((item) => item.slug)).toEqual(["pico"]);
+    expect(result.products[0]?.registrationClass).toBe("autopropelido");
+  });
+
   it("não inventa loja em cidade sem operação", () => {
     const result = filterShowroom({ city: "Recife" });
     expect(result.dealers).toHaveLength(0);

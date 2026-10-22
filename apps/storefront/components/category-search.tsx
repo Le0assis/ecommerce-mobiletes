@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { categoryLabel, cities, type CatalogOrder, type Category } from "@/lib/catalog";
+import { brands, categoryLabel, cities, type CatalogOrder, type Category } from "@/lib/catalog";
 
 const categories = Object.keys(categoryLabel) as Category[];
 
@@ -10,15 +10,17 @@ export function CategorySearch({
   city,
   q,
   order = "destaque",
+  brand,
 }: {
   category?: string;
   city?: string;
   q?: string;
   order?: CatalogOrder | string;
+  brand?: string;
 }) {
   return (
     <form action="/motos" className="grid gap-4 rounded-[2rem] border border-white/10 bg-[#121216]/80 p-4 shadow-2xl backdrop-blur-xl md:p-5">
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <label className="grid gap-2 text-xs tracking-[0.16em] text-muted-foreground uppercase">
           Categoria
           <select name="categoria" defaultValue={category ?? ""} className={fieldClass}>
@@ -35,6 +37,17 @@ export function CategorySearch({
           <select name="cidade" defaultValue={city ?? ""} className={fieldClass}>
             <option value="">Onde ver de perto</option>
             {cities().map((item) => (
+              <option key={item} value={item}>
+                {item}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="grid gap-2 text-xs tracking-[0.16em] text-muted-foreground uppercase">
+          Marca
+          <select name="marca" defaultValue={brand ?? ""} className={fieldClass}>
+            <option value="">Todas</option>
+            {brands().map((item) => (
               <option key={item} value={item}>
                 {item}
               </option>

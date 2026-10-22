@@ -10,7 +10,8 @@ Você não precisa saber programar para seguir este guia. Cada passo diz o que f
 
 ## O que você vai ter rodando
 
-- A home, o catálogo com filtros, o configurador (cor, acessório, 360°, autonomia, preço, 21x e Pix), a comparação, o quiz, as lojas, o test ride, o carrinho, o checkout, a conta, os pedidos, a lista de desejos e as páginas institucionais.
+- A home, o catálogo com marca, categoria e cidade, a galeria do modelo, o configurador (cor, acessório, 360°, autonomia, preço, 21x e Pix), a comparação, o quiz, as lojas, o test ride, o carrinho, o checkout, a conta, os pedidos, a lista de desejos e as páginas institucionais.
+- A construção segue seis etapas empilhadas, descritas em [docs/REQUISITOS-TECNICOS.md](docs/REQUISITOS-TECNICOS.md). A etapa 1 acrescenta a grade multimarca, a galeria e o enquadramento de habilitação.
 - Uma API que recalcula o pedido. Pix, boleto e cartão são simulados: nenhum dinheiro sai da conta.
 - Opcionalmente, Postgres, Redis e Meilisearch via Docker.
 

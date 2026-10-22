@@ -14,7 +14,9 @@ export function ProductCard({ product }: { product: Motorcycle }) {
   return (
     <article className="flex flex-col rounded-[2rem] border border-white/10 bg-[#121216] p-4">
       <div className="flex items-center justify-between gap-3 text-xs tracking-[0.16em] text-muted-foreground uppercase">
-        <span>{categoryLabel[product.category]}</span>
+        <span>
+          {product.brand} · {categoryLabel[product.category]}
+        </span>
         <WishToggle slug={product.slug} />
       </div>
       <Link href={`/motos/${product.slug}`} className="mt-3 block">

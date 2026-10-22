@@ -150,6 +150,7 @@ export function createApp(deps: CommerceDeps = {}) {
       q: c.req.query("q"),
       category: c.req.query("categoria") ?? undefined,
       city: c.req.query("cidade") ?? undefined,
+      brand: c.req.query("marca") ?? undefined,
     });
     return c.json({
       products: result.products.map(serializeProduct),

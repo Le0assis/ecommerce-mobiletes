@@ -4,7 +4,7 @@ O catálogo que a vitrine lê está em `packages/domain/src/catalog.ts`. O Postg
 
 ## Modelo (`Motorcycle`)
 
-`id`, `slug`, `name`, `tagline`, `category` (`mobilete | scooter | naked | adventure | sport`), `description`, `basePriceCents`, `topSpeedKmh`, `rangeKm`, `powerKw`, `torqueNm`, `batteryKwh`, `weightKg`, `seatHeightMm`, `chargeHours`, `fastChargeMin` ou `null`, `licenseNote`, `colors`, `accessoryIds`, `optimalSpeedKmh`.
+`id`, `slug`, `name`, `tagline`, `category` (`mobilete | scooter | naked | adventure | sport`), `brand` (`LUME`, `VOLTIS`, `BRUMA` ou `SENDA`), `registrationClass` (`autopropelido | ciclomotor | moto`), `description`, `basePriceCents`, `topSpeedKmh`, `rangeKm`, `powerKw`, `torqueNm`, `batteryKwh`, `weightKg`, `seatHeightMm`, `chargeHours`, `fastChargeMin` ou `null`, `licenseNote`, `colors`, `accessoryIds`, `optimalSpeedKmh`.
 
 Linha de demonstração:
 

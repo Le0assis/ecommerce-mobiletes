@@ -6,7 +6,7 @@ Os números de produto deste repositório (preço, kW, autonomia, estoque, lojas
 
 ## 1. O que a loja tem de vender
 
-A LUME não é um marketplace de peças. É uma marca com poucos modelos, configuração visível e uma decisão de compra rápida: ver a moto, ver o preço, ver a parcela, pagar no Pix ou reservar um test ride.
+A LUME não é um marketplace de peças. É uma loja com a marca da casa e poucas linhas parceiras de demonstração, configuração visível e uma decisão de compra rápida: ver a moto, ver o preço, ver a parcela, pagar no Pix ou reservar um test ride.
 
 A pesquisa visual entra como restrição de interface, não como tema para copiar.
 
@@ -25,10 +25,23 @@ A pesquisa visual entra como restrição de interface, não como tema para copia
 | Polestar | Vídeo escuro em tela cheia e a forma de pagar já na primeira dobra. | Assinatura de carro. Vira 21x e Pix. |
 | Rivian | Menu em cartão flutuante e um CTA claro. | Frota de aventura. |
 | Rad Power Bikes | Quiz, mapa de loja, ícones de confiança. | O visual de bicicleta utilitária. |
-| Eletrycos | Busca por categoria e cidade. Varejistas em círculos, como stories. | A grade de multimarca. A LUME mostra as próprias lojas. |
+| Eletrycos | Busca por categoria, cidade e marca. Varejistas em círculos, como stories. | O inventário real de terceiros. As marcas parceiras da vitrine (VOLTIS, BRUMA, SENDA) são nomes de demonstração. |
+| Segway, NIU, Super Soco, Yadea | Densidade de catálogo: várias carrocerias, preço de entrada e ficha curta no card. | Nome, foto e preço desses fabricantes. Nada aqui é SKU deles. |
 | Voltage | 21x sem juros em evidência e Pix marcado. | A página de oferta genérica. O número entra no hero, no card e no checkout. |
+| Varejo brasileiro | Pix com desconto, parcelado sem juros, frete por CEP, botão de WhatsApp, e o enquadramento por categoria: autopropelido, ciclomotor ou moto. | Prometer CNH ou placa sem o jurídico. O texto da página é referência, não parecer. |
 
-Direção fechada: visual VanMoof/Cowboy (preto grafite, tipo fino enorme, produto flutuando, menu em cartão) com conversão brasileira (21x sem juros, Pix, test ride grudado, quiz, busca por categoria e cidade).
+Direção fechada: visual VanMoof/Cowboy (preto grafite, tipo fino enorme, produto flutuando, menu em cartão), configurador e filme no espírito Polestar/Rivian/LiveWire, quiz e lojas no espírito Rad, grade densa no espírito dos catálogos asiáticos, busca multimarca no espírito Eletrycos, e conversão brasileira (21x sem juros, Pix com desconto, boleto, CEP, WhatsApp, test ride, enquadramento de habilitação).
+
+## 1.1 Plano em etapas
+
+O dono aprovou a construção em seis etapas, cada uma num pull request empilhado sobre a anterior, sem merge até a revisão. O status de cada requisito diz em que etapa ele fecha.
+
+1. Fundação: sistema visual, layout, home, navegação, catálogo com filtro de marca e busca, página do modelo com galeria, ficha e autonomia, e este documento com todas as referências.
+2. Configurador de cor, bateria e acessório com preço ao vivo, comparador, quiz e calculadora de autonomia e de economia contra gasolina.
+3. Carrinho e checkout: frete por CEP, desconto de Pix, boleto, parcelas, sandbox de Mercado Pago e Pagar.me, cupom, conta, pedidos e rastreio.
+4. Simulação de financiamento, test ride, lojas com mapa, WhatsApp e pedido de troca do usado.
+5. Conteúdo: CMS de demonstração, guias, legislação e CNH, reviews com foto, FAQ, garantia e agendamento de serviço.
+6. Admin, SEO, analytics, desempenho, acessibilidade, LGPD, testes de ponta a ponta e guia de deploy.
 
 ## 2. Diretrizes de design
 
@@ -73,7 +86,8 @@ Identificadores estáveis para o backlog. O que está marcado como vitrine já e
 ### Catálogo
 
 - RF-CAT-01. Listar modelos com categoria, preço de entrada, autonomia, velocidade, 21x e Pix. Vitrine.
-- RF-CAT-02. Filtrar por categoria (mobilete, scooter, naked, adventure, sport) e por cidade da loja. A cidade filtra onde há test ride daquele modelo, não o frete. Vitrine.
+- RF-CAT-02. Filtrar por categoria (mobilete, scooter, naked, adventure, sport), por marca e por cidade da loja. A cidade filtra onde há test ride daquele modelo, não o frete. Etapa 1.
+- RF-CAT-06. Marcas parceiras de demonstração na mesma grade da casa, com busca textual também no nome da marca. Não usar SKU, foto ou preço de Segway, NIU, Super Soco, Yadea ou Eletrycos. Etapa 1.
 - RF-CAT-03. Busca textual simples no nome, na categoria e no texto, com ordem por preço, autonomia ou velocidade. Vitrine em memória. Meilisearch é o índice da v1.
 - RF-CAT-04. Estado vazio quando a cidade não tem loja, com caminho para ver a linha inteira e seguir por CEP. Vitrine.
 - RF-CAT-05. Selo de estoque por cor. Cor com estoque zero não entra no preço. Vitrine.
@@ -85,6 +99,10 @@ Identificadores estáveis para o backlog. O que está marcado como vitrine já e
 - RF-PDP-03. Pix a 5% e boleto a 3% sobre o subtotal configurado. O frete não leva desconto. Vitrine.
 - RF-PDP-04. 21x sem juros sobre o total configurado, campanha de lançamento. A taxa mora no código (`LAUNCH_INTEREST_FREE_UP_TO`) para o financeiro reduzir a carência sem reescrever o checkout. A Tabela Price está testada para quando o sem juros voltar a 6x. Vitrine.
 - RF-PDP-05. Calculadora de autonomia: modo eco, cidade ou esporte, velocidade e peso extra. É estimativa, não ciclo de homologação, e o texto diz isso. Vitrine.
+- RF-PDP-11. Galeria com vistas lateral, detalhe e frente antes do 360°. Etapa 1.
+- RF-PDP-12. Ficha de habilitação por classe: autopropelido, ciclomotor ou moto, com aviso de que não é parecer jurídico. Etapa 1.
+- RF-PDP-13. Opção de bateria no configurador, com delta de preço e de autonomia. Etapa 2.
+- RF-PDP-14. Economia estimada contra gasolina: preço do kWh, da gasolina, km/mês e consumo do carro de referência. Estimativa, não estudo de TCO. Etapa 2.
 - RF-PDP-06. Viewer 360°. Hoje é uma massa simples em React Three Fiber, carregada só no clique, com a ilustração SVG no primeiro paint. O glTF real, com fallback de fotos para Android de entrada, é v1.
 - RF-PDP-07. Reservar leva a configuração ao checkout. A API recalcula e ignora preço vindo do browser. Vitrine.
 - RF-PDP-08. Lista de desejos neste navegador. Vitrine. Conta de verdade sincroniza na v1.

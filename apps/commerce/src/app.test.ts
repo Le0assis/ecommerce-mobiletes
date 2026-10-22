@@ -18,6 +18,13 @@ describe("API de commerce", () => {
     expect(body.products.map((item: { slug: string }) => item.slug)).toContain("s");
   });
 
+  it("filtra marca parceira", async () => {
+    const response = await app.request("/v1/products?marca=SENDA");
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.products.map((item: { slug: string }) => item.slug)).toEqual(["rua"]);
+  });
+
   it("recalcula o checkout e destaca o Pix sem confiar no preço do cliente", async () => {
     const response = await app.request("/v1/checkout", {
       method: "POST",
