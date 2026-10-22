@@ -7,8 +7,10 @@ test("a home vende em 21 vezes e no Pix, e o configurador muda o preço", async 
   await expect(page.getByTestId("pix-price")).toContainText("PIX");
 
   await page.goto("/motos/apex");
+  await page.locator("html[data-configurator=ready]").waitFor();
   const before = await page.getByTestId("live-price").innerText();
   await page.getByTestId("color-cobre").click();
+  await expect(page.getByTestId("live-price")).toContainText("64.700,00");
   await expect(page.getByTestId("live-price")).not.toHaveText(before);
 
   await page.getByTestId("reserve").click();

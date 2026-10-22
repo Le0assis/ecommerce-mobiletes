@@ -2,7 +2,8 @@
 
 import { BikeSvg } from "@/components/bike-svg";
 import { useShop } from "@/components/shop-provider";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { cn } from "cn";
 import {
   accessoriesFor,
   configurePrice,
@@ -16,7 +17,7 @@ import {
 } from "@lume/domain";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 const BikeViewer = dynamic(() => import("@/components/bike-viewer").then((mod) => mod.BikeViewer), {
@@ -27,6 +28,13 @@ const BikeViewer = dynamic(() => import("@/components/bike-viewer").then((mod) =
 export function Configurator({ product }: { product: Motorcycle }) {
   const router = useRouter();
   const shop = useShop();
+
+  useEffect(() => {
+    document.documentElement.dataset.configurator = "ready";
+    return () => {
+      delete document.documentElement.dataset.configurator;
+    };
+  }, []);
   const options = accessoriesFor(product);
   const firstColor = product.colors.find((color) => color.stock > 0) ?? product.colors[0];
   const [colorId, setColorId] = useState(firstColor?.id ?? "");
@@ -196,9 +204,9 @@ export function Configurator({ product }: { product: Motorcycle }) {
               <Button variant="outline" className="h-12 rounded-full border-white/20 px-6" onClick={() => shop.toggleWish(product.slug)}>
                 {shop.wished(product.slug) ? "Na lista" : "Lista de desejos"}
               </Button>
-              <Button variant="outline" className="h-12 rounded-full border-white/20 px-6" render={<Link href={`/test-ride?modelo=${product.slug}`} />}>
+              <Link href={`/test-ride?modelo=${product.slug}`} className={cn(buttonVariants({ variant: "outline" }), "h-12 rounded-full border-white/20 px-6")}>
                 Test ride
-              </Button>
+              </Link>
             </div>
           </div>
         ) : (

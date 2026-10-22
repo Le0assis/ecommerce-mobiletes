@@ -1,7 +1,8 @@
 "use client";
 
 import { useShop } from "@/components/shop-provider";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { cn } from "cn";
 import { configurePrice, formatBRL, getMotorcycle } from "@lume/domain";
 import Link from "next/link";
 
@@ -56,9 +57,9 @@ export function CartView() {
       ))}
       <p className="nums text-3xl font-light">{formatBRL(total)}</p>
       <p className="text-sm text-muted-foreground">O Pix e o frete entram no checkout. O servidor recalcula o total.</p>
-      <Button className="h-12 rounded-full" render={<Link href="/checkout" />}>
+      <Link href="/checkout" className={cn(buttonVariants(), "h-12 rounded-full")}>
         Ir para o pagamento
-      </Button>
+      </Link>
     </div>
   );
 }
