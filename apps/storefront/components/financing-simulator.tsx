@@ -1,14 +1,14 @@
 "use client";
 
 import { InstallmentTable } from "@/components/installment-table";
-import { formatBRL, LAUNCH_INTEREST_FREE_UP_TO } from "@/lib/catalog";
+import { applyDiscount, formatBRL, LAUNCH_INTEREST_FREE_UP_TO } from "@/lib/catalog";
 import { useState } from "react";
 
 export function FinancingSimulator({ initialReais = 62900 }: { initialReais?: number }) {
   const [reais, setReais] = useState(initialReais);
-  const cents = Math.round(Math.max(1, reais) * 100);
-  const pix = Math.round(cents * 0.95);
-  const boleto = Math.round(cents * 0.97);
+  const cents = Number.isFinite(reais) ? Math.max(100, Math.round(reais * 100)) : 100;
+  const pix = applyDiscount(cents, 500);
+  const boleto = applyDiscount(cents, 300);
 
   return (
     <div className="grid gap-6 rounded-[1.8rem] border border-white/10 p-5">

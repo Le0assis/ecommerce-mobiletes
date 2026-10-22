@@ -12,6 +12,7 @@ import { motorcycles, type Motorcycle } from "@lume/domain";
 export {
   accessoriesFor,
   amountForMethod,
+  applyDiscount,
   banners,
   categoryLabel,
   cities,
