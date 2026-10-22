@@ -20,6 +20,8 @@ export type Review = {
   title: string;
   body: string;
   monthsUsing: number;
+  /** Caminho público de uma foto de demonstração. Sem rosto. */
+  photo?: string;
 };
 
 export type Banner = {
@@ -109,6 +111,7 @@ export const reviews: Review[] = [
     title: "O silêncio muda o caminho",
     body: "Uso a Apex na Marginal e o que impressiona não é a velocidade. É chegar sem o barulho do dia. A carga em casa cobre a semana.",
     monthsUsing: 4,
+    photo: "/reviews/apex.svg",
   },
   {
     id: "rv-city-rj",
@@ -118,6 +121,7 @@ export const reviews: Review[] = [
     title: "Substituiu o carro na semana",
     body: "Botafogo–Centro todo dia, com folga de bateria. O para-brisa alto vale o acessório quando venta na orla.",
     monthsUsing: 7,
+    photo: "/reviews/city.svg",
   },
   {
     id: "rv-s-bh",

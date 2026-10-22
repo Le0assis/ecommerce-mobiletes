@@ -1,4 +1,4 @@
-import { motorcycles } from "@lume/domain";
+import { guides, motorcycles } from "@lume/domain";
 import type { MetadataRoute } from "next";
 
 export default function sitemap(): MetadataRoute.Sitemap {
@@ -17,6 +17,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/trocas",
     "/contato",
     "/troca",
+    "/guias",
+    "/legislacao",
+    "/faq",
+    "/servico",
+    ...guides.map((guide) => `/guias/${guide.slug}`),
     "/privacidade",
     ...motorcycles.map((product) => `/motos/${product.slug}`),
   ];

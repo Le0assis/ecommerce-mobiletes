@@ -3,6 +3,7 @@ export * from "./content";
 export * from "./coupons";
 export * from "./errors";
 export * from "./financing";
+export * from "./guides";
 export * from "./money";
 export * from "./payments";
 export * from "./pricing";

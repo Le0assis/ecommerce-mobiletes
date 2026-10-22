@@ -71,6 +71,16 @@ export const reviewBody = z.object({
   body: z.string().trim().min(10).max(800),
 });
 
+export const serviceBody = z.object({
+  dealerId: z.string().min(1),
+  productId: z.string().min(1),
+  name: z.string().trim().min(3).max(80),
+  email: z.email(),
+  phone: z.string().trim().min(10).max(20),
+  preferredDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  note: z.string().trim().min(8).max(400),
+});
+
 export const tradeInBody = z.object({
   name: z.string().trim().min(3).max(80),
   email: z.email(),

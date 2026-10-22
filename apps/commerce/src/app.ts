@@ -26,6 +26,7 @@ import {
   shippingBody,
   quoteShipping,
   stockPatchBody,
+  serviceBody,
   testRideBody,
   tradeInBody,
   type PaymentMethod,
@@ -362,6 +363,19 @@ export function createApp(deps: CommerceDeps = {}) {
 
   const sessions = new Map<string, string>();
   const tradeIns: { id: string; createdAt: string }[] = [];
+
+  app.post("/v1/service-bookings", async (c) =>
+    read(c, serviceBody, (input) => {
+      const dealer = getDealer(input.dealerId);
+      const product = getMotorcycle(input.productId);
+      if (!dealer) throw new DomainError("loja_inexistente", "Loja não encontrada.");
+      if (!product) throw new DomainError("produto_inexistente", "Modelo não encontrado.");
+      return {
+        booking: { id: crypto.randomUUID(), ...input, createdAt: now().toISOString() },
+        message: "Horário de serviço pedido. A loja confirma.",
+      };
+    }),
+  );
 
   app.post("/v1/trade-ins", async (c) =>
     read(c, tradeInBody, (input) => {

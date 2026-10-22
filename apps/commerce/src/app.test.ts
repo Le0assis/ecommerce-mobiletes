@@ -124,6 +124,25 @@ describe("API de commerce", () => {
     expect(body.message).toContain("Nenhum valor");
   });
 
+  it("agenda serviço numa loja existente", async () => {
+    const response = await app.request("/v1/service-bookings", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        dealerId: "sp-vila-madalena",
+        productId: "apex",
+        name: "Gustavo Teste",
+        email: "gustavo@example.com",
+        phone: "11999990000",
+        preferredDate: "2026-11-02",
+        note: "Revisão dos primeiros mil quilômetros.",
+      }),
+    });
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.booking.id).toBeTruthy();
+  });
+
   it("protege o admin", async () => {
     const denied = await app.request("/v1/admin/overview");
     expect(denied.status).toBe(401);

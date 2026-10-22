@@ -26,6 +26,10 @@ export function SiteFooter() {
           <Link href="/sobre">Sobre</Link>
           <Link href="/energia">Energia</Link>
           <Link href="/garantia">Garantia</Link>
+          <Link href="/servico">Serviço</Link>
+          <Link href="/guias">Guias</Link>
+          <Link href="/legislacao">CNH</Link>
+          <Link href="/faq">FAQ</Link>
           <Link href="/trocas">Trocas</Link>
           <Link href="/contato">Contato</Link>
           <Link href="/conta">Conta</Link>

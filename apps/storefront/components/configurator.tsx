@@ -24,6 +24,7 @@ import {
 } from "@/lib/catalog";
 import { cn } from "cn";
 import dynamic from "next/dynamic";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -286,6 +287,9 @@ export function Configurator({ product }: { product: Motorcycle }) {
             <ul className="mt-6 grid gap-4">
               {reviews.map((review) => (
                 <li key={review.id} className="rounded-2xl border border-white/10 p-4">
+                  {review.photo ? (
+                    <Image src={review.photo} alt="" width={800} height={280} className="mb-3 h-28 w-full rounded-xl object-cover" />
+                  ) : null}
                   <p className="text-paper">{review.title}</p>
                   <p className="mt-2 text-sm text-muted-foreground">{review.body}</p>
                   <p className="mt-2 text-xs tracking-[0.14em] text-muted-foreground uppercase">
