@@ -12,21 +12,24 @@ export type CartLine = {
 type ShopState = {
   lines: CartLine[];
   wishlist: string[];
+  orderCodes: string[];
 };
 
 type ShopContextValue = {
   lines: CartLine[];
   wishlist: string[];
+  orderCodes: string[];
   count: number;
   addLine: (line: Omit<CartLine, "qty">) => void;
   setQty: (index: number, qty: number) => void;
   removeLine: (index: number) => void;
   clear: () => void;
+  rememberOrder: (code: string) => void;
   toggleWish: (slug: string) => void;
   wished: (slug: string) => boolean;
 };
 
-const empty: ShopState = { lines: [], wishlist: [] };
+const empty: ShopState = { lines: [], wishlist: [], orderCodes: [] };
 const storageKey = "lume-shop-v1";
 const listeners = new Set<() => void>();
 const ShopContext = createContext<ShopContextValue | null>(null);
@@ -34,9 +37,13 @@ const ShopContext = createContext<ShopContextValue | null>(null);
 function parse(raw: string): ShopState {
   if (!raw) return empty;
   try {
-    const parsed = JSON.parse(raw) as ShopState;
+    const parsed = JSON.parse(raw) as Partial<ShopState>;
     if (!parsed || !Array.isArray(parsed.lines) || !Array.isArray(parsed.wishlist)) return empty;
-    return parsed;
+    return {
+      lines: parsed.lines,
+      wishlist: parsed.wishlist,
+      orderCodes: Array.isArray(parsed.orderCodes) ? parsed.orderCodes.filter((code) => typeof code === "string") : [],
+    };
   } catch {
     return empty;
   }
@@ -72,6 +79,7 @@ export function ShopProvider({ children }: { children: ReactNode }) {
     return {
       lines: state.lines,
       wishlist: state.wishlist,
+      orderCodes: state.orderCodes,
       count: state.lines.reduce((sum, line) => sum + line.qty, 0),
       addLine: (line) =>
         commit((current) => {
@@ -95,6 +103,11 @@ export function ShopProvider({ children }: { children: ReactNode }) {
         })),
       removeLine: (index) => commit((current) => ({ ...current, lines: current.lines.filter((_, itemIndex) => itemIndex !== index) })),
       clear: () => commit((current) => ({ ...current, lines: [] })),
+      rememberOrder: (code) =>
+        commit((current) => ({
+          ...current,
+          orderCodes: [code, ...current.orderCodes.filter((item) => item !== code)].slice(0, 20),
+        })),
       toggleWish: (slug) =>
         commit((current) => ({
           ...current,

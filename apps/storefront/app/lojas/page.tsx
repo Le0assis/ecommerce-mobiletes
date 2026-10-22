@@ -1,5 +1,6 @@
 import { DealerStories } from "@/components/dealer-stories";
-import { dealers, filterShowroom } from "@lume/domain";
+import { LocatorMap } from "@/components/locator-map";
+import { dealers, filterShowroom } from "@/lib/catalog";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -27,7 +28,8 @@ async function Lojas({ searchParams }: PageProps<"/lojas">) {
     <main id="conteudo" className="mx-auto max-w-6xl px-5 pt-28 pb-16">
       <h1 className="display text-6xl md:text-8xl">Lojas.</h1>
       <p className="mt-4 max-w-xl text-muted-foreground">Cinco endereços de demonstração. O contrato comercial substitui o ponto no mapa.</p>
-      <div className="mt-8">
+      <div className="mt-8 grid gap-6 lg:grid-cols-[0.8fr_1.2fr] lg:items-start">
+        <LocatorMap active={list} />
         <DealerStories />
       </div>
       <form action="/lojas" className="mt-8 flex flex-wrap gap-3">

@@ -1,6 +1,6 @@
 import { BikeSvg } from "@/components/bike-svg";
 import { ComparePicker } from "@/components/compare-picker";
-import { categoryLabel, formatBRL, getMotorcycle, installmentByCount } from "@lume/domain";
+import { categoryLabel, formatBRL, getMotorcycle, installmentByCount } from "@/lib/catalog";
 import Link from "next/link";
 
 export async function CompareTable({ searchParams }: PageProps<"/comparar">) {
@@ -21,6 +21,8 @@ export async function CompareTable({ searchParams }: PageProps<"/comparar">) {
     { label: "Bateria", read: (item) => `${item.batteryKwh} kWh` },
     { label: "Peso", read: (item) => `${item.weightKg} kg` },
     { label: "Banco", read: (item) => `${item.seatHeightMm} mm` },
+    { label: "Potência", read: (item) => `${item.powerKw} kW` },
+    { label: "Carga em casa", read: (item) => `${item.chargeHours} h` },
   ];
 
   return (

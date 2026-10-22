@@ -4,7 +4,7 @@ import { useShop } from "@/components/shop-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { getMotorcycle } from "@lume/domain";
+import { getMotorcycle } from "@/lib/catalog";
 import Link from "next/link";
 import { useSyncExternalStore } from "react";
 
@@ -55,12 +55,16 @@ export function AccountForm() {
           Guardar neste navegador
         </Button>
       </form>
-      <section>
-        <h2 className="text-xl font-light">Lista de desejos</h2>
-        {shop.wishlist.length === 0 ? (
-          <p className="mt-2 text-sm text-muted-foreground">Nenhum modelo salvo.</p>
-        ) : (
-          <ul className="mt-3 grid gap-2">
+      <section className="grid gap-3 text-sm">
+        <h2 className="text-xl font-light">Neste navegador</h2>
+        <Link className="underline" href="/desejos">
+          Lista de desejos ({shop.wishlist.length})
+        </Link>
+        <Link className="underline" href="/pedidos">
+          Pedidos ({shop.orderCodes.length})
+        </Link>
+        {shop.wishlist.length > 0 ? (
+          <ul className="grid gap-2 text-muted-foreground">
             {shop.wishlist.map((slug) => (
               <li key={slug}>
                 <Link className="underline" href={`/motos/${slug}`}>
@@ -69,11 +73,10 @@ export function AccountForm() {
               </li>
             ))}
           </ul>
+        ) : (
+          <p className="text-muted-foreground">Nenhum modelo salvo.</p>
         )}
       </section>
-      <p className="text-sm text-muted-foreground">
-        Para acompanhar um pedido já feito, abra o código em <Link href="/pedido/LM260000" className="underline">/pedido/código</Link>.
-      </p>
     </div>
   );
 }

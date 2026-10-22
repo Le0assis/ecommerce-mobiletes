@@ -1,30 +1,19 @@
 "use client";
 
-import { commerce } from "@/lib/commerce";
-import { formatBRL } from "@lume/domain";
+import { formatBRL } from "@/lib/catalog";
+import { fetchOrder, type PlacedOrder } from "@/lib/shop-api";
 import { useEffect, useState } from "react";
 
-type Order = {
-  code: string;
-  status: string;
-  method: string;
-  provider: string;
-  installments: number;
-  installmentCents: number;
-  totalCents: number;
-  pix?: { copyPaste: string; expiresAt: string };
-  boleto?: { line: string; dueDate: string };
-};
-
 export function OrderStatus({ code }: { code: string }) {
-  const [order, setOrder] = useState<Order | null>(null);
+  const [order, setOrder] = useState<PlacedOrder | null>(null);
   const [error, setError] = useState("");
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    commerce<{ order: Order }>(`/v1/orders/${code}`)
-      .then((body) => {
-        if (!cancelled) setOrder(body.order);
+    fetchOrder(code)
+      .then((next) => {
+        if (!cancelled) setOrder(next);
       })
       .catch((cause: unknown) => {
         if (!cancelled) setError(cause instanceof Error ? cause.message : "Pedido não encontrado.");
@@ -49,6 +38,15 @@ export function OrderStatus({ code }: { code: string }) {
         <div className="rounded-2xl bg-[#07332e] p-4">
           <p className="text-xs tracking-[0.16em] text-pix uppercase">Pix copia e cola · demonstração</p>
           <p className="mt-2 break-all font-mono text-sm">{order.pix.copyPaste}</p>
+          <button
+            type="button"
+            className="mt-3 text-sm underline"
+            onClick={() => {
+              void navigator.clipboard.writeText(order.pix?.copyPaste ?? "").then(() => setCopied(true)).catch(() => setCopied(false));
+            }}
+          >
+            {copied ? "Copiado" : "Copiar código"}
+          </button>
           <p className="mt-2 text-xs text-muted-foreground">Expira {new Date(order.pix.expiresAt).toLocaleString("pt-BR")}</p>
         </div>
       ) : null}

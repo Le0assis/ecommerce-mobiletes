@@ -5,7 +5,14 @@ import { usePathname } from "next/navigation";
 
 export function StickyTestRide() {
   const pathname = usePathname();
-  if (pathname.startsWith("/checkout") || pathname.startsWith("/test-ride") || pathname.startsWith("/admin")) return null;
+  if (
+    pathname.startsWith("/checkout") ||
+    pathname.startsWith("/test-ride") ||
+    pathname.startsWith("/admin") ||
+    pathname.startsWith("/motos/")
+  ) {
+    return null;
+  }
 
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-0 z-30 px-3 pb-3 md:px-5 md:pb-5">

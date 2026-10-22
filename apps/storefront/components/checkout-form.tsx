@@ -4,8 +4,8 @@ import { useShop } from "@/components/shop-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { commerce } from "@/lib/commerce";
-import { configurePrice, formatBRL, formatCep, quoteShipping } from "@lume/domain";
+import { amountForMethod, configurePrice, formatBRL, formatCep, installmentByCount, quoteShipping } from "@/lib/catalog";
+import { placeOrder } from "@/lib/shop-api";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
@@ -44,23 +44,21 @@ export function CheckoutForm() {
     setPending(true);
     setError("");
     try {
-      const body = await commerce<{ order: { code: string } }>("/v1/checkout", {
-        method: "POST",
-        body: JSON.stringify({
-          lines: shop.lines,
-          cep,
-          shippingServiceId: service?.id ?? "dedicado",
-          method,
-          installments: method === "cartao" ? installments : 1,
-          customer: {
-            name: String(formData.get("name")),
-            email: String(formData.get("email")),
-            phone: String(formData.get("phone")),
-          },
-        }),
+      const order = await placeOrder({
+        lines: shop.lines,
+        cep,
+        shippingServiceId: service?.id ?? "dedicado",
+        method,
+        installments: method === "cartao" ? installments : 1,
+        customer: {
+          name: String(formData.get("name")),
+          email: String(formData.get("email")),
+          phone: String(formData.get("phone")),
+        },
       });
+      shop.rememberOrder(order.code);
       shop.clear();
-      router.push(`/pedido/${body.order.code}`);
+      router.push(`/pedido/${order.code}`);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Falha no checkout.");
       setPending(false);
@@ -75,8 +73,14 @@ export function CheckoutForm() {
     );
   }
 
+  const pricedLines = preview && "quotes" in preview && preview.quotes ? preview.quotes : [];
+  const goodsCents = pricedLines.reduce((sum, item) => sum + amountForMethod(method, item.quote) * item.line.qty, 0);
+  const totalCents = goodsCents + (service?.priceCents ?? 0);
+  const plan = totalCents > 0 ? installmentByCount(totalCents, method === "cartao" ? installments : 1) : null;
+
   return (
-    <form action={onSubmit} className="mt-8 grid gap-5">
+    <form action={onSubmit} className="mt-8 grid gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:items-start">
+      <div className="grid gap-5">
       <div className="grid gap-3 rounded-[1.5rem] border border-white/10 p-4">
         <p className="text-xs tracking-[0.16em] text-muted-foreground uppercase">Como pagar</p>
         <div className="grid gap-2 sm:grid-cols-3">
@@ -131,6 +135,42 @@ export function CheckoutForm() {
       <Button type="submit" disabled={pending || !service} className="h-12 rounded-full">
         {pending ? "Reservando…" : method === "pix" ? "Gerar Pix" : "Confirmar pedido"}
       </Button>
+      </div>
+      <aside className="rounded-[1.8rem] border border-white/10 bg-[#141418] p-5 lg:sticky lg:top-24">
+        <p className="text-xs tracking-[0.16em] text-muted-foreground uppercase">Resumo</p>
+        {pricedLines.length > 0 ? (
+          <ul className="mt-4 grid gap-3 text-sm">
+            {pricedLines.map((item) => (
+              <li key={`${item.line.productId}-${item.line.colorId}`} className="flex justify-between gap-4">
+                <span>
+                  {item.quote.product.name}
+                  <span className="mt-1 block text-muted-foreground">
+                    {item.quote.color.name} · {item.line.qty}
+                  </span>
+                </span>
+                <span className="nums">{formatBRL(amountForMethod(method, item.quote) * item.line.qty)}</span>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+        <dl className="nums mt-4 grid gap-2 border-t border-white/10 pt-4 text-sm">
+          <div className="flex justify-between">
+            <dt className="text-muted-foreground">Frete</dt>
+            <dd>{service ? (service.priceCents === 0 ? "Grátis" : formatBRL(service.priceCents)) : "—"}</dd>
+          </div>
+          <div className="flex justify-between text-lg">
+            <dt>Total</dt>
+            <dd>{formatBRL(totalCents)}</dd>
+          </div>
+        </dl>
+        {plan && method === "cartao" ? (
+          <p className="nums mt-3 text-sm">
+            {plan.count}× de {formatBRL(plan.installmentCents)} sem juros, com frete
+          </p>
+        ) : null}
+        {method === "pix" ? <p className="mt-3 text-sm text-pix">O Pix de demonstração nasce com o prefixo LUME-MOCK-PIX.</p> : null}
+        <p className="mt-4 text-xs text-muted-foreground">O servidor recalcula este total. O que está aqui é a prévia.</p>
+      </aside>
     </form>
   );
 }

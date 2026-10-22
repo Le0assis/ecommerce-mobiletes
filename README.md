@@ -4,13 +4,13 @@ Loja da **LUME**, marca de motos e mobiletes elétricas para o Brasil. Este repo
 
 A vitrine abre em [http://127.0.0.1:43123](http://127.0.0.1:43123). A API responde em [http://127.0.0.1:8787/health](http://127.0.0.1:8787/health).
 
-O documento de produto e arquitetura está em [docs/REQUISITOS-TECNICOS.md](docs/REQUISITOS-TECNICOS.md).
+O documento de produto e arquitetura está em [docs/REQUISITOS-TECNICOS.md](docs/REQUISITOS-TECNICOS.md). O índice para o dono e para quem for alterar o código está em [docs/README.md](docs/README.md).
 
 Você não precisa saber programar para seguir este guia. Cada passo diz o que fazer, o comando, e como saber que deu certo.
 
 ## O que você vai ter rodando
 
-- A home, o catálogo, o configurador (cor, acessório, preço, 21x e Pix), o quiz, as lojas, o test ride, o carrinho e o checkout.
+- A home, o catálogo com filtros, o configurador (cor, acessório, 360°, autonomia, preço, 21x e Pix), a comparação, o quiz, as lojas, o test ride, o carrinho, o checkout, a conta, os pedidos, a lista de desejos e as páginas institucionais.
 - Uma API que recalcula o pedido. Pix, boleto e cartão são simulados: nenhum dinheiro sai da conta.
 - Opcionalmente, Postgres, Redis e Meilisearch via Docker.
 

@@ -3,7 +3,7 @@
 import { useShop } from "@/components/shop-provider";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "cn";
-import { configurePrice, formatBRL, getMotorcycle } from "@lume/domain";
+import { configurePrice, formatBRL, getMotorcycle, installmentByCount } from "@/lib/catalog";
 import Link from "next/link";
 
 export function CartView() {
@@ -56,6 +56,7 @@ export function CartView() {
         </article>
       ))}
       <p className="nums text-3xl font-light">{formatBRL(total)}</p>
+      <p className="nums text-sm">21× de {formatBRL(installmentByCount(total, 21).installmentCents)} sem juros, antes do frete</p>
       <p className="text-sm text-muted-foreground">O Pix e o frete entram no checkout. O servidor recalcula o total.</p>
       <Link href="/checkout" className={cn(buttonVariants(), "h-12 rounded-full")}>
         Ir para o pagamento

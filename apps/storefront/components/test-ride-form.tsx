@@ -1,10 +1,10 @@
 "use client";
 
-import { commerce } from "@/lib/commerce";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { dealers, motorcycles } from "@lume/domain";
+import { dealers, motorcycles } from "@/lib/catalog";
+import { bookTestRide } from "@/lib/shop-api";
 import { useMemo, useState } from "react";
 
 export function TestRideForm({ initialModel = "apex" }: { initialModel?: string }) {
@@ -23,18 +23,15 @@ export function TestRideForm({ initialModel = "apex" }: { initialModel?: string 
     setError("");
     setMessage("");
     try {
-      const body = await commerce<{ booking: { id: string } }>("/v1/test-rides", {
-        method: "POST",
-        body: JSON.stringify({
-          productId: productSlug,
-          dealerId: String(formData.get("dealerId")),
-          name: String(formData.get("name")),
-          email: String(formData.get("email")),
-          phone: String(formData.get("phone")),
-          preferredDate: String(formData.get("preferredDate")),
-        }),
+      const booking = await bookTestRide({
+        productId: productSlug,
+        dealerId: String(formData.get("dealerId")),
+        name: String(formData.get("name")),
+        email: String(formData.get("email")),
+        phone: String(formData.get("phone")),
+        preferredDate: String(formData.get("preferredDate")),
       });
-      setMessage(`Horário pedido. Protocolo ${body.booking.id.slice(0, 8)}. A loja confirma por e-mail.`);
+      setMessage(`Horário pedido. Protocolo ${booking.id.slice(0, 8)}. A loja confirma por e-mail.`);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Não foi possível agendar.");
     } finally {

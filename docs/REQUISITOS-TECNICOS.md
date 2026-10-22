@@ -68,56 +68,56 @@ Direção fechada: visual VanMoof/Cowboy (preto grafite, tipo fino enorme, produ
 
 ## 3. Requisitos funcionais
 
-Identificadores estáveis para o backlog. O que está marcado como scaffold já existe neste repositório, em geral com dado de demonstração ou pagamento simulado.
+Identificadores estáveis para o backlog. O que está marcado como vitrine já existe na interface, com dado de demonstração ou pagamento simulado. O que continua como v1 ainda não tem integração real.
 
 ### Catálogo
 
-- RF-CAT-01. Listar modelos com categoria, preço de entrada, autonomia, velocidade, 21x e Pix. Scaffold.
-- RF-CAT-02. Filtrar por categoria (mobilete, scooter, naked, adventure, sport) e por cidade da loja. A cidade filtra onde há test ride daquele modelo, não o frete. Scaffold.
-- RF-CAT-03. Busca textual simples no nome, na categoria e no texto. Scaffold em memória. Meilisearch é o índice da v1.
-- RF-CAT-04. Estado vazio quando a cidade não tem loja, com caminho para ver a linha inteira e seguir por CEP. Scaffold.
-- RF-CAT-05. Selo de estoque por cor. Cor com estoque zero não entra no preço. Scaffold.
+- RF-CAT-01. Listar modelos com categoria, preço de entrada, autonomia, velocidade, 21x e Pix. Vitrine.
+- RF-CAT-02. Filtrar por categoria (mobilete, scooter, naked, adventure, sport) e por cidade da loja. A cidade filtra onde há test ride daquele modelo, não o frete. Vitrine.
+- RF-CAT-03. Busca textual simples no nome, na categoria e no texto, com ordem por preço, autonomia ou velocidade. Vitrine em memória. Meilisearch é o índice da v1.
+- RF-CAT-04. Estado vazio quando a cidade não tem loja, com caminho para ver a linha inteira e seguir por CEP. Vitrine.
+- RF-CAT-05. Selo de estoque por cor. Cor com estoque zero não entra no preço. Vitrine.
 
 ### Página do modelo
 
-- RF-PDP-01. Configurador de cor e acessórios compatíveis. Trocar a cor troca o desenho e o preço no mesmo gesto. Scaffold.
-- RF-PDP-02. Preço calculado no pacote `@lume/domain`: base + delta da cor + acessórios, sem duplicar acessório. O mesmo módulo roda no browser e na API. Scaffold.
-- RF-PDP-03. Pix a 5% e boleto a 3% sobre o subtotal configurado. O frete não leva desconto. Scaffold.
-- RF-PDP-04. 21x sem juros sobre o total configurado, campanha de lançamento. A taxa mora no código (`LAUNCH_INTEREST_FREE_UP_TO`) para o financeiro reduzir a carência sem reescrever o checkout. A Tabela Price está testada para quando o sem juros voltar a 6x. Scaffold.
-- RF-PDP-05. Calculadora de autonomia: modo eco, cidade ou esporte, velocidade e peso extra. É estimativa, não ciclo de homologação, e o texto diz isso. Scaffold.
+- RF-PDP-01. Configurador de cor e acessórios compatíveis. Trocar a cor troca o desenho e o preço no mesmo gesto. Vitrine.
+- RF-PDP-02. Preço calculado no pacote `@lume/domain`: base + delta da cor + acessórios, sem duplicar acessório. O mesmo módulo roda no browser e na API. Vitrine.
+- RF-PDP-03. Pix a 5% e boleto a 3% sobre o subtotal configurado. O frete não leva desconto. Vitrine.
+- RF-PDP-04. 21x sem juros sobre o total configurado, campanha de lançamento. A taxa mora no código (`LAUNCH_INTEREST_FREE_UP_TO`) para o financeiro reduzir a carência sem reescrever o checkout. A Tabela Price está testada para quando o sem juros voltar a 6x. Vitrine.
+- RF-PDP-05. Calculadora de autonomia: modo eco, cidade ou esporte, velocidade e peso extra. É estimativa, não ciclo de homologação, e o texto diz isso. Vitrine.
 - RF-PDP-06. Viewer 360°. Hoje é uma massa simples em React Three Fiber, carregada só no clique, com a ilustração SVG no primeiro paint. O glTF real, com fallback de fotos para Android de entrada, é v1.
-- RF-PDP-07. Reservar leva a configuração ao checkout. A API recalcula e ignora preço vindo do browser. Scaffold.
-- RF-PDP-08. Lista de desejos neste navegador. Scaffold. Conta de verdade sincroniza na v1.
-- RF-PDP-09. Reviews do modelo e formulário moderado. A leitura da semente está na página. O POST existe na API e marca o relato como pendente. A fila de moderação é v1.
-- RF-PDP-10. JSON-LD de Product/Offer em BRL. Scaffold.
+- RF-PDP-07. Reservar leva a configuração ao checkout. A API recalcula e ignora preço vindo do browser. Vitrine.
+- RF-PDP-08. Lista de desejos neste navegador. Vitrine. Conta de verdade sincroniza na v1.
+- RF-PDP-09. Reviews do modelo e formulário moderado. A leitura da semente e o formulário estão na página. O POST existe na API e marca o relato como pendente. Se a API cair, o relato fica só no navegador. A fila de moderação é v1.
+- RF-PDP-10. JSON-LD de Product/Offer em BRL. Vitrine.
 
 ### Comparar, quiz, test ride, lojas
 
-- RF-CMP-01. Até três modelos, preço, parcela, Pix, autonomia, velocidade, bateria, peso e altura do banco. Scaffold.
-- RF-QUIZ-01. Perguntas de uso, km/dia, velocidade, orçamento, tomada e garupa. Duas recomendações com motivo. Scaffold, calculado no domínio. A API expõe o mesmo contrato.
-- RF-RIDE-01. Agendar test ride: modelo, loja que tenha o modelo, nome, e-mail, telefone e data. Scaffold. Confirmação humana da loja é v1.
-- RF-LOJA-01. Lista de lojas e filtro por cidade, com atalho para o test ride. Endereço comercial real substitui o de demonstração. Scaffold.
-- RF-LOJA-02. Mapa com coordenada. v1, quando o ponto existir.
+- RF-CMP-01. Até três modelos, preço, parcela, Pix, autonomia, velocidade, bateria, peso e altura do banco. Vitrine.
+- RF-QUIZ-01. Perguntas de uso, km/dia, velocidade, orçamento, tomada e garupa. Duas recomendações com motivo. Vitrine, calculado no domínio. A API expõe o mesmo contrato.
+- RF-RIDE-01. Agendar test ride: modelo, loja que tenha o modelo, nome, e-mail, telefone e data. Vitrine. Confirmação humana da loja é v1.
+- RF-LOJA-01. Lista de lojas e filtro por cidade, com atalho para o test ride. Endereço comercial real substitui o de demonstração. Vitrine.
+- RF-LOJA-02. Mapa com coordenada real. v1, quando o ponto existir. A vitrine mostra um esquema do Brasil, explicitamente não geográfico.
 
 ### Carrinho, frete e checkout
 
-- RF-CAR-01. Carrinho local com quantidade até 2, preço refeito a partir da configuração. Scaffold.
-- RF-FRE-01. CEP com 8 dígitos. `00000000` é inválido. Tabela por prefixo, dois serviços quando a região tem loja: retirada e transporte dedicado. Scaffold. Não é cotação dos Correios.
+- RF-CAR-01. Carrinho local com quantidade até 2, preço refeito a partir da configuração. Vitrine.
+- RF-FRE-01. CEP com 8 dígitos. `00000000` é inválido. Tabela por prefixo, dois serviços quando a região tem loja: retirada e transporte dedicado. Vitrine. Não é cotação dos Correios.
 - RF-FRE-02. ViaCEP para preencher rua e cidade, e Melhor Envio ou transportadora dedicada no lugar da tabela. v1.
-- RF-PAY-01. Métodos: Pix, boleto, cartão 1 a 21x. Pix e boleto são à vista. Scaffold simulado.
+- RF-PAY-01. Métodos: Pix, boleto, cartão 1 a 21x. Pix e boleto são à vista. Vitrine simulada, com prévia de frete e parcela no checkout.
 - RF-PAY-02. Provedor: Pix e boleto no Mercado Pago. Cartão parcelado na Pagar.me. Stripe fica como alternativa contratual, não como adquirente principal: no varejo brasileiro o parcelado com a mecânica de loja e o boleto estão mais maduros em Mercado Pago e Pagar.me. Interface `selectProvider` no domínio. Credencial e webhook são v1.
 - RF-PAY-03. O payload de Pix de demonstração é prefixado com `LUME-MOCK-PIX` para ninguém confundir com um BR Code real.
-- RF-PED-01. Código de pedido e página de acompanhamento. Scaffold. Status real (pago, em transporte, entregue) vem com o webhook.
+- RF-PED-01. Código de pedido, página de acompanhamento e lista local dos códigos feitos neste navegador. Vitrine. Status real (pago, em transporte, entregue) vem com o webhook.
 - RF-PED-02. E-mail transacional do pedido. v1.
 
 ### Conta
 
-- RF-ACC-01. Perfil de demonstração só no navegador, sem senha e sem CPF. Scaffold.
+- RF-ACC-01. Perfil de demonstração só no navegador, sem senha e sem CPF. Vitrine.
 - RF-ACC-02. Entrada por link mágico, sessão no servidor, pedido histórico, exclusão de conta. v1. Sem Keycloak no MVP.
 
 ### Admin e conteúdo
 
-- RF-ADM-01. Visão de estoque por cor e de banners, com token. Scaffold. O ajuste de estoque desta versão vale para a memória do processo, não para a vitrine, que lê o catálogo do código.
+- RF-ADM-01. Visão de estoque por cor e de banners, com token. Vitrine. O ajuste de estoque desta versão vale para a memória do processo, não para a vitrine, que lê o catálogo do código.
 - RF-ADM-02. CRUD de produto, preço, cor, acessório, banner e pedido, com papel de operador. v1.
 - RF-CMS-01. Páginas de campanha e filme editáveis no Payload, no mesmo Postgres. v1, depois que a compra funcionar. Não usar Sanity: o conteúdo ficaria fora da conta e o time passaria a operar outro idioma de conteúdo.
 
@@ -138,7 +138,7 @@ Identificadores estáveis para o backlog. O que está marcado como scaffold já 
 
 ### SEO
 
-- Título e descrição por modelo, `lang="pt-BR"`, canonical via `metadataBase`, sitemap e robots. Rotas em português. Admin, checkout e conta fora do índice. Scaffold.
+- Título e descrição por modelo, `lang="pt-BR"`, canonical via `metadataBase`, sitemap e robots. Rotas em português. Admin, checkout e conta fora do índice. Vitrine.
 - Páginas de modelo são o ativo de busca. Não depender de render só no cliente para o nome, o preço e o texto.
 
 ### Acessibilidade
@@ -151,7 +151,7 @@ Identificadores estáveis para o backlog. O que está marcado como scaffold já 
 
 ### LGPD e consumo
 
-- Página de privacidade com o que se coleta, a finalidade, o compartilhamento futuro, o prazo e os direitos. Scaffold. O nome do operador e do encarregado entram antes do go-live.
+- Página de privacidade com o que se coleta, a finalidade, o compartilhamento futuro, o prazo e os direitos. Vitrine. O nome do operador e do encarregado entram antes do go-live.
 - Sem CPF no MVP. Sem número de cartão no nosso servidor: o cartão tokeniza no provedor.
 - Carrinho e cookie essencial explicados. Sem anúncio de terceiro nesta versão.
 - Compra online: lembrar o arrependimento de 7 dias do CDC no fluxo real, com a ressalva do jurídico para veículo.
@@ -278,7 +278,11 @@ Sem calendário. A ordem é a dependência.
 
 ### Fundação — este repositório
 
-Monorepo, domínio testado, vitrine com a direção visual fechada, API com checkout simulado, Compose, CI, requisitos.
+Monorepo, domínio testado, direção visual, API com checkout simulado, Compose, CI, requisitos.
+
+### Vitrine — este repositório
+
+Páginas e fluxos com dado de demonstração: home, catálogo com filtro e ordem, PDP com cor, acessório, 360°, autonomia, parcelas, review e modelos próximos, comparação, quiz, test ride, lojas com esquema, carrinho, checkout com prévia, conta local, pedidos, desejos e páginas institucionais. `apps/storefront/lib/catalog.ts` e `lib/shop-api.ts` são o ponto de troca quando o banco passar a mandar.
 
 ### MVP-a — cobrar de verdade
 
@@ -331,4 +335,6 @@ Frontend e backend se encontram no `@lume/domain` e nos códigos de erro (`cep_i
 | API | `apps/commerce/src/app.ts` |
 | Schema e seed | `apps/commerce/src/db` |
 | Vitrine | `apps/storefront` |
+| Leitura e escrita da vitrine | `apps/storefront/lib/catalog.ts`, `apps/storefront/lib/shop-api.ts` |
+| Documentação para o dono e para agentes | `docs/README.md` |
 | Como rodar | `README.md` |

@@ -58,7 +58,10 @@ export function FloatingNav() {
                   </Link>
                 ))}
                 <Link href="/test-ride">Test ride</Link>
+                <Link href="/financiamento">21× e Pix</Link>
                 <Link href="/conta">Conta</Link>
+                <Link href="/desejos">Desejos</Link>
+                <Link href="/pedidos">Pedidos</Link>
               </nav>
             </DialogContent>
           </Dialog>

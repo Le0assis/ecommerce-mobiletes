@@ -4,7 +4,7 @@ import { Hero } from "@/components/hero";
 import { ProductCard } from "@/components/product-card";
 import { TrustRow } from "@/components/trust-row";
 import { buttonVariants } from "@/components/ui/button";
-import { configurePrice, formatBRL, getMotorcycle, installmentByCount, motorcycles, reviews } from "@lume/domain";
+import { configurePrice, formatBRL, getMotorcycle, installmentByCount, motorcycles, reviews } from "@/lib/catalog";
 import { cn } from "cn";
 import Link from "next/link";
 
@@ -27,6 +27,29 @@ export default function HomePage() {
         <CategorySearch />
       </div>
       <TrustRow />
+      <section className="relative mt-16 overflow-hidden border-y border-white/10 bg-[#08080a]">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_#1c1c22_0%,_#08080a_68%)]" />
+        <div className="relative mx-auto grid min-h-[78vh] max-w-6xl content-end px-5 py-16">
+          <p className="text-xs tracking-[0.22em] text-muted-foreground uppercase">Capítulo</p>
+          <h2 className="display mt-4 max-w-4xl text-6xl text-paper md:text-8xl">
+            A cidade
+            <br />
+            em silêncio.
+          </h2>
+          <dl className="nums mt-10 grid max-w-xl grid-cols-2 gap-6 text-paper">
+            <div>
+              <dt className="text-sm text-muted-foreground">Apex</dt>
+              <dd className="display text-6xl">{apex.topSpeedKmh}</dd>
+              <dd className="text-sm text-muted-foreground">km/h</dd>
+            </div>
+            <div>
+              <dt className="text-sm text-muted-foreground">Autonomia de referência</dt>
+              <dd className="display text-6xl">{apex.rangeKm}</dd>
+              <dd className="text-sm text-muted-foreground">km</dd>
+            </div>
+          </dl>
+        </div>
+      </section>
       <section className="mx-auto max-w-6xl px-5 py-20">
         <div className="flex items-end justify-between gap-6">
           <h2 className="display text-6xl md:text-8xl">

@@ -1,7 +1,9 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { formatBRL, installmentByCount, recommendMotorcycles, type QuizAnswers } from "@lume/domain";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { formatBRL, installmentByCount, recommendMotorcycles, type QuizAnswers } from "@/lib/catalog";
+import { cn } from "cn";
+import { motion, useReducedMotion } from "motion/react";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -69,6 +71,7 @@ const steps: {
 export function Quiz() {
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<Partial<QuizAnswers>>({});
+  const reduce = useReducedMotion();
   const current = steps[step];
   const done = step >= steps.length;
   const result = done ? recommendMotorcycles(answers as QuizAnswers) : [];
@@ -76,11 +79,19 @@ export function Quiz() {
   return (
     <div className="mt-10">
       {current && !done ? (
-        <div>
+        <motion.div
+          key={current.key}
+          initial={reduce ? false : { opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35 }}
+        >
           <p className="text-sm text-muted-foreground">
             {step + 1} / {steps.length}
           </p>
-          <h2 className="mt-3 text-4xl font-light">{current.title}</h2>
+          <div className="mt-3 h-1 overflow-hidden rounded-full bg-white/10" aria-hidden="true">
+            <div className="h-full bg-signal" style={{ width: `${((step + 1) / steps.length) * 100}%` }} />
+          </div>
+          <h2 className="mt-6 text-4xl font-light">{current.title}</h2>
           <div className="mt-6 grid gap-3">
             {current.options.map((option) => (
               <Button
@@ -96,7 +107,12 @@ export function Quiz() {
               </Button>
             ))}
           </div>
-        </div>
+          {step > 0 ? (
+            <Button variant="ghost" className="mt-4 px-0" onClick={() => setStep((value) => value - 1)}>
+              Voltar
+            </Button>
+          ) : null}
+        </motion.div>
       ) : (
         <div className="grid gap-4">
           {result.map((item) => (
@@ -110,7 +126,7 @@ export function Quiz() {
                   <li key={reason}>{reason}</li>
                 ))}
               </ul>
-              <Link href={`/motos/${item.product.slug}`} className="mt-4 inline-block text-sm underline">
+              <Link href={`/motos/${item.product.slug}`} className={cn(buttonVariants(), "mt-5 h-11 rounded-full")}>
                 Configurar
               </Link>
             </article>

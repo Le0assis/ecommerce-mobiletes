@@ -1,6 +1,6 @@
 import { CategorySearch } from "@/components/category-search";
 import { ProductCard } from "@/components/product-card";
-import { filterShowroom } from "@lume/domain";
+import { filterShowroom, isCatalogOrder, sortProducts } from "@/lib/catalog";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -23,32 +23,21 @@ async function Catalog({ searchParams }: PageProps<"/motos">) {
   const category = typeof query.categoria === "string" ? query.categoria : undefined;
   const city = typeof query.cidade === "string" ? query.cidade : undefined;
   const q = typeof query.q === "string" ? query.q : undefined;
+  const order = typeof query.ordem === "string" && isCatalogOrder(query.ordem) ? query.ordem : "destaque";
   const result = filterShowroom({ category, city, q });
+  const products = sortProducts(result.products, order);
 
   return (
     <main id="conteudo" className="mx-auto max-w-6xl px-5 pt-28 pb-16">
       <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Catálogo</p>
       <h1 className="display mt-3 text-6xl md:text-8xl">A linha.</h1>
       <div className="mt-8">
-        <CategorySearch category={category} city={city} />
+        <CategorySearch category={category} city={city} q={q} order={order} />
       </div>
-      <form action="/motos" className="mt-4">
-        <label className="grid gap-2 text-sm text-muted-foreground">
-          Busca
-          <input
-            name="q"
-            defaultValue={q}
-            placeholder="Nome, scooter, autonomia"
-            className="h-12 rounded-full border border-white/15 bg-transparent px-4 text-paper"
-          />
-        </label>
-        <button className="mt-3 rounded-full border border-white/20 px-4 py-2 text-sm" type="submit">
-          Buscar texto
-        </button>
-        {category ? <input type="hidden" name="categoria" value={category} /> : null}
-        {city ? <input type="hidden" name="cidade" value={city} /> : null}
-      </form>
-      {result.products.length === 0 ? (
+      <p className="mt-6 text-sm text-muted-foreground">
+        {products.length === 0 ? "Nenhum modelo" : products.length === 1 ? "1 modelo" : `${products.length} modelos`}
+      </p>
+      {products.length === 0 ? (
         <div className="mt-12 rounded-[2rem] border border-white/10 p-8">
           <h2 className="text-2xl font-light">Nenhuma moto nessa combinação.</h2>
           <p className="mt-3 max-w-lg text-muted-foreground">
@@ -62,7 +51,7 @@ async function Catalog({ searchParams }: PageProps<"/motos">) {
         </div>
       ) : (
         <div className="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {result.products.map((product) => (
+          {products.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}
         </div>

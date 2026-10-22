@@ -1,6 +1,7 @@
 import { BikeSvg } from "@/components/bike-svg";
+import { WishToggle } from "@/components/wish-toggle";
 import { buttonVariants } from "@/components/ui/button";
-import { categoryLabel, configurePrice, formatBRL, installmentByCount, type Motorcycle } from "@lume/domain";
+import { categoryLabel, configurePrice, formatBRL, installmentByCount, type Motorcycle } from "@/lib/catalog";
 import { cn } from "cn";
 import Link from "next/link";
 
@@ -12,9 +13,9 @@ export function ProductCard({ product }: { product: Motorcycle }) {
 
   return (
     <article className="flex flex-col rounded-[2rem] border border-white/10 bg-[#121216] p-4">
-      <div className="flex items-center justify-between text-xs tracking-[0.16em] text-muted-foreground uppercase">
+      <div className="flex items-center justify-between gap-3 text-xs tracking-[0.16em] text-muted-foreground uppercase">
         <span>{categoryLabel[product.category]}</span>
-        <span>Pronta para sair</span>
+        <WishToggle slug={product.slug} />
       </div>
       <Link href={`/motos/${product.slug}`} className="mt-3 block">
         <BikeSvg variant={product.category} color={color.hex} title={product.name} className="h-48 w-full" />
