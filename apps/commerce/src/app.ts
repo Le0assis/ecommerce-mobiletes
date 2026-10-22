@@ -2,6 +2,10 @@ import {
   DomainError,
   accessories,
   amountForMethod,
+  authRequestBody,
+  authVerifyBody,
+  applyDiscount,
+  couponDiscount,
   banners,
   checkoutBody,
   configureBody,
@@ -32,7 +36,9 @@ import { adminToken } from "./env";
 
 type OrderRecord = {
   code: string;
-  status: "aguardando_pagamento";
+  status: "aguardando_pagamento" | "pago" | "em_preparo" | "em_transporte" | "entregue" | "recusado";
+  couponCode?: string;
+  couponCents?: number;
   method: PaymentMethod;
   provider: string;
   installments: number;
@@ -265,7 +271,18 @@ export function createApp(deps: CommerceDeps = {}) {
         const quote = configurePrice(line);
         return { line, quote, lineCents: amountForMethod(input.method, quote) * line.qty };
       });
-      const goodsCents = quotes.reduce((sum, item) => sum + item.lineCents, 0);
+      const listCents = quotes.reduce((sum, item) => sum + item.quote.subtotalCents * item.line.qty, 0);
+      const coupon = couponDiscount(listCents, input.couponCode);
+      let goodsCents = quotes.reduce((sum, item) => sum + item.lineCents, 0);
+      if (coupon && coupon.discountCents > 0) {
+        const net = listCents - coupon.discountCents;
+        goodsCents =
+          input.method === "pix"
+            ? applyDiscount(net, 500)
+            : input.method === "boleto"
+              ? applyDiscount(net, 300)
+              : net;
+      }
       const weight = quotes.reduce((sum, item) => sum + item.quote.product.weightKg * item.line.qty, 0);
       const shipping = quoteShipping(input.cep, weight);
       const service = shipping.services.find((item) => item.id === input.shippingServiceId);
@@ -288,6 +305,8 @@ export function createApp(deps: CommerceDeps = {}) {
         totalCents,
         cep: shipping.cep,
         customer: input.customer,
+        couponCode: coupon?.code,
+        couponCents: coupon?.discountCents,
         lines: quotes.map((item) => ({
           productId: item.quote.product.id,
           colorId: item.quote.color.id,
@@ -321,7 +340,53 @@ export function createApp(deps: CommerceDeps = {}) {
   app.get("/v1/orders/:code", (c) => {
     const order = orders.get(c.req.param("code").toUpperCase());
     if (!order) return c.json({ error: "pedido_inexistente", message: "Pedido não encontrado." }, 404);
-    return c.json({ order });
+    return c.json({ order, tracking: trackingFor(order.status) });
+  });
+
+  app.post("/v1/orders/:code/sandbox", async (c) => {
+    const order = orders.get(c.req.param("code").toUpperCase());
+    if (!order) return c.json({ error: "pedido_inexistente", message: "Pedido não encontrado." }, 404);
+    const steps = ["aguardando_pagamento", "pago", "em_preparo", "em_transporte", "entregue"] as const;
+    const index = steps.indexOf(order.status as (typeof steps)[number]);
+    if (index < 0 || index === steps.length - 1) {
+      return c.json({ error: "sandbox_recusado", message: "Esse pedido de sandbox não avança mais." }, 409);
+    }
+    order.status = steps[index + 1] ?? order.status;
+    return c.json({
+      order,
+      tracking: trackingFor(order.status),
+      message: "LUME-SANDBOX: nenhum valor foi capturado no Mercado Pago nem na Pagar.me.",
+    });
+  });
+
+  const sessions = new Map<string, string>();
+
+  app.post("/v1/auth/request", async (c) =>
+    read(c, authRequestBody, (input) => ({
+      email: input.email.toLowerCase(),
+      devCode: "LUME-SANDBOX",
+      message: "Código de sandbox. Não é um e-mail enviado.",
+    })),
+  );
+
+  app.post("/v1/auth/verify", async (c) =>
+    read(c, authVerifyBody, (input) => {
+      if (input.code.trim().toUpperCase() !== "LUME-SANDBOX") {
+        throw new DomainError("codigo_invalido", "O código de sandbox é LUME-SANDBOX.");
+      }
+      const token = crypto.randomUUID();
+      const email = input.email.toLowerCase();
+      sessions.set(token, email);
+      return { token, email };
+    }),
+  );
+
+  app.get("/v1/account/orders", (c) => {
+    const token = (c.req.header("authorization") ?? "").replace(/^Bearer\s+/i, "");
+    const email = sessions.get(token);
+    if (!email) return c.json({ error: "nao_autorizado", message: "Entre de novo com o código de sandbox." }, 401);
+    const mine = [...orders.values()].filter((order) => order.customer.email.toLowerCase() === email);
+    return c.json({ email, orders: mine });
   });
 
   app.get("/v1/admin/overview", (c) => {
@@ -366,6 +431,17 @@ function authorized(c: Context) {
   const expected = adminToken();
   if (!expected) return false;
   return c.req.header("x-admin-token") === expected;
+}
+
+const trackSteps = ["aguardando_pagamento", "pago", "em_preparo", "em_transporte", "entregue"] as const;
+
+function trackingFor(status: string) {
+  const index = trackSteps.indexOf(status as (typeof trackSteps)[number]);
+  return trackSteps.map((step, stepIndex) => ({
+    id: step,
+    done: index >= stepIndex,
+    current: status === step,
+  }));
 }
 
 function serializeProduct(product: (typeof motorcycles)[number]) {

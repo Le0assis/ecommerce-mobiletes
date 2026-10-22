@@ -3,6 +3,7 @@ import { getMotorcycle } from "./catalog";
 import { DomainError } from "./errors";
 import { installmentByCount } from "./financing";
 import { applyDiscount, formatBRL } from "./money";
+import { couponDiscount } from "./coupons";
 import { configurePrice } from "./pricing";
 import { recommendMotorcycles } from "./quiz";
 import { estimateRange } from "./range";
@@ -121,6 +122,14 @@ describe("autonomia", () => {
     expect(city.rangeKm).toBe(apex.rangeKm);
     expect(sport.rangeKm).toBeLessThan(city.rangeKm);
     expect(eco.rangeKm).toBeGreaterThan(city.rangeKm);
+  });
+});
+
+describe("cupom", () => {
+  it("tira 10% do subtotal e recusa código inventado", () => {
+    expect(couponDiscount(1_490_000, "lume10")?.discountCents).toBe(149_000);
+    expect(() => couponDiscount(1_490_000, "naoexiste")).toThrow(DomainError);
+    expect(couponDiscount(1_490_000, "")).toBeNull();
   });
 });
 

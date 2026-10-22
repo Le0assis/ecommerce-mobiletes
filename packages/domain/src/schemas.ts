@@ -55,6 +55,7 @@ export const checkoutBody = z.object({
   shippingServiceId: z.enum(["retirada", "dedicado"]),
   method: z.enum(["pix", "boleto", "cartao"]),
   installments: z.number().int().min(1).max(21).default(1),
+  couponCode: z.string().trim().max(20).optional(),
   customer: z.object({
     name: z.string().trim().min(3).max(80),
     email: z.email(),
@@ -68,6 +69,15 @@ export const reviewBody = z.object({
   rating: z.number().int().min(1).max(5),
   title: z.string().trim().min(3).max(80),
   body: z.string().trim().min(10).max(800),
+});
+
+export const authRequestBody = z.object({
+  email: z.email(),
+});
+
+export const authVerifyBody = z.object({
+  email: z.email(),
+  code: z.string().trim().min(4).max(40),
 });
 
 export const stockPatchBody = z.object({

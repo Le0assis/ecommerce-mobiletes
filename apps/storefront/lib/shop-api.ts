@@ -28,6 +28,7 @@ export type CheckoutInput = {
   shippingServiceId: string;
   method: "pix" | "boleto" | "cartao";
   installments: number;
+  couponCode?: string;
   customer: { name: string; email: string; phone: string };
 };
 
@@ -84,9 +85,26 @@ export async function placeOrder(input: CheckoutInput): Promise<PlacedOrder> {
   return body.order;
 }
 
-export async function fetchOrder(code: string): Promise<PlacedOrder> {
-  const body = await commerce<{ order: PlacedOrder }>(`/v1/orders/${encodeURIComponent(code)}`);
-  return body.order;
+export type TrackingStep = { id: string; done: boolean; current: boolean };
+
+export async function fetchOrder(code: string): Promise<{ order: PlacedOrder; tracking: TrackingStep[] }> {
+  return commerce<{ order: PlacedOrder; tracking: TrackingStep[] }>(`/v1/orders/${encodeURIComponent(code)}`);
+}
+
+export async function advanceSandbox(code: string): Promise<{ order: PlacedOrder; tracking: TrackingStep[]; message: string }> {
+  return commerce(`/v1/orders/${encodeURIComponent(code)}/sandbox`, { method: "POST", body: "{}" });
+}
+
+export async function requestSandboxCode(email: string): Promise<{ devCode: string; message: string }> {
+  return commerce("/v1/auth/request", { method: "POST", body: JSON.stringify({ email }) });
+}
+
+export async function verifySandboxCode(email: string, code: string): Promise<{ token: string; email: string }> {
+  return commerce("/v1/auth/verify", { method: "POST", body: JSON.stringify({ email, code }) });
+}
+
+export async function accountOrders(token: string): Promise<{ email: string; orders: PlacedOrder[] }> {
+  return commerce("/v1/account/orders", { headers: { authorization: `Bearer ${token}` } });
 }
 
 export async function bookTestRide(input: {

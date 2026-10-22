@@ -19,8 +19,8 @@ export function OrderList() {
     Promise.all(
       orderCodes.map(async (code) => {
         try {
-          const order = await fetchOrder(code);
-          return { code, order };
+          const body = await fetchOrder(code);
+          return { code, order: body.order };
         } catch (cause) {
           return { code, error: cause instanceof Error ? cause.message : "Não encontrado." };
         }

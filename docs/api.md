@@ -34,7 +34,11 @@ Todos POST com JSON.
 
 `POST /v1/reviews` — `productId`, `city`, `rating` 1–5, `title`, `body`. Resposta marca `pending: true` e não entra na semente publicada.
 
-`POST /v1/checkout` — `lines[]` (`productId`, `colorId`, `accessoryIds`, `qty` 1–2, no máximo 5 linhas), `cep`, `shippingServiceId` (`retirada` | `dedicado`), `method` (`pix` | `boleto` | `cartao`), `installments` (1 se não for cartão), `customer` (`name`, `email`, `phone`).
+`POST /v1/checkout` — `lines[]` (`productId`, `colorId`, `accessoryIds`, `batteryId?`, `qty` 1–2, no máximo 5 linhas), `cep`, `shippingServiceId` (`retirada` | `dedicado`), `method` (`pix` | `boleto` | `cartao`), `installments` (1 se não for cartão), `couponCode?`, `customer` (`name`, `email`, `phone`).
+
+`POST /v1/orders/:code/sandbox` avança um passo do rastreio. A mensagem contém `LUME-SANDBOX`.
+
+`POST /v1/auth/request` e `POST /v1/auth/verify` com o código `LUME-SANDBOX`. `GET /v1/account/orders` exige `Authorization: Bearer`.
 
 A resposta traz `order` recalculado e a frase de que nenhum pagamento foi ao Mercado Pago ou à Pagar.me. Pix: `order.pix.copyPaste` começa com `LUME-MOCK-PIX-`.
 

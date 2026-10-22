@@ -1,5 +1,6 @@
 export * from "./catalog";
 export * from "./content";
+export * from "./coupons";
 export * from "./errors";
 export * from "./financing";
 export * from "./money";

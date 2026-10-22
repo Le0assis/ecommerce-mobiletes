@@ -19,6 +19,7 @@ export function CheckoutForm() {
   const [method, setMethod] = useState<Method>("pix");
   const [installments, setInstallments] = useState(21);
   const [serviceId, setServiceId] = useState<"retirada" | "dedicado">("dedicado");
+  const [couponCode, setCouponCode] = useState("");
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
 
@@ -50,6 +51,7 @@ export function CheckoutForm() {
         shippingServiceId: service?.id ?? "dedicado",
         method,
         installments: method === "cartao" ? installments : 1,
+        couponCode: couponCode.trim() || undefined,
         customer: {
           name: String(formData.get("name")),
           email: String(formData.get("email")),
@@ -118,6 +120,11 @@ export function CheckoutForm() {
             ))}
           </fieldset>
         ) : null}
+      </div>
+      <div className="grid gap-2">
+        <Label htmlFor="coupon">Cupom</Label>
+        <Input id="coupon" value={couponCode} onChange={(event) => setCouponCode(event.target.value)} placeholder="LUME10 ou OFICINA" className="h-12 rounded-full px-4" />
+        <p className="text-xs text-muted-foreground">O cupom sai da moto configurada, antes do Pix. O frete não entra.</p>
       </div>
       <div className="grid gap-2">
         <Label htmlFor="name">Nome</Label>

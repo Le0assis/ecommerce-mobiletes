@@ -66,6 +66,43 @@ describe("API de commerce", () => {
     expect(body.order.totalCents).toBeGreaterThan(1_490_000);
   });
 
+  it("aplica cupom antes do Pix e avança o sandbox", async () => {
+    const response = await app.request("/v1/checkout", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        lines: [{ productId: "s", colorId: "obsidiana", accessoryIds: [], qty: 1 }],
+        cep: "05435-000",
+        shippingServiceId: "retirada",
+        method: "pix",
+        installments: 1,
+        couponCode: "LUME10",
+        customer: { name: "Gustavo Teste", email: "gustavo@example.com", phone: "11999990000" },
+      }),
+    });
+    const body = await response.json();
+    expect(response.status).toBe(200);
+    expect(body.order.couponCents).toBe(149_000);
+    expect(body.order.totalCents).toBeLessThan(1_490_000);
+
+    const advanced = await app.request(`/v1/orders/${body.order.code}/sandbox`, { method: "POST" });
+    const next = await advanced.json();
+    expect(advanced.status).toBe(200);
+    expect(next.order.status).toBe("pago");
+    expect(next.message).toContain("LUME-SANDBOX");
+
+    const code = await app.request("/v1/auth/verify", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ email: "gustavo@example.com", code: "LUME-SANDBOX" }),
+    });
+    const session = await code.json();
+    const mine = await app.request("/v1/account/orders", { headers: { authorization: `Bearer ${session.token}` } });
+    const account = await mine.json();
+    expect(mine.status).toBe(200);
+    expect(account.orders.map((item: { code: string }) => item.code)).toContain(body.order.code);
+  });
+
   it("protege o admin", async () => {
     const denied = await app.request("/v1/admin/overview");
     expect(denied.status).toBe(401);

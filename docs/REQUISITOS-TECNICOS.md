@@ -123,6 +123,8 @@ Identificadores estáveis para o backlog. O que está marcado como vitrine já e
 - RF-FRE-01. CEP com 8 dígitos. `00000000` é inválido. Tabela por prefixo, dois serviços quando a região tem loja: retirada e transporte dedicado. Vitrine. Não é cotação dos Correios.
 - RF-FRE-02. ViaCEP para preencher rua e cidade, e Melhor Envio ou transportadora dedicada no lugar da tabela. v1.
 - RF-PAY-01. Métodos: Pix, boleto, cartão 1 a 21x. Pix e boleto são à vista. Vitrine simulada, com prévia de frete e parcela no checkout.
+- RF-PAY-04. Cupom sobre o subtotal configurado, antes do desconto do meio e sem atingir o frete. Códigos de demonstração LUME10 e OFICINA. Etapa 3.
+- RF-PAY-05. Sandbox sem credencial: avançar o status do pedido e deixar explícito que Mercado Pago e Pagar.me não capturaram valor. Etapa 3.
 - RF-PAY-02. Provedor: Pix e boleto no Mercado Pago. Cartão parcelado na Pagar.me. Stripe fica como alternativa contratual, não como adquirente principal: no varejo brasileiro o parcelado com a mecânica de loja e o boleto estão mais maduros em Mercado Pago e Pagar.me. Interface `selectProvider` no domínio. Credencial e webhook são v1.
 - RF-PAY-03. O payload de Pix de demonstração é prefixado com `LUME-MOCK-PIX` para ninguém confundir com um BR Code real.
 - RF-PED-01. Código de pedido, página de acompanhamento e lista local dos códigos feitos neste navegador. Vitrine. Status real (pago, em transporte, entregue) vem com o webhook.
@@ -130,7 +132,7 @@ Identificadores estáveis para o backlog. O que está marcado como vitrine já e
 
 ### Conta
 
-- RF-ACC-01. Perfil de demonstração só no navegador, sem senha e sem CPF. Vitrine.
+- RF-ACC-01. Perfil de demonstração só no navegador, sem senha e sem CPF. Vitrine. A etapa 3 acrescenta sessão de sandbox por código visível na tela, não por e-mail.
 - RF-ACC-02. Entrada por link mágico, sessão no servidor, pedido histórico, exclusão de conta. v1. Sem Keycloak no MVP.
 
 ### Admin e conteúdo
