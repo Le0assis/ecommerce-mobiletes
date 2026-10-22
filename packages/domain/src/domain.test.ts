@@ -1,0 +1,156 @@
+import { describe, expect, it } from "vitest";
+import { getMotorcycle } from "./catalog";
+import { DomainError } from "./errors";
+import { installmentByCount } from "./financing";
+import { applyDiscount, formatBRL } from "./money";
+import { configurePrice } from "./pricing";
+import { recommendMotorcycles } from "./quiz";
+import { estimateRange } from "./range";
+import { formatCep, normalizeCep, quoteShipping } from "./shipping";
+import { filterShowroom } from "./showroom";
+
+describe("preço do configurador", () => {
+  it("soma base, cor e acessórios sem duplicar", () => {
+    const quote = configurePrice({
+      productId: "apex",
+      colorId: "cobre",
+      accessoryIds: ["banco", "banco", "carregador"],
+    });
+
+    expect(quote.baseCents).toBe(6_290_000);
+    expect(quote.colorCents).toBe(180_000);
+    expect(quote.accessoriesCents).toBe(59_000 + 129_000);
+    expect(quote.subtotalCents).toBe(6_290_000 + 180_000 + 188_000);
+    expect(quote.pixCents).toBe(applyDiscount(quote.subtotalCents, 500));
+    expect(quote.boletoCents).toBe(applyDiscount(quote.subtotalCents, 300));
+    expect(quote.accessories).toHaveLength(1 + 1);
+  });
+
+  it("recusa cor esgotada e acessório de outro modelo", () => {
+    expect(() => configurePrice({ productId: "serra", colorId: "sal" })).toThrow(DomainError);
+    expect(() => configurePrice({ productId: "s", colorId: "obsidiana", accessoryIds: ["topcase"] })).toThrow(
+      DomainError,
+    );
+  });
+
+  it("dá 5% no Pix da Apex sem cor", () => {
+    const quote = configurePrice({ productId: "lume-apex", colorId: "obsidiana" });
+    expect(quote.pixCents).toBe(5_975_500);
+    expect(formatBRL(quote.pixCents)).toContain("59.755,00");
+  });
+});
+
+describe("parcelamento", () => {
+  it("faz 21 vezes sem juros na campanha de lançamento", () => {
+    const twentyOne = installmentByCount(6_290_000, 21);
+    expect(twentyOne.interestFree).toBe(true);
+    expect(twentyOne.totalCents).toBe(6_290_000);
+    expect(twentyOne.installmentCents).toBe(299_524);
+  });
+
+  it("aplica a Tabela Price quando o financeiro reduz o sem juros", () => {
+    const twelve = installmentByCount(100_000, 12, { interestFreeUpTo: 6 });
+    expect(twelve.interestFree).toBe(false);
+    expect(twelve.monthlyRate).toBe(0.0149);
+    expect(twelve.installmentCents).toBe(9_162);
+    expect(twelve.totalCents).toBe(9_162 * 12);
+  });
+
+  it("recusa 22 vezes", () => {
+    expect(() => installmentByCount(100_000, 22)).toThrow(DomainError);
+  });
+});
+
+describe("frete por CEP", () => {
+  it("normaliza máscara e recusa CEP vazio", () => {
+    expect(normalizeCep("01310-100")).toBe("01310100");
+    expect(formatCep("01310100")).toBe("01310-100");
+    expect(normalizeCep("123")).toBeNull();
+    expect(() => quoteShipping("00000-000", 100)).toThrow(DomainError);
+  });
+
+  it("cobra menos e oferece retirada em São Paulo", () => {
+    const sp = quoteShipping("01310-100", 120);
+    const north = quoteShipping("66000-000", 120);
+    const spShip = sp.services.find((item) => item.id === "dedicado");
+    const northShip = north.services.find((item) => item.id === "dedicado");
+
+    expect(sp.services.some((item) => item.id === "retirada")).toBe(true);
+    expect(north.services.some((item) => item.id === "retirada")).toBe(false);
+    expect(spShip && northShip && spShip.priceCents < northShip.priceCents).toBe(true);
+    expect(spShip && northShip && spShip.days < northShip.days).toBe(true);
+  });
+});
+
+describe("autonomia", () => {
+  it("cai com velocidade e modo esporte e sobe no eco", () => {
+    const apex = getMotorcycle("apex");
+    if (!apex) throw new Error("catálogo sem Apex");
+
+    const city = estimateRange({
+      baseRangeKm: apex.rangeKm,
+      speedKmh: apex.optimalSpeedKmh,
+      extraWeightKg: 0,
+      mode: "cidade",
+      optimalSpeedKmh: apex.optimalSpeedKmh,
+    });
+    const sport = estimateRange({
+      baseRangeKm: apex.rangeKm,
+      speedKmh: 160,
+      extraWeightKg: 20,
+      mode: "esporte",
+      optimalSpeedKmh: apex.optimalSpeedKmh,
+    });
+    const eco = estimateRange({
+      baseRangeKm: apex.rangeKm,
+      speedKmh: apex.optimalSpeedKmh,
+      extraWeightKg: 0,
+      mode: "eco",
+      optimalSpeedKmh: apex.optimalSpeedKmh,
+    });
+
+    expect(city.rangeKm).toBe(apex.rangeKm);
+    expect(sport.rangeKm).toBeLessThan(city.rangeKm);
+    expect(eco.rangeKm).toBeGreaterThan(city.rangeKm);
+  });
+});
+
+describe("vitrine por categoria e cidade", () => {
+  it("cruza adventure com a loja de Curitiba", () => {
+    const result = filterShowroom({ category: "adventure", city: "Curitiba" });
+    expect(result.products.map((item) => item.slug)).toEqual(["serra"]);
+    expect(result.dealers).toHaveLength(1);
+  });
+
+  it("não inventa loja em cidade sem operação", () => {
+    const result = filterShowroom({ city: "Recife" });
+    expect(result.dealers).toHaveLength(0);
+    expect(result.products).toHaveLength(0);
+  });
+});
+
+describe("quiz", () => {
+  it("manda a mobilete para o uso curto e barato", () => {
+    const [first] = recommendMotorcycles({
+      use: "cidade",
+      dailyKm: "ate30",
+      pace: "ate50",
+      budgetCents: 1_800_000,
+      outlet: true,
+      passenger: "sozinho",
+    });
+    expect(first?.product.slug).toBe("s");
+  });
+
+  it("manda a Serra ou a Apex para estrada longa", () => {
+    const result = recommendMotorcycles({
+      use: "estrada",
+      dailyKm: "mais150",
+      pace: "livre",
+      budgetCents: 7_000_000,
+      outlet: true,
+      passenger: "garupa",
+    });
+    expect(result.map((item) => item.product.slug)).toContain("serra");
+  });
+});

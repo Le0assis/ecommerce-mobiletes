@@ -1,0 +1,334 @@
+# Requisitos técnicos — LUME
+
+Loja de motos e mobiletes elétricas. Mercado inicial: Brasil. Idioma da interface: pt-BR. Moeda: BRL. Dono do produto: Gustavo.
+
+Os números de produto deste repositório (preço, kW, autonomia, estoque, lojas) são referência de demonstração, não homologação. Texto de habilitação e de CONTRAN fica para o jurídico antes de qualquer campanha.
+
+## 1. O que a loja tem de vender
+
+A LUME não é um marketplace de peças. É uma marca com poucos modelos, configuração visível e uma decisão de compra rápida: ver a moto, ver o preço, ver a parcela, pagar no Pix ou reservar um test ride.
+
+A pesquisa visual entra como restrição de interface, não como tema para copiar.
+
+| Referência | O que se aproveita | O que não se copia |
+| --- | --- | --- |
+| LiveWire | Configurador em que modelo, cor e preço mudam juntos. | A tipografia condensada pesada deixa de ser o padrão. |
+| Zero | Fotografia escura, uma moto, comparação sóbria. | O tom de catálogo americano de ficha técnica. |
+| Stark Future | Vídeo em tela cheia sobre preto e a ideia de “pronta para sair”. | O estoque real ainda é um selo, não um WMS. |
+| Energica | Velocidade e autonomia como números grandes no hero. Um acento só no botão. | O acento deles não é o nosso. |
+| Gogoro | Vender o sistema de energia, não só o veículo. | Troca de bateria no estilo taiwanês. No Brasil o sistema é tomada em casa, recarga rápida e loja. |
+| Ather, Silence | Test ride como ação de marca. | Formulário escondido no rodapé. |
+| Ola | Preço e reservar acima da dobra. | A linguagem de app de celular. |
+| Segway | Prova social, parcela visível, “me ajude a escolher”. | Grade promocional de varejo. |
+| VanMoof | Produto no centro, grafite, um detalhe vermelho, tipografia enorme e fina, menu flutuante. | A bicicleta e o vermelho espalhado em todo link. |
+| Cowboy | Título enorme, estilo de vida, test ride sempre à mão. | O leasing europeu como produto. |
+| Polestar | Vídeo escuro em tela cheia e a forma de pagar já na primeira dobra. | Assinatura de carro. Vira 21x e Pix. |
+| Rivian | Menu em cartão flutuante e um CTA claro. | Frota de aventura. |
+| Rad Power Bikes | Quiz, mapa de loja, ícones de confiança. | O visual de bicicleta utilitária. |
+| Eletrycos | Busca por categoria e cidade. Varejistas em círculos, como stories. | A grade de multimarca. A LUME mostra as próprias lojas. |
+| Voltage | 21x sem juros em evidência e Pix marcado. | A página de oferta genérica. O número entra no hero, no card e no checkout. |
+
+Direção fechada: visual VanMoof/Cowboy (preto grafite, tipo fino enorme, produto flutuando, menu em cartão) com conversão brasileira (21x sem juros, Pix, test ride grudado, quiz, busca por categoria e cidade).
+
+## 2. Diretrizes de design
+
+### Cor
+
+- Fundo `#0c0c0e`. Superfície `#16161a`. Texto `#f4f4f2`. Texto secundário no mínimo `#c8c8c4`, para passar AA em corpo pequeno.
+- Uma cor de ação: vermelho `#ff2d2d`, texto do botão `#1a0505`. Ela aparece no CTA principal, num ponto de 8 px da marca e num detalhe da moto. Não vira link, borda de card nem ícone decorativo.
+- O verde `#32bcad` existe só no selo da palavra PIX, porque é reconhecimento do meio de pagamento, não um segundo botão.
+- Cores de pintura (névoa, sal, cobre, verde circuito) são produto. Não entram no chrome.
+
+### Tipo
+
+- Inter Tight. Títulos em peso 200, tracking negativo, linha perto de 0,86. Corpo em 400.
+- Números de preço, parcela, km/h e km em algarismos tabulares.
+- Nada de caixa-alta condensada no hero. O nome do modelo pode ser grande e fino.
+
+### Composição
+
+- Menu flutuante, solto das bordas, com desfoque. No desktop: marca, quatro links, carrinho, um botão Reservar. No celular: marca, carrinho e Menu, que abre um diálogo.
+- Hero em tela cheia. Filme escuro (canvas hoje, `public/hero.mp4` quando o filme existir). A moto em primeiro plano. Embaixo, os dois números e um cartão com 21x, total e Pix.
+- Faixa fixa no rodapé da janela: “Agende um test ride”, com as cidades. Some no checkout, no próprio test ride e no admin, para não cobrir o botão de pagar.
+- Busca por categoria e cidade num cartão, logo abaixo do hero e de novo no catálogo.
+- Lojas como círculos horizontais (UF dentro, cidade embaixo).
+- Faixa de confiança: 21x, Pix, CEP, test ride, garantia da bateria, peças. Sem ícone de estoque falso.
+
+### Movimento
+
+- Entrada curta no título. O 360° gira devagar e só depois do clique.
+- `prefers-reduced-motion` desliga a animação do filme e deve desligar o auto-rotate quando o viewer for refeito em cima de um glTF.
+- Sem bounce, sem parallax de página inteira. GSAP fica para um pin de scroll no filme, na v2, e não convive com Motion no mesmo bloco.
+
+### Conteúdo
+
+- Frases curtas, concretas, em pt-BR. Sem “bem-vindo”, sem lorem.
+- Preço sempre em real, com centavos quando o arredondamento da parcela não for inteiro. O total sem juros é o valor cobrado. A parcela exibida é o arredondamento; a diferença de centavos não vira juros.
+- Reviews de demonstração não usam nome de pessoa. Cidade e relato bastam, e a página deixa claro que são semente.
+
+## 3. Requisitos funcionais
+
+Identificadores estáveis para o backlog. O que está marcado como scaffold já existe neste repositório, em geral com dado de demonstração ou pagamento simulado.
+
+### Catálogo
+
+- RF-CAT-01. Listar modelos com categoria, preço de entrada, autonomia, velocidade, 21x e Pix. Scaffold.
+- RF-CAT-02. Filtrar por categoria (mobilete, scooter, naked, adventure, sport) e por cidade da loja. A cidade filtra onde há test ride daquele modelo, não o frete. Scaffold.
+- RF-CAT-03. Busca textual simples no nome, na categoria e no texto. Scaffold em memória. Meilisearch é o índice da v1.
+- RF-CAT-04. Estado vazio quando a cidade não tem loja, com caminho para ver a linha inteira e seguir por CEP. Scaffold.
+- RF-CAT-05. Selo de estoque por cor. Cor com estoque zero não entra no preço. Scaffold.
+
+### Página do modelo
+
+- RF-PDP-01. Configurador de cor e acessórios compatíveis. Trocar a cor troca o desenho e o preço no mesmo gesto. Scaffold.
+- RF-PDP-02. Preço calculado no pacote `@lume/domain`: base + delta da cor + acessórios, sem duplicar acessório. O mesmo módulo roda no browser e na API. Scaffold.
+- RF-PDP-03. Pix a 5% e boleto a 3% sobre o subtotal configurado. O frete não leva desconto. Scaffold.
+- RF-PDP-04. 21x sem juros sobre o total configurado, campanha de lançamento. A taxa mora no código (`LAUNCH_INTEREST_FREE_UP_TO`) para o financeiro reduzir a carência sem reescrever o checkout. A Tabela Price está testada para quando o sem juros voltar a 6x. Scaffold.
+- RF-PDP-05. Calculadora de autonomia: modo eco, cidade ou esporte, velocidade e peso extra. É estimativa, não ciclo de homologação, e o texto diz isso. Scaffold.
+- RF-PDP-06. Viewer 360°. Hoje é uma massa simples em React Three Fiber, carregada só no clique, com a ilustração SVG no primeiro paint. O glTF real, com fallback de fotos para Android de entrada, é v1.
+- RF-PDP-07. Reservar leva a configuração ao checkout. A API recalcula e ignora preço vindo do browser. Scaffold.
+- RF-PDP-08. Lista de desejos neste navegador. Scaffold. Conta de verdade sincroniza na v1.
+- RF-PDP-09. Reviews do modelo e formulário moderado. A leitura da semente está na página. O POST existe na API e marca o relato como pendente. A fila de moderação é v1.
+- RF-PDP-10. JSON-LD de Product/Offer em BRL. Scaffold.
+
+### Comparar, quiz, test ride, lojas
+
+- RF-CMP-01. Até três modelos, preço, parcela, Pix, autonomia, velocidade, bateria, peso e altura do banco. Scaffold.
+- RF-QUIZ-01. Perguntas de uso, km/dia, velocidade, orçamento, tomada e garupa. Duas recomendações com motivo. Scaffold, calculado no domínio. A API expõe o mesmo contrato.
+- RF-RIDE-01. Agendar test ride: modelo, loja que tenha o modelo, nome, e-mail, telefone e data. Scaffold. Confirmação humana da loja é v1.
+- RF-LOJA-01. Lista de lojas e filtro por cidade, com atalho para o test ride. Endereço comercial real substitui o de demonstração. Scaffold.
+- RF-LOJA-02. Mapa com coordenada. v1, quando o ponto existir.
+
+### Carrinho, frete e checkout
+
+- RF-CAR-01. Carrinho local com quantidade até 2, preço refeito a partir da configuração. Scaffold.
+- RF-FRE-01. CEP com 8 dígitos. `00000000` é inválido. Tabela por prefixo, dois serviços quando a região tem loja: retirada e transporte dedicado. Scaffold. Não é cotação dos Correios.
+- RF-FRE-02. ViaCEP para preencher rua e cidade, e Melhor Envio ou transportadora dedicada no lugar da tabela. v1.
+- RF-PAY-01. Métodos: Pix, boleto, cartão 1 a 21x. Pix e boleto são à vista. Scaffold simulado.
+- RF-PAY-02. Provedor: Pix e boleto no Mercado Pago. Cartão parcelado na Pagar.me. Stripe fica como alternativa contratual, não como adquirente principal: no varejo brasileiro o parcelado com a mecânica de loja e o boleto estão mais maduros em Mercado Pago e Pagar.me. Interface `selectProvider` no domínio. Credencial e webhook são v1.
+- RF-PAY-03. O payload de Pix de demonstração é prefixado com `LUME-MOCK-PIX` para ninguém confundir com um BR Code real.
+- RF-PED-01. Código de pedido e página de acompanhamento. Scaffold. Status real (pago, em transporte, entregue) vem com o webhook.
+- RF-PED-02. E-mail transacional do pedido. v1.
+
+### Conta
+
+- RF-ACC-01. Perfil de demonstração só no navegador, sem senha e sem CPF. Scaffold.
+- RF-ACC-02. Entrada por link mágico, sessão no servidor, pedido histórico, exclusão de conta. v1. Sem Keycloak no MVP.
+
+### Admin e conteúdo
+
+- RF-ADM-01. Visão de estoque por cor e de banners, com token. Scaffold. O ajuste de estoque desta versão vale para a memória do processo, não para a vitrine, que lê o catálogo do código.
+- RF-ADM-02. CRUD de produto, preço, cor, acessório, banner e pedido, com papel de operador. v1.
+- RF-CMS-01. Páginas de campanha e filme editáveis no Payload, no mesmo Postgres. v1, depois que a compra funcionar. Não usar Sanity: o conteúdo ficaria fora da conta e o time passaria a operar outro idioma de conteúdo.
+
+### Fiscal
+
+- RF-FIS-01. Tabela `fiscal_documents` reservada, status `nao_emitida`. Sem emissão no MVP.
+- RF-FIS-02. NF-e via Focus NFe, NFe.io ou eNotas, depois do desenho com o contador. Veículo tem particularidade (NF-e e o caminho de emplacamento). Não prometer data de emissão neste documento.
+
+## 4. Requisitos não funcionais
+
+### Performance
+
+- LCP abaixo de 2,5 s em 4G mediano. O hero não espera o mp4: o canvas (ou o poster) pinta primeiro. O vídeo entra quando o arquivo existir e o browser puder tocá-lo.
+- INP abaixo de 200 ms. O configurador não faz requisição para mudar cor ou acessório.
+- CLS abaixo de 0,1. Fonte via `next/font`, preços com casa estável.
+- O bundle do Three.js fica fora da home. Só o clique “Ver em 360°” o pede.
+- Orçamento de JavaScript da home, sem o viewer: manter o que o build já separa e não acrescentar GSAP nem um segundo player.
+
+### SEO
+
+- Título e descrição por modelo, `lang="pt-BR"`, canonical via `metadataBase`, sitemap e robots. Rotas em português. Admin, checkout e conta fora do índice. Scaffold.
+- Páginas de modelo são o ativo de busca. Não depender de render só no cliente para o nome, o preço e o texto.
+
+### Acessibilidade
+
+- WCAG 2.2 AA como alvo.
+- Configurador por teclado, com `aria-pressed` em cor e acessório.
+- O 360° não é a única forma de ver a cor. A ilustração permanece.
+- Foco visível no vermelho. Contraste do botão: texto quase preto sobre `#ff2d2d`.
+- Link “Pular para o conteúdo”.
+
+### LGPD e consumo
+
+- Página de privacidade com o que se coleta, a finalidade, o compartilhamento futuro, o prazo e os direitos. Scaffold. O nome do operador e do encarregado entram antes do go-live.
+- Sem CPF no MVP. Sem número de cartão no nosso servidor: o cartão tokeniza no provedor.
+- Carrinho e cookie essencial explicados. Sem anúncio de terceiro nesta versão.
+- Compra online: lembrar o arrependimento de 7 dias do CDC no fluxo real, com a ressalva do jurídico para veículo.
+
+### Segurança
+
+- Preço e frete revalidados na API. O browser não é fonte do total.
+- Zod na borda. Erro de domínio vira 400 com código estável. Erro inesperado vira 500 sem stack para o cliente.
+- Admin por header `x-admin-token`. Em produção, sem `ADMIN_TOKEN` definido, a rota recusa. O token de desenvolvimento `dev-admin-token` não pode ir para o ambiente público.
+- Limite simples de escrita em checkout e test ride (memória do processo). Redis assume isso na v1.
+- CORS preso a `STOREFRONT_ORIGIN` quando a variável existe.
+- Log em JSON com `requestId`, método, caminho, status e duração. Sem e-mail, telefone ou corpo do pedido no log.
+- Segredo fora do git. `.env` e `.env.local` não sobem. Exemplo sim.
+
+### Observabilidade
+
+- Hoje: log estruturado e `/health`.
+- v1: Sentry na vitrine e na API, OpenTelemetry para o caminho de checkout, métrica de pedido criado, pagamento aprovado e cotação de frete. Web Vitals pelo próprio Next ou um endpoint interno.
+- Região alvo dos dados pessoais: sa-east-1.
+
+## 5. Arquitetura
+
+```mermaid
+flowchart LR
+  browser[Navegador]
+  web[Vitrine Next.js]
+  domain["@lume/domain"]
+  api[API Hono]
+  pg[(Postgres)]
+  redis[(Redis)]
+  meili[Meilisearch]
+  mp[Mercado Pago]
+  pagarme[Pagar.me]
+
+  browser --> web
+  web --> domain
+  web -->|/api/commerce| api
+  api --> domain
+  api --> pg
+  api -.-> redis
+  api -.-> meili
+  mp -.-> api
+  pagarme -.-> api
+```
+
+O browser pede a página ao Next. O catálogo e a conta de preço vêm de `@lume/domain`, importado pela vitrine e pela API, então os dois não divergem. Mutação (checkout, test ride, admin) passa pela API. O Next reescreve `/api/commerce/*` para o processo da API, e o browser não precisa conhecer a porta 8787.
+
+Postgres é o sistema de registro que o schema já descreve. Nesta fundação, o catálogo canônico ainda é o código, o seed espelha isso no banco, e pedido/test ride são gravados no Postgres quando `DATABASE_URL` conecta. Redis e Meilisearch estão no Compose para o time ligar, sem serem obrigatórios para a página abrir.
+
+### Por que o commerce é nosso, e não Medusa ou Saleor
+
+Saleor sai. É Python e GraphQL. O time passaria a ter dois runtimes e dois sistemas de tipos para uma loja cujo miolo é uma função de preço. GraphQL ajuda um storefront genérico. Aqui a regra é explícita: cor, acessório, Pix, parcela, CEP, e depois NF-e.
+
+Medusa v2 é a melhor prateleira pronta em TypeScript. Cart, order, customer, inventory e region em BRL existem. O problema é o que a LUME realmente é: uma configuração, não um variant de camiseta. Esse preço viraria pipeline custom em cima do Medusa, mais o ciclo de release e o admin do framework. Os plugins de Mercado Pago e Pagar.me não cobrem o parcelado do jeito que o varejo brasileiro cobra. O admin de pedido, que é o que o Medusa oferece de melhor, ainda não é o gargalo: o gargalo é a vitrine e a regra.
+
+Decisão: API própria em Hono, com fronteiras iguais às do Medusa (catálogo, preço, carrinho, pagamento, frete, cliente, estoque). Critério para reabrir: se na v1 o time estiver reescrevendo fila de pedido, devolução e promoção genérica em vez de integrar o adquirente, adota-se Medusa como motor de pedido e o configurador continua fora, chamando o preço nosso. Fastify é a alternativa se o time quiser o ecossistema de plugins de Node (rate limit, OpenAPI) e aceitar mais estrutura que o Hono.
+
+Hono, e não Nest: a API cabe em um processo, os testes usam `app.request` sem socket, e o tipo é o do TypeScript. Nest paga a pena quando há dezenas de módulos e um time grande de backend. Não é o caso da fundação.
+
+## 6. Stack
+
+| Escolha | Por quê | Alternativa considerada |
+| --- | --- | --- |
+| TypeScript ponta a ponta | Um idioma. O preço no browser é o preço no servidor. | Python no commerce (Saleor) quebra isso. |
+| pnpm 10 + Turborepo | Workspaces e tarefas `dev`, `lint`, `typecheck`, `test`. | Nx é mais ferramenta do que este repositório precisa. npm workspaces não dão o pipeline. |
+| Next.js 16 App Router, React 19 | SEO dos modelos, Server Components no catálogo, Cache Components já ligados no scaffold. | Remix é sólido e tem menos exemplo no time de vitrine. Astro sofre no configurador. SPA pura perde LCP e busca. |
+| Tailwind CSS 4 | O sistema visual cabe em token, sem um segundo kit visual. | CSS Modules funcionam e espalham o token. |
+| shadcn/ui (Base UI) | Botão, campo e diálogo acessíveis, com o tema grafite por cima. | Headless próprio recria foco, teclado e diálogo. |
+| Motion | Entrada do hero, integrada ao React. | GSAP na v2, só no pin do filme. Não os dois no mesmo componente. |
+| React Three Fiber, Three.js, drei | 360° sob demanda. | `<model-viewer>` é mais simples e menos controlável. Spline prende o asset. Sprite 360° é o fallback de acessibilidade, não o caminho principal. |
+| Hono + Zod | Borda pequena, validação na entrada, erro de domínio separado de erro de JSON. | Nest, tRPC. tRPC é tentador com o Next, e fica ruim quando o app da loja ou um parceiro precisar de HTTP estável. O contrato REST versionado em `/v1` fica. |
+| Drizzle + Postgres 16 | SQL visível para o DBA, dinheiro em `integer` de centavos. | Prisma tem DX boa e um runtime mais opaco na migração. |
+| Redis 7 | Carrinho quente, limite de taxa e cache de frete na v1. O Compose já sobe. | Sem Redis o processo usa memória, e isso não escala em duas instâncias. |
+| Payload CMS | TypeScript, self-hosted, mesmo Postgres, na v1 de conteúdo. | Sanity é um ótimo estúdio e tira o conteúdo da conta. Strapi é um segundo app em JavaScript menos alinhado. |
+| Meilisearch | Typo, faceta, pt-BR, dado na nossa rede. | Algolia é melhor de operar e pior de custo e de LGPD para um catálogo pequeno. |
+| Cloudflare R2 ou S3 + CDN | Foto e, quando houver, HLS do hero (Stream ou Mux). | Servir mp4 grande do processo Next. |
+| Vitest | Domínio e API, sem browser. | Jest não acrescenta nada aqui. |
+| Playwright | Um fluxo: home, cor, preço, checkout. | Cypress. Playwright é o que o CI já chama. |
+| GitHub Actions | Lint, tipos, teste, build e e2e no Chromium. | Outro CI só se o remoto do git não for GitHub. O workflow está em `.github/workflows/ci.yml`. |
+
+### Deploy sugerido
+
+- Vitrine: Vercel, o caminho mais curto para este Next, ou OpenNext se a política for não usar a Vercel. Região perto de sa-east-1.
+- API: container com processo longo (Fly, Cloud Run ou ECS). Webhook de pagamento e boleto não combinam com função que morre no meio.
+- Postgres: RDS em sa-east-1 se o dado tem de ficar na conta AWS. Neon se a prioridade for abrir o ambiente rápido, com a ressalva de região.
+- Redis: ElastiCache ou Upstash.
+- Meilisearch: um container ao lado da API.
+- Segredo no cofre do provedor, não no repositório.
+
+## 7. Modelo de dados
+
+Dinheiro é `integer` em centavos. Não há `float` de real. A única conta com ponto flutuante é a taxa mensal da Tabela Price, arredondada uma vez de volta para centavos.
+
+```mermaid
+erDiagram
+  CUSTOMERS ||--o{ ADDRESSES : tem
+  CUSTOMERS ||--o{ ORDERS : faz
+  PRODUCTS ||--o{ PRODUCT_COLORS : pinta
+  PRODUCTS ||--o{ ORDER_LINES : entra
+  ORDERS ||--o| FISCAL_DOCUMENTS : "NF-e futura"
+  DEALERS ||--o{ TEST_RIDE_BOOKINGS : recebe
+  PRODUCTS ||--o{ REVIEWS : recebe
+```
+
+Tabelas em `apps/commerce/src/db/schema.ts` e no SQL `apps/commerce/drizzle/`:
+
+- `customers`, `addresses` — conta e CEP. CPF não está na coluna.
+- `products`, `product_colors`, `accessories` — espelho do catálogo.
+- `dealers` — loja.
+- `test_ride_bookings` — agendamento.
+- `orders` — cabeçalho, método, provedor, parcelas, totais e o payload da configuração em `jsonb`.
+- `reviews`, `banners`.
+- `fiscal_documents` — reserva, sem emissão.
+
+O que o código de domínio trata e o schema ainda não separa em tabela própria (fica no `jsonb` do pedido até a v1): linha de acessório, pagamento e remessa. Quando o webhook existir, `payments` ganha tabela com status e id externo. Não guardar PAN nem CVV.
+
+Índices que o DBA cria junto com o tráfego real: `orders.customer_email`, `orders.created_at`, `test_ride_bookings.dealer_id`, `product_colors (product_id, color_id)` já é único.
+
+Retenção: pedido e documento fiscal pelo prazo legal. Test ride sem compra, 12 meses, depois exclusão. Backup do Postgres com restore testado antes do go-live. Isso é tarefa de DBA, não de migration automática.
+
+## 8. Roadmap
+
+Sem calendário. A ordem é a dependência.
+
+### Fundação — este repositório
+
+Monorepo, domínio testado, vitrine com a direção visual fechada, API com checkout simulado, Compose, CI, requisitos.
+
+### MVP-a — cobrar de verdade
+
+Catálogo servido pelo banco, configurador, 21x, Pix com um adquirente em homologação e depois produção, frete por CEP com ViaCEP e a tabela ou a transportadora, pedido com status, admin de estoque que a vitrine respeita, Sentry.
+
+### MVP-b — o resto da compra
+
+Boleto, cartão parcelado na Pagar.me com webhook, quiz e comparação já ligados ao catálogo do banco, test ride com confirmação da loja, conta por link mágico, review moderado, lista de desejos na conta, e-mail transacional.
+
+### MVP-c — operação
+
+Segundo adquirente se o contrato pedir, Payload para banner e página, Meilisearch, mapa de loja, LGPD operando (pedido de exclusão de verdade), observabilidade do funil.
+
+### v2
+
+NF-e. glTF do 360° e filme HLS com GSAP só na cena pinada. Financiamento bancário (CDC), além do parcelamento do cartão. Troca de usado. Área do dono: manual, garantia, rede de recarga. Multi-depósito. Indicação. Conteúdo editorial.
+
+Fora de escopo até alguém reabrir: assinatura, troca de bateria no modelo Gogoro, aplicativo nativo, multi-marca.
+
+## 9. Time
+
+Quatro papéis. Uma pessoa pode acumular no começo. O corte é o tipo de decisão, não o organograma.
+
+### Frontend
+
+Dono da vitrine: App Router, o sistema visual desta diretriz, Motion, o 360°, acessibilidade e Core Web Vitals. Não inventa preço. Importa `@lume/domain` e trata erro da API. Entrega o configurador, o quiz, o checkout e os estados vazio, carregando e erro.
+
+### Backend
+
+Dono da API, do contrato `/v1`, dos webhooks, do provedor de pagamento e do frete. Revalida toda mutação. Não devolve stack. Mantém a fronteira pronta para um eventual Medusa sem misturar regra fiscal dentro do componente React.
+
+### DBA
+
+Dono do schema, da migração, do índice, do backup e da retenção. Revisa o SQL do Drizzle antes de produção. Garante centavos como inteiro, Postgres em sa-east-1, e que dado pessoal não vaza para log nem para um índice público. Não modela “só mais uma coluna jsonb” para pagamento quando o webhook chegar: aí a tabela é de verdade.
+
+### QA
+
+Dono do risco de regressão do configurador: cor esgotada, acessório de outro modelo, Pix contra cartão, CEP inválido, cidade sem loja, parcela de 21x batendo com o total. Automatiza o Playwright no fluxo de compra e mantém um roteiro manual no adquirente de homologação e num Android de entrada, porque o 360° é o primeiro candidato a quebrar lá. Não assina release com pagamento real sem o caso do webhook duplicado.
+
+### Como se cruzam
+
+Frontend e backend se encontram no `@lume/domain` e nos códigos de erro (`cep_invalido`, `cor_sem_estoque`, `parcelas_invalidas`). DBA revisa a migration antes do backend ligar o webhook. QA entra no MVP-a com o Pix de homologação, não depois do banner.
+
+## 10. Onde isso está no código
+
+| Assunto | Lugar |
+| --- | --- |
+| Preço, 21x, Pix, CEP, autonomia, quiz | `packages/domain` |
+| Testes dessas regras | `packages/domain/src/domain.test.ts` |
+| API | `apps/commerce/src/app.ts` |
+| Schema e seed | `apps/commerce/src/db` |
+| Vitrine | `apps/storefront` |
+| Como rodar | `README.md` |
