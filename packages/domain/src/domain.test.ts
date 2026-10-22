@@ -6,6 +6,7 @@ import { applyDiscount, formatBRL } from "./money";
 import { configurePrice } from "./pricing";
 import { recommendMotorcycles } from "./quiz";
 import { estimateRange } from "./range";
+import { estimateFuelSavings } from "./savings";
 import { formatCep, normalizeCep, quoteShipping } from "./shipping";
 import { filterShowroom } from "./showroom";
 
@@ -23,7 +24,15 @@ describe("preço do configurador", () => {
     expect(quote.subtotalCents).toBe(6_290_000 + 180_000 + 188_000);
     expect(quote.pixCents).toBe(applyDiscount(quote.subtotalCents, 500));
     expect(quote.boletoCents).toBe(applyDiscount(quote.subtotalCents, 300));
+    expect(quote.batteryCents).toBe(0);
     expect(quote.accessories).toHaveLength(1 + 1);
+  });
+
+  it("soma a bateria longa da Apex sem mexer na de série", () => {
+    const quote = configurePrice({ productId: "apex", colorId: "obsidiana", batteryId: "longa" });
+    expect(quote.batteryCents).toBe(240_000);
+    expect(quote.subtotalCents).toBe(6_290_000 + 240_000);
+    expect(quote.battery.rangeKm).toBe(320);
   });
 
   it("recusa cor esgotada e acessório de outro modelo", () => {
@@ -112,6 +121,21 @@ describe("autonomia", () => {
     expect(city.rangeKm).toBe(apex.rangeKm);
     expect(sport.rangeKm).toBeLessThan(city.rangeKm);
     expect(eco.rangeKm).toBeGreaterThan(city.rangeKm);
+  });
+});
+
+describe("economia contra gasolina", () => {
+  it("gasta menos energia do que gasolina num uso urbano", () => {
+    const savings = estimateFuelSavings({
+      kmPerMonth: 800,
+      batteryKwh: 14.6,
+      rangeKm: 280,
+      electricityCentsPerKwh: 95,
+      gasolineCentsPerLiter: 649,
+      gasolineKmPerLiter: 12,
+    });
+    expect(savings.electricMonthCents).toBeLessThan(savings.gasolineMonthCents);
+    expect(savings.savedMonthCents).toBe(savings.gasolineMonthCents - savings.electricMonthCents);
   });
 });
 

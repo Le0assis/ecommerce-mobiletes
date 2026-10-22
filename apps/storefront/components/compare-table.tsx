@@ -1,6 +1,6 @@
 import { BikeSvg } from "@/components/bike-svg";
 import { ComparePicker } from "@/components/compare-picker";
-import { categoryLabel, formatBRL, getMotorcycle, installmentByCount } from "@/lib/catalog";
+import { categoryLabel, formatBRL, getMotorcycle, installmentByCount, registrationLabel } from "@/lib/catalog";
 import Link from "next/link";
 
 export async function CompareTable({ searchParams }: PageProps<"/comparar">) {
@@ -12,7 +12,9 @@ export async function CompareTable({ searchParams }: PageProps<"/comparar">) {
     .filter((item) => item !== undefined)
     .slice(0, 3);
   const rows: { label: string; read: (item: (typeof selected)[number]) => string }[] = [
+    { label: "Marca", read: (item) => item.brand },
     { label: "Categoria", read: (item) => categoryLabel[item.category] },
+    { label: "Habilitação", read: (item) => registrationLabel[item.registrationClass] },
     { label: "Preço", read: (item) => formatBRL(item.basePriceCents) },
     { label: "21× sem juros", read: (item) => formatBRL(installmentByCount(item.basePriceCents, 21).installmentCents) },
     { label: "Pix −5%", read: (item) => formatBRL(Math.round(item.basePriceCents * 0.95)) },

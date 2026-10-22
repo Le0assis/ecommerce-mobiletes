@@ -1,7 +1,7 @@
 "use client";
 
 import { Button, buttonVariants } from "@/components/ui/button";
-import { formatBRL, installmentByCount, recommendMotorcycles, type QuizAnswers } from "@/lib/catalog";
+import { estimateFuelSavings, formatBRL, installmentByCount, recommendMotorcycles, type QuizAnswers } from "@/lib/catalog";
 import { cn } from "cn";
 import { motion, useReducedMotion } from "motion/react";
 import Link from "next/link";
@@ -120,6 +120,20 @@ export function Quiz() {
               <h2 className="display text-5xl">{item.product.name}</h2>
               <p className="nums mt-2 text-lg">
                 {formatBRL(item.product.basePriceCents)} · 21× de {formatBRL(installmentByCount(item.product.basePriceCents, 21).installmentCents)}
+              </p>
+              <p className="nums mt-2 text-sm text-muted-foreground">
+                Energia contra um carro de 12 km/L, em 800 km/mês:{" "}
+                {formatBRL(
+                  estimateFuelSavings({
+                    kmPerMonth: 800,
+                    batteryKwh: item.product.batteryKwh,
+                    rangeKm: item.product.rangeKm,
+                    electricityCentsPerKwh: 95,
+                    gasolineCentsPerLiter: 649,
+                    gasolineKmPerLiter: 12,
+                  }).savedMonthCents,
+                )}{" "}
+                de diferença estimada
               </p>
               <ul className="mt-4 grid gap-2 text-sm text-muted-foreground">
                 {item.reasons.map((reason) => (

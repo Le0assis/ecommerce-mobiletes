@@ -292,6 +292,7 @@ export function createApp(deps: CommerceDeps = {}) {
           productId: item.quote.product.id,
           colorId: item.quote.color.id,
           accessoryIds: item.quote.accessories.map((accessory) => accessory.id),
+          batteryId: item.quote.battery.id,
           qty: item.line.qty,
           cents: item.lineCents,
         })),

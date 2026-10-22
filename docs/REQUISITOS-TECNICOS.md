@@ -101,7 +101,7 @@ Identificadores estáveis para o backlog. O que está marcado como vitrine já e
 - RF-PDP-05. Calculadora de autonomia: modo eco, cidade ou esporte, velocidade e peso extra. É estimativa, não ciclo de homologação, e o texto diz isso. Vitrine.
 - RF-PDP-11. Galeria com vistas lateral, detalhe e frente antes do 360°. Etapa 1.
 - RF-PDP-12. Ficha de habilitação por classe: autopropelido, ciclomotor ou moto, com aviso de que não é parecer jurídico. Etapa 1.
-- RF-PDP-13. Opção de bateria no configurador, com delta de preço e de autonomia. Etapa 2.
+- RF-PDP-13. Opção de bateria no configurador, com delta de preço e de autonomia. A de série tem delta zero, então o preço publicado não muda até a pessoa escolher o pacote maior. Etapa 2.
 - RF-PDP-14. Economia estimada contra gasolina: preço do kWh, da gasolina, km/mês e consumo do carro de referência. Estimativa, não estudo de TCO. Etapa 2.
 - RF-PDP-06. Viewer 360°. Hoje é uma massa simples em React Three Fiber, carregada só no clique, com a ilustração SVG no primeiro paint. O glTF real, com fallback de fotos para Android de entrada, é v1.
 - RF-PDP-07. Reservar leva a configuração ao checkout. A API recalcula e ignora preço vindo do browser. Vitrine.

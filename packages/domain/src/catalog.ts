@@ -49,6 +49,15 @@ export type Accessory = {
   group: AccessoryGroup;
 };
 
+export type BatteryOption = {
+  id: string;
+  name: string;
+  kwh: number;
+  rangeKm: number;
+  priceDeltaCents: number;
+  stock: number;
+};
+
 export type Motorcycle = {
   id: string;
   slug: string;
@@ -72,6 +81,8 @@ export type Motorcycle = {
   /** Texto de enquadramento. Não é aconselhamento jurídico. */
   licenseNote: string;
   colors: ColorOption[];
+  /** Pacotes além da bateria de série. O delta zero é o que já está no preço de tabela. */
+  batteries?: BatteryOption[];
   accessoryIds: string[];
   optimalSpeedKmh: number;
 };
@@ -224,6 +235,10 @@ export const motorcycles: Motorcycle[] = [
     fastChargeMin: 45,
     licenseNote: "Condução na categoria A. Confirmar potência contínua na homologação.",
     colors: [obsidiana(8), nevoa(5), sal(4), cobre(3)],
+    batteries: [
+      { id: "serie", name: "3,8 kWh", kwh: 3.8, rangeKm: 120, priceDeltaCents: 0, stock: 12 },
+      { id: "plus", name: "4,6 kWh", kwh: 4.6, rangeKm: 145, priceDeltaCents: 80_000, stock: 4 },
+    ],
     accessoryIds: ["para-brisa", "baules", "garupa", "carregador", "banco"],
     optimalSpeedKmh: 50,
   },
@@ -299,6 +314,10 @@ export const motorcycles: Motorcycle[] = [
     fastChargeMin: 28,
     licenseNote: "Condução na categoria A. Série de lançamento com estoque contado.",
     colors: [obsidiana(5), nevoa(3), sal(2), cobre(2), circuito(2)],
+    batteries: [
+      { id: "serie", name: "14,6 kWh", kwh: 14.6, rangeKm: 280, priceDeltaCents: 0, stock: 8 },
+      { id: "longa", name: "16,8 kWh", kwh: 16.8, rangeKm: 320, priceDeltaCents: 240_000, stock: 3 },
+    ],
     accessoryIds: ["protetor", "banco", "bolsa", "carregador", "garupa"],
     optimalSpeedKmh: 90,
   },

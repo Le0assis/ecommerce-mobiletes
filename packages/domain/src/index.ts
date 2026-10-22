@@ -7,6 +7,7 @@ export * from "./payments";
 export * from "./pricing";
 export * from "./quiz";
 export * from "./range";
+export * from "./savings";
 export * from "./schemas";
 export * from "./shipping";
 export * from "./showroom";

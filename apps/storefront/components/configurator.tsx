@@ -1,6 +1,7 @@
 "use client";
 
 import { ProductGallery } from "@/components/product-gallery";
+import { SavingsCalculator } from "@/components/savings-calculator";
 import { InstallmentTable } from "@/components/installment-table";
 import { ProductCard } from "@/components/product-card";
 import { ReviewForm, usePendingReviews } from "@/components/review-form";
@@ -12,6 +13,7 @@ import {
   estimateRange,
   formatBRL,
   installmentByCount,
+  packsFor,
   registrationLabel,
   registrationNote,
   relatedMotorcycles,
@@ -44,8 +46,10 @@ export function Configurator({ product }: { product: Motorcycle }) {
   }, []);
 
   const options = accessoriesFor(product);
+  const packs = packsFor(product);
   const firstColor = product.colors.find((color) => color.stock > 0) ?? product.colors[0];
   const [colorId, setColorId] = useState(firstColor?.id ?? "");
+  const [batteryId, setBatteryId] = useState(packs[0]?.id ?? "serie");
   const [picked, setPicked] = useState<string[]>([]);
   const [spin, setSpin] = useState(false);
   const [mode, setMode] = useState<RideMode>("cidade");
@@ -53,15 +57,15 @@ export function Configurator({ product }: { product: Motorcycle }) {
   const [weight, setWeight] = useState(0);
   const quoteResult = useMemo(() => {
     try {
-      return { quote: configurePrice({ productId: product.id, colorId, accessoryIds: picked }), error: "" };
+      return { quote: configurePrice({ productId: product.id, colorId, accessoryIds: picked, batteryId }), error: "" };
     } catch (cause) {
       return { quote: null, error: cause instanceof Error ? cause.message : "Não foi possível calcular." };
     }
-  }, [product.id, colorId, picked]);
+  }, [product.id, colorId, picked, batteryId]);
   const quote = quoteResult.quote;
   const error = quoteResult.error;
   const range = estimateRange({
-    baseRangeKm: product.rangeKm,
+    baseRangeKm: quote?.battery.rangeKm ?? product.rangeKm,
     speedKmh: speed,
     extraWeightKg: weight,
     mode,
@@ -79,7 +83,7 @@ export function Configurator({ product }: { product: Motorcycle }) {
 
   function reserve() {
     if (!quote) return;
-    shop.addLine({ productId: product.id, colorId, accessoryIds: picked });
+    shop.addLine({ productId: product.id, colorId, accessoryIds: picked, batteryId });
     router.push("/checkout");
   }
 
@@ -157,6 +161,29 @@ export function Configurator({ product }: { product: Motorcycle }) {
               ))}
             </div>
           </fieldset>
+          {packs.length > 1 ? (
+            <fieldset className="mt-6">
+              <legend className="text-xs tracking-[0.16em] text-muted-foreground uppercase">Bateria</legend>
+              <div className="mt-3 grid gap-2">
+                {packs.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    disabled={item.stock <= 0}
+                    aria-pressed={item.id === batteryId}
+                    onClick={() => setBatteryId(item.id)}
+                    className="flex items-center justify-between rounded-2xl border border-white/10 px-4 py-3 text-left text-sm aria-pressed:border-signal disabled:opacity-40"
+                  >
+                    <span>
+                      {item.name}
+                      <span className="mt-1 block text-muted-foreground">até {item.rangeKm} km de referência</span>
+                    </span>
+                    <span className="nums shrink-0 pl-4">{item.priceDeltaCents > 0 ? `+${formatBRL(item.priceDeltaCents)}` : "Série"}</span>
+                  </button>
+                ))}
+              </div>
+            </fieldset>
+          ) : null}
           <fieldset className="mt-6">
             <legend className="text-xs tracking-[0.16em] text-muted-foreground uppercase">Acessórios</legend>
             <div className="mt-3 grid gap-2">
@@ -194,8 +221,9 @@ export function Configurator({ product }: { product: Motorcycle }) {
               Peso extra: <span className="nums">{weight} kg</span>
               <input className="mt-2 w-full accent-[#ff2d2d]" type="range" min={0} max={40} value={weight} onChange={(event) => setWeight(Number(event.target.value))} />
             </label>
-            <p className="mt-3 text-sm text-muted-foreground">{range.note}</p>
-          </fieldset>
+          <p className="mt-3 text-sm text-muted-foreground">{range.note}</p>
+        </fieldset>
+        <SavingsCalculator batteryKwh={quote?.battery.kwh ?? product.batteryKwh} rangeKm={quote?.battery.rangeKm ?? product.rangeKm} />
           {quote && plan ? (
             <div className="mt-6 rounded-[1.8rem] border border-white/10 bg-[#141418] p-5">
               <p className="nums text-4xl font-light" data-testid="live-price">

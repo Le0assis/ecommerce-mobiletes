@@ -6,6 +6,7 @@ export type CartLine = {
   productId: string;
   colorId: string;
   accessoryIds: string[];
+  batteryId?: string;
   qty: number;
 };
 
@@ -64,7 +65,12 @@ function publish(next: ShopState) {
 }
 
 function sameLine(a: Omit<CartLine, "qty">, b: CartLine) {
-  return a.productId === b.productId && a.colorId === b.colorId && a.accessoryIds.join("|") === b.accessoryIds.join("|");
+  return (
+    a.productId === b.productId &&
+    a.colorId === b.colorId &&
+    (a.batteryId ?? "serie") === (b.batteryId ?? "serie") &&
+    a.accessoryIds.join("|") === b.accessoryIds.join("|")
+  );
 }
 
 export function ShopProvider({ children }: { children: ReactNode }) {

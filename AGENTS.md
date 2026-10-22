@@ -6,7 +6,8 @@ Leia [docs/README.md](docs/README.md) antes de alterar este repositório. A docu
 
 Regras que não se negociam ao implementar:
 
-- Preço, parcela, Pix, boleto, frete e autonomia nascem em `packages/domain`. A vitrine não inventa número. A API recalcula no checkout.
+- Preço, parcela, Pix, boleto, frete, autonomia e economia contra gasolina nascem em `packages/domain`. A vitrine não inventa número. A API recalcula no checkout.
+- `batteryId` é opcional. Ausente, a bateria de série entra com delta zero. O schema do checkout precisa repassar o campo, senão o Zod descarta e o servidor cobra a de série.
 - Dinheiro é inteiro em centavos.
 - O vermelho `#ff2d2d` é o único acento de marca, no CTA principal, no ponto da marca e num detalhe da moto. O verde-água `#32bcad` só aparece no selo Pix.
 - Campanha de lançamento: 21x sem juros. Não reescreva a Tabela Price. Para encurtar a carência, baixe `LAUNCH_INTEREST_FREE_UP_TO`.

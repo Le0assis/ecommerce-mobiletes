@@ -24,7 +24,7 @@ Estender: um filtro novo nasce em `ShowroomQuery` e no formulário. Não filtre 
 
 `app/motos/[slug]/page.tsx` e `components/configurator.tsx`.
 
-Cor e acessório chamam `configurePrice`. O total ao vivo está em `data-testid="live-price"`. A cor Cobre da Apex é `color-cobre`. Reservar é `reserve` e só existe uma vez: a barra móvel chama a mesma função sem o testid, para o Playwright não achar dois botões.
+Cor, bateria e acessório chamam `configurePrice`. Sem `batteryId`, vale o primeiro pacote, de delta zero. O total ao vivo está em `data-testid="live-price"`. A cor Cobre da Apex é `color-cobre`. Reservar é `reserve` e só existe uma vez: a barra móvel chama a mesma função sem o testid, para o Playwright não achar dois botões.
 
 O 360° (`components/bike-viewer.tsx`) só monta no clique. `html[data-configurator=ready]` marca a hidratação. Com `prefers-reduced-motion`, o modelo não gira sozinho.
 

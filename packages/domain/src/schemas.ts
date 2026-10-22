@@ -45,6 +45,7 @@ export const cartLineBody = z.object({
   productId: z.string().min(1),
   colorId: z.string().min(1),
   accessoryIds: z.array(z.string()).max(8).default([]),
+  batteryId: z.string().min(1).optional(),
   qty: z.number().int().min(1).max(2).default(1),
 });
 
