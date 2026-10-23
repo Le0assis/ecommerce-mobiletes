@@ -25,6 +25,7 @@
     "zod": "^4.1.12"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "0.5.11",
     "@types/node": "^22",
     "drizzle-kit": "^0.31.7",
     "eslint": "^9",

@@ -36,8 +36,9 @@ import type { Context } from "hono";
 import { getCookie } from "hono/cookie";
 import { ADMIN_COOKIE, mountCatalogRoutes, sessionIsCurrent } from "./catalog-routes";
 import { clientAddress } from "./client-address";
-import { createCatalog } from "./catalog-store";
+import { CatalogUnavailable, createCatalog, type Catalog } from "./catalog-store";
 import { publicCatalogProduct, publicDomainProduct } from "./public-product";
+import { quoteCatalogProduct, type CatalogLine } from "./quote-catalog";
 import { adminToken } from "./env";
 import type { UploadRequest } from "./uploads";
 
@@ -84,6 +85,9 @@ export type CommerceDeps = {
   stock?: Map<string, number>;
   banners?: Map<string, boolean>;
   blobSigner?: (input: UploadRequest) => Promise<{ clientToken: string; pathname: string }>;
+  catalog?: Catalog;
+  /** Sem Postgres, criar/editar/arquivar produto, variante, foto, acessório e avaria responde 503. */
+  persistent?: boolean;
 };
 
 const hits = new Map<string, { count: number; reset: number }>();
@@ -122,11 +126,22 @@ export function createApp(deps: CommerceDeps = {}) {
   const extraReviews = deps.extraReviews ?? [];
   const stock = deps.stock ?? new Map<string, number>();
   const now = deps.now ?? (() => new Date());
-  const catalog = createCatalog({ now, bannerOverrides: deps.banners });
+  const catalog = deps.catalog ?? createCatalog({ now, bannerOverrides: deps.banners });
   const adminSessions = new Map<string, { createdAt: number }>();
 
-  function quizCatalog() {
-    const managed = catalog.publicList({}).map((product) => ({
+  async function quoteLine(line: CatalogLine) {
+    const managed = await catalog.findProduct(line.productId);
+    if (managed) {
+      if (!managed.isEnabled || managed.status !== "ativo") {
+        throw new DomainError("produto_desabilitado", "Esse modelo não está habilitado.");
+      }
+      return quoteCatalogProduct(managed, line, await catalog.listAccessories());
+    }
+    return configurePrice(line);
+  }
+
+  async function quizCatalog() {
+    const managed = (await catalog.publicList({})).map((product) => ({
       id: product.id,
       slug: product.slug,
       name: product.name,
@@ -200,33 +215,37 @@ export function createApp(deps: CommerceDeps = {}) {
     }),
   );
 
-  app.get("/v1/products", (c) => {
+  app.get("/v1/products", async (c) => {
     const result = filterShowroom({
       q: c.req.query("q"),
       category: c.req.query("categoria") ?? undefined,
       city: c.req.query("cidade") ?? undefined,
       brand: c.req.query("marca") ?? undefined,
     });
-    const accessories = catalog.listAccessories();
+    const accessories = await catalog.listAccessories();
+    const managed = await catalog.publicList({
+      q: c.req.query("q"),
+      category: c.req.query("categoria") ?? undefined,
+      brand: c.req.query("marca") ?? undefined,
+      city: c.req.query("cidade") ?? undefined,
+    });
     return c.json({
       products: [
         ...result.products.map(publicDomainProduct),
-        ...catalog
-          .publicList({
-            q: c.req.query("q"),
-            category: c.req.query("categoria") ?? undefined,
-            brand: c.req.query("marca") ?? undefined,
-            city: c.req.query("cidade") ?? undefined,
-          })
-          .map((product) => publicCatalogProduct(product, accessories)),
+        ...managed.map((product) => publicCatalogProduct(product, accessories)),
       ],
     });
   });
 
-  app.get("/v1/products/:slug", (c) => {
-    const managed = catalog.publicBySlug(c.req.param("slug"));
+  app.get("/v1/products/:slug", async (c) => {
+    const slug = c.req.param("slug");
+    const stored = await catalog.productBySlug(slug);
+    if (stored && (stored.status !== "ativo" || !stored.isEnabled)) {
+      return c.json({ error: "produto_inexistente", message: "Modelo não encontrado." }, 404);
+    }
+    const managed = await catalog.publicBySlug(slug);
     if (managed) {
-      const product = publicCatalogProduct(managed, catalog.listAccessories());
+      const product = publicCatalogProduct(managed, await catalog.listAccessories());
       return c.json({ product, accessories: product.accessories, reviews: [] });
     }
     const found = getMotorcycle(c.req.param("slug"));
@@ -245,7 +264,7 @@ export function createApp(deps: CommerceDeps = {}) {
     return c.json({ reviews: slug ? all.filter((item) => item.productSlug === slug) : all });
   });
 
-  app.post("/v1/pricing/configure", async (c) => read(c, configureBody, (input) => configurePrice(input)));
+  app.post("/v1/pricing/configure", async (c) => read(c, configureBody, (input) => quoteLine(input)));
 
   app.post("/v1/pricing/installments", async (c) =>
     read(c, installmentsBody, (input) => ({
@@ -255,17 +274,16 @@ export function createApp(deps: CommerceDeps = {}) {
 
   app.post("/v1/shipping/quote", async (c) => read(c, shippingBody, (input) => quoteShipping(input.cep, input.weightKg)));
 
-  app.get("/v1/banners", (c) => {
-    const list = catalog
-      .listBanners()
+  app.get("/v1/banners", async (c) => {
+    const list = (await catalog.listBanners())
       .filter((item) => item.active)
       .sort((a, b) => a.position - b.position || a.id.localeCompare(b.id));
     return c.json({ banners: list });
   });
 
   app.post("/v1/quiz", async (c) =>
-    read(c, quizBody, (input) => ({
-      recommendations: recommendMotorcycles(input, quizCatalog()).map((item) => ({
+    read(c, quizBody, async (input) => ({
+      recommendations: recommendMotorcycles(input, await quizCatalog()).map((item) => ({
         slug: item.product.slug,
         name: item.product.name,
         score: item.score,
@@ -317,18 +335,15 @@ export function createApp(deps: CommerceDeps = {}) {
     if (rateLimit(`pay:${clientAddress(c)}`, 30)) {
       return c.json({ error: "limite", message: "Muitas tentativas. Espere um minuto." }, 429);
     }
-    return read(c, checkoutBody, (input) => {
+    return read(c, checkoutBody, async (input) => {
       if (input.method !== "cartao" && input.installments !== 1) {
         throw new DomainError("parcelas_invalidas", "Pix e boleto são à vista.");
       }
-      const quotes = input.lines.map((line) => {
-        const managed = catalog.getProduct(line.productId);
-        if (managed && (!managed.isEnabled || managed.status !== "ativo")) {
-          throw new DomainError("produto_desabilitado", "Esse modelo não está habilitado.");
-        }
-        const quote = configurePrice(line);
-        return { line, quote, lineCents: amountForMethod(input.method, quote) * line.qty };
-      });
+      const quotes = [];
+      for (const line of input.lines) {
+        const quote = await quoteLine(line);
+        quotes.push({ line, quote, lineCents: amountForMethod(input.method, quote) * line.qty });
+      }
       const listCents = quotes.reduce((sum, item) => sum + item.quote.subtotalCents * item.line.qty, 0);
       const coupon = couponDiscount(listCents, input.couponCode);
       let goodsCents = quotes.reduce((sum, item) => sum + item.lineCents, 0);
@@ -478,7 +493,7 @@ export function createApp(deps: CommerceDeps = {}) {
     return c.json({ dealers: result.dealers });
   });
 
-  app.get("/v1/admin/overview", (c) => {
+  app.get("/v1/admin/overview", async (c) => {
     if (!authorized(c)) return c.json({ error: "nao_autorizado", message: "Token de admin inválido." }, 401);
     return c.json({
       products: motorcycles.map((product) => ({
@@ -495,7 +510,7 @@ export function createApp(deps: CommerceDeps = {}) {
           stock: stock.get(`${product.id}:${color.id}`) ?? color.stock,
         })),
       })),
-      banners: catalog.listBanners(),
+      banners: await catalog.listBanners(),
       orders: orders.size,
       bookings: bookings.length,
       tradeIns: tradeIns.length,
@@ -545,9 +560,13 @@ export function createApp(deps: CommerceDeps = {}) {
     rateLimit,
     now,
     blobSigner: deps.blobSigner,
+    persistent: deps.persistent,
   });
 
   app.onError((error, c) => {
+    if (error instanceof CatalogUnavailable) {
+      return c.json({ error: "catalogo_indisponivel", message: "O cadastro precisa do Postgres." }, 503);
+    }
     console.error(JSON.stringify({ msg: "erro", message: error instanceof Error ? error.message : "unknown" }));
     const mapped = problem(error);
     return c.json(mapped.body, mapped.status);
@@ -579,8 +598,11 @@ async function read<T>(c: Context, schema: { safeParse: (value: unknown) => { su
     return c.json({ error: "payload_invalido", message: "Revise os campos.", issues: parsed.error.issues }, 400);
   }
   try {
-    return c.json(run(parsed.data));
+    return c.json(await run(parsed.data));
   } catch (error) {
+    if (error instanceof CatalogUnavailable) {
+      return c.json({ error: "catalogo_indisponivel", message: "O cadastro precisa do Postgres." }, 503);
+    }
     const mapped = problem(error);
     return c.json(mapped.body, mapped.status);
   }

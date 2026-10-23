@@ -9,7 +9,7 @@ Dois processos:
 1. A vitrine (`apps/storefront`) na Vercel, ou com OpenNext se a hospedagem não for a Vercel. Região da borda perto do Brasil.
 2. A API (`apps/commerce`) e o Postgres na mesma região, `sa-east-1` quando o provedor oferecer. Redis entra quando o limite de taxa sair da memória do processo.
 
-O catálogo que a vitrine lê continua em `@lume/domain` até o MVP-a passar a servir o banco. Publicar o admin não faz o estoque da memória aparecer na loja.
+A vitrine lê `GET /v1/products`: modelos de `@lume/domain` mais o cadastro `ativo` e habilitado. Com `DATABASE_URL`, o admin grava esse cadastro no Postgres e o checkout usa essa ficha. Sem a variável, criar e editar produto responde 503. Publicar o admin não altera o estoque dos modelos que só existem no código.
 
 ## Variáveis
 

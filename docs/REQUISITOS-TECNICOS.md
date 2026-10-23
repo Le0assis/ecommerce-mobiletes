@@ -288,7 +288,7 @@ erDiagram
 Tabelas em `apps/commerce/src/db/schema.ts` e no SQL `apps/commerce/drizzle/`:
 
 - `customers`, `addresses` — conta e CEP. CPF não está na coluna.
-- `products`, `product_specs`, `product_variants`, `product_images`, `product_colors`, `accessories`, `product_accessories`, `damages`, `damage_images` — catálogo de autopropelidos. `product_colors` fica da migration inicial. O seed de exemplo marca `is_sample`. A vitrine lê a API, que hoje mistura domínio e memória; o CRUD ainda não grava neste Postgres.
+- `products`, `product_specs`, `product_variants`, `product_images`, `product_colors`, `accessories`, `product_accessories`, `damages`, `damage_images` — catálogo de autopropelidos. `product_colors` fica da migration inicial; o admin usa a variante. O seed de exemplo marca `is_sample`. A vitrine lê a API, que mistura domínio e esse Postgres. O CRUD de produto grava aqui. As medidas da ficha são `numeric(12,2)` desde a migration `0005`. Sem `DATABASE_URL` a escrita responde 503.
 - `dealers` — loja.
 - `test_ride_bookings` — agendamento.
 - `orders` — cabeçalho, método, provedor, parcelas, totais e o payload da configuração em `jsonb`.

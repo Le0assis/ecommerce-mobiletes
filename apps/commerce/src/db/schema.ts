@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { boolean, check, index, integer, jsonb, pgTable, primaryKey, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import { boolean, check, index, integer, jsonb, numeric, pgTable, primaryKey, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 
 export const customers = pgTable("customers", {
   id: text("id").primaryKey(),
@@ -67,19 +67,19 @@ export const productSpecs = pgTable(
     productId: text("product_id")
       .primaryKey()
       .references(() => products.id, { onDelete: "cascade" }),
-    powerNominalW: integer("power_nominal_w"),
-    powerPeakW: integer("power_peak_w"),
-    topSpeedKmh: integer("top_speed_kmh"),
-    widthCm: integer("width_cm"),
-    wheelbaseCm: integer("wheelbase_cm"),
-    weightKg: integer("weight_kg"),
-    seatHeightMm: integer("seat_height_mm"),
-    batteryV: integer("battery_v"),
-    batteryAh: integer("battery_ah"),
+    powerNominalW: numeric("power_nominal_w", { precision: 12, scale: 2, mode: "number" }),
+    powerPeakW: numeric("power_peak_w", { precision: 12, scale: 2, mode: "number" }),
+    topSpeedKmh: numeric("top_speed_kmh", { precision: 12, scale: 2, mode: "number" }),
+    widthCm: numeric("width_cm", { precision: 12, scale: 2, mode: "number" }),
+    wheelbaseCm: numeric("wheelbase_cm", { precision: 12, scale: 2, mode: "number" }),
+    weightKg: numeric("weight_kg", { precision: 12, scale: 2, mode: "number" }),
+    seatHeightMm: numeric("seat_height_mm", { precision: 12, scale: 2, mode: "number" }),
+    batteryV: numeric("battery_v", { precision: 12, scale: 2, mode: "number" }),
+    batteryAh: numeric("battery_ah", { precision: 12, scale: 2, mode: "number" }),
     batteryChem: text("battery_chem"),
     batteryRemovable: boolean("battery_removable"),
-    chargeHours: integer("charge_hours"),
-    rangeKmDeclared: integer("range_km_declared"),
+    chargeHours: numeric("charge_hours", { precision: 12, scale: 2, mode: "number" }),
+    rangeKmDeclared: numeric("range_km_declared", { precision: 12, scale: 2, mode: "number" }),
     hasSpeedLimiter: boolean("has_speed_limiter"),
     hasBell: boolean("has_bell"),
     hasLights: boolean("has_lights"),

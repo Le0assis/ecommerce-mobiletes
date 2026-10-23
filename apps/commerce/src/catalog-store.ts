@@ -102,7 +102,23 @@ export type ProductDraft = {
   isSample?: boolean;
   isEnabled?: boolean;
   specs?: Partial<SampleSpec>;
+  accessories?: CatalogAccessoryLink[];
 };
+
+export type CatalogState = {
+  products: CatalogProduct[];
+  accessories: CatalogAccessory[];
+  damages: CatalogDamage[];
+};
+
+export class CatalogUnavailable extends Error {
+  readonly code = "catalogo_indisponivel" as const;
+
+  constructor() {
+    super("O cadastro precisa do Postgres.");
+    this.name = "CatalogUnavailable";
+  }
+}
 
 const emptySpecs = (): SampleSpec => ({
   powerNominalW: null,
@@ -134,7 +150,14 @@ function fold(value: string) {
     .toLocaleLowerCase("pt-BR");
 }
 
-export function createCatalog(options: { now?: () => Date; bannerOverrides?: Map<string, boolean> } = {}) {
+export function createCatalog(
+  options: {
+    now?: () => Date;
+    bannerOverrides?: Map<string, boolean>;
+    seedProducts?: boolean;
+    seedAccessories?: boolean;
+  } = {},
+) {
   const now = options.now ?? (() => new Date());
   const stamp = () => now().toISOString();
   const products = new Map<string, CatalogProduct>();
@@ -142,16 +165,18 @@ export function createCatalog(options: { now?: () => Date; bannerOverrides?: Map
   const damages = new Map<string, CatalogDamage>();
   const banners = new Map<string, CatalogBanner>();
 
-  for (const item of domainAccessories) {
-    accessories.set(item.id, {
-      id: item.id,
-      slug: item.id,
-      name: item.name,
-      kind: item.group,
-      priceCents: item.priceCents,
-      stock: 0,
-      imageUrl: null,
-    });
+  if (options.seedAccessories !== false) {
+    for (const item of domainAccessories) {
+      accessories.set(item.id, {
+        id: item.id,
+        slug: item.id,
+        name: item.name,
+        kind: item.group,
+        priceCents: item.priceCents,
+        stock: 0,
+        imageUrl: null,
+      });
+    }
   }
 
   for (const [index, item] of domainBanners.entries()) {
@@ -168,7 +193,8 @@ export function createCatalog(options: { now?: () => Date; bannerOverrides?: Map
     });
   }
 
-  for (const item of sampleScooters) {
+  if (options.seedProducts !== false) {
+    for (const item of sampleScooters) {
     const moment = stamp();
     products.set(item.id, {
       id: item.id,
@@ -202,6 +228,7 @@ export function createCatalog(options: { now?: () => Date; bannerOverrides?: Map
       accessories: [],
     });
   }
+  }
 
   function slugTaken(slug: string, exceptId?: string) {
     return [...products.values()].some((item) => item.slug === slug && item.id !== exceptId);
@@ -228,7 +255,7 @@ export function createCatalog(options: { now?: () => Date; bannerOverrides?: Map
   }
 
   return {
-    listProducts(query = "") {
+    async listProducts(query = "") {
       const needle = fold(query.trim());
       return [...products.values()]
         .filter((item) => {
@@ -238,11 +265,21 @@ export function createCatalog(options: { now?: () => Date; bannerOverrides?: Map
         .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"))
         .map((item) => present(item));
     },
-    getProduct(id: string) {
+    async getProduct(id: string) {
       const product = products.get(id);
       return product ? present(product) : null;
     },
-    publicBySlug(slug: string) {
+    async findProduct(idOrSlug: string) {
+      const byId = products.get(idOrSlug);
+      if (byId) return present(byId);
+      const bySlug = [...products.values()].find((item) => item.slug === idOrSlug);
+      return bySlug ? present(bySlug) : null;
+    },
+    async productBySlug(slug: string) {
+      const product = [...products.values()].find((item) => item.slug === slug);
+      return product ? present(product) : null;
+    },
+    async publicBySlug(slug: string) {
       const product = [...products.values()].find((item) => item.slug === slug && listedPublicly(item));
       if (!product) return null;
       const view = present(product);
@@ -251,7 +288,7 @@ export function createCatalog(options: { now?: () => Date; bannerOverrides?: Map
         damages: view.damages.filter((item) => item.isPublic && !item.resolvedAt),
       };
     },
-    publicList(input: { q?: string; category?: string; brand?: string; city?: string }) {
+    async publicList(input: { q?: string; category?: string; brand?: string; city?: string }) {
       if (input.city?.trim()) return [];
       const needle = fold(input.q?.trim() ?? "");
       const brand = fold(input.brand?.trim() ?? "");
@@ -265,8 +302,12 @@ export function createCatalog(options: { now?: () => Date; bannerOverrides?: Map
           return { ...view, damages: view.damages.filter((damage) => damage.isPublic && !damage.resolvedAt) };
         });
     },
-    createProduct(draft: ProductDraft) {
+    async createProduct(draft: ProductDraft) {
       if (slugTaken(draft.slug)) return { error: "slug_em_uso" as const };
+      if (draft.accessories) {
+        const missing = draft.accessories.find((link) => !accessories.has(link.accessoryId));
+        if (missing) return { error: "acessorio_inexistente" as const };
+      }
       const moment = stamp();
       const product: CatalogProduct = {
         id: crypto.randomUUID(),
@@ -286,12 +327,12 @@ export function createCatalog(options: { now?: () => Date; bannerOverrides?: Map
         specs: { ...emptySpecs(), ...draft.specs },
         variants: [],
         images: [],
-        accessories: [],
+        accessories: draft.accessories ?? [],
       };
       products.set(product.id, product);
       return { product: present(product) };
     },
-    updateProduct(id: string, patch: Partial<ProductDraft> & { accessories?: CatalogAccessoryLink[] }) {
+    async updateProduct(id: string, patch: Partial<ProductDraft> & { accessories?: CatalogAccessoryLink[] }) {
       const product = requireProduct(id);
       if (!product) return { error: "nao_encontrado" as const };
       if (patch.slug && slugTaken(patch.slug, id)) return { error: "slug_em_uso" as const };
@@ -305,14 +346,14 @@ export function createCatalog(options: { now?: () => Date; bannerOverrides?: Map
       product.updatedAt = stamp();
       return { product: present(product) };
     },
-    archiveProduct(id: string) {
+    async archiveProduct(id: string) {
       const product = requireProduct(id);
       if (!product) return null;
       product.status = "arquivado";
       product.updatedAt = stamp();
       return present(product);
     },
-    duplicateProduct(id: string) {
+    async duplicateProduct(id: string) {
       const product = requireProduct(id);
       if (!product) return null;
       let slug = `${product.slug}-copia`;
@@ -322,6 +363,8 @@ export function createCatalog(options: { now?: () => Date; bannerOverrides?: Map
         guard += 1;
       }
       const moment = stamp();
+      const variantIds = new Map<string, string>();
+      const reservedSku = new Set<string>();
       const copyProduct: CatalogProduct = {
         ...copy(product),
         id: crypto.randomUUID(),
@@ -333,18 +376,25 @@ export function createCatalog(options: { now?: () => Date; bannerOverrides?: Map
         variants: product.variants.map((variant) => {
           let sku = `${variant.sku}-COPIA`;
           let sequence = 2;
-          while (skuTaken(sku)) {
+          while (skuTaken(sku) || reservedSku.has(sku)) {
             sku = `${variant.sku}-COPIA-${sequence}`;
             sequence += 1;
           }
-          return { ...variant, id: crypto.randomUUID(), sku };
+          reservedSku.add(sku);
+          const variantId = crypto.randomUUID();
+          variantIds.set(variant.id, variantId);
+          return { ...variant, id: variantId, sku };
         }),
-        images: product.images.map((image) => ({ ...image, id: crypto.randomUUID() })),
+        images: product.images.map((image) => ({
+          ...image,
+          id: crypto.randomUUID(),
+          variantId: image.variantId ? (variantIds.get(image.variantId) ?? null) : null,
+        })),
       };
       products.set(copyProduct.id, copyProduct);
       return present(copyProduct);
     },
-    addVariant(productId: string, input: Omit<CatalogVariant, "id"> & { id?: string }) {
+    async addVariant(productId: string, input: Omit<CatalogVariant, "id"> & { id?: string }) {
       const product = requireProduct(productId);
       if (!product) return { error: "nao_encontrado" as const };
       if (skuTaken(input.sku)) return { error: "sku_em_uso" as const };
@@ -353,7 +403,7 @@ export function createCatalog(options: { now?: () => Date; bannerOverrides?: Map
       product.updatedAt = stamp();
       return { variant: copy(variant) };
     },
-    updateVariant(productId: string, variantId: string, patch: Partial<Omit<CatalogVariant, "id">>) {
+    async updateVariant(productId: string, variantId: string, patch: Partial<Omit<CatalogVariant, "id">>) {
       const product = requireProduct(productId);
       const variant = product?.variants.find((item) => item.id === variantId);
       if (!product || !variant) return { error: "nao_encontrado" as const };
@@ -362,17 +412,20 @@ export function createCatalog(options: { now?: () => Date; bannerOverrides?: Map
       product.updatedAt = stamp();
       return { variant: copy(variant) };
     },
-    removeVariant(productId: string, variantId: string) {
+    async removeVariant(productId: string, variantId: string) {
       const product = requireProduct(productId);
       if (!product) return false;
       const before = product.variants.length;
       product.variants = product.variants.filter((item) => item.id !== variantId);
       product.images = product.images.map((image) => (image.variantId === variantId ? { ...image, variantId: null } : image));
+      for (const damage of damages.values()) {
+        if (damage.productId === productId && damage.variantId === variantId) damage.variantId = null;
+      }
       if (product.variants.length === before) return false;
       product.updatedAt = stamp();
       return true;
     },
-    addImage(productId: string, input: Omit<CatalogImage, "id" | "position" | "isCover"> & { position?: number; isCover?: boolean }) {
+    async addImage(productId: string, input: Omit<CatalogImage, "id" | "position" | "isCover"> & { position?: number; isCover?: boolean }) {
       const product = requireProduct(productId);
       if (!product) return null;
       if (input.variantId && !product.variants.some((item) => item.id === input.variantId)) return null;
@@ -392,7 +445,7 @@ export function createCatalog(options: { now?: () => Date; bannerOverrides?: Map
       product.updatedAt = stamp();
       return copy(image);
     },
-    reorderImages(productId: string, order: { id: string; position: number; isCover?: boolean }[]) {
+    async reorderImages(productId: string, order: { id: string; position: number; isCover?: boolean }[]) {
       const product = requireProduct(productId);
       if (!product) return null;
       const ids = new Set(product.images.map((item) => item.id));
@@ -410,7 +463,7 @@ export function createCatalog(options: { now?: () => Date; bannerOverrides?: Map
       product.updatedAt = stamp();
       return product.images.map((item) => copy(item));
     },
-    removeImage(productId: string, imageId: string) {
+    async removeImage(productId: string, imageId: string) {
       const product = requireProduct(productId);
       if (!product) return false;
       const before = product.images.length;
@@ -422,16 +475,16 @@ export function createCatalog(options: { now?: () => Date; bannerOverrides?: Map
       product.updatedAt = stamp();
       return true;
     },
-    listAccessories() {
+    async listAccessories() {
       return [...accessories.values()].map((item) => copy(item));
     },
-    createAccessory(input: Omit<CatalogAccessory, "id"> & { id?: string }) {
+    async createAccessory(input: Omit<CatalogAccessory, "id"> & { id?: string }) {
       if ([...accessories.values()].some((item) => item.slug === input.slug)) return { error: "slug_em_uso" as const };
       const accessory: CatalogAccessory = { ...input, id: input.id ?? crypto.randomUUID() };
       accessories.set(accessory.id, accessory);
       return { accessory: copy(accessory) };
     },
-    updateAccessory(id: string, patch: Partial<Omit<CatalogAccessory, "id">>) {
+    async updateAccessory(id: string, patch: Partial<Omit<CatalogAccessory, "id">>) {
       const accessory = accessories.get(id);
       if (!accessory) return { error: "nao_encontrado" as const };
       if (patch.slug && [...accessories.values()].some((item) => item.slug === patch.slug && item.id !== id)) {
@@ -440,7 +493,7 @@ export function createCatalog(options: { now?: () => Date; bannerOverrides?: Map
       Object.assign(accessory, patch);
       return { accessory: copy(accessory) };
     },
-    removeAccessory(id: string) {
+    async removeAccessory(id: string) {
       if (!accessories.has(id)) return false;
       accessories.delete(id);
       for (const product of products.values()) {
@@ -448,10 +501,10 @@ export function createCatalog(options: { now?: () => Date; bannerOverrides?: Map
       }
       return true;
     },
-    listDamages() {
+    async listDamages() {
       return [...damages.values()].map((item) => copy(item));
     },
-    createDamage(input: Omit<CatalogDamage, "id" | "createdAt" | "images"> & { images?: { url: string; position?: number }[] }) {
+    async createDamage(input: Omit<CatalogDamage, "id" | "createdAt" | "images"> & { images?: { url: string; position?: number }[] }) {
       if (!products.has(input.productId)) return { error: "nao_encontrado" as const };
       const { images: imageInput, ...fields } = input;
       const damage: CatalogDamage = {
@@ -467,7 +520,7 @@ export function createCatalog(options: { now?: () => Date; bannerOverrides?: Map
       damages.set(damage.id, damage);
       return { damage: copy(damage) };
     },
-    updateDamage(id: string, patch: Partial<Omit<CatalogDamage, "id" | "createdAt" | "images">> & { images?: { url: string; position?: number }[] }) {
+    async updateDamage(id: string, patch: Partial<Omit<CatalogDamage, "id" | "createdAt" | "images">> & { images?: { url: string; position?: number }[] }) {
       const damage = damages.get(id);
       if (!damage) return { error: "nao_encontrado" as const };
       const { images, ...rest } = patch;
@@ -481,13 +534,13 @@ export function createCatalog(options: { now?: () => Date; bannerOverrides?: Map
       }
       return { damage: copy(damage) };
     },
-    removeDamage(id: string) {
+    async removeDamage(id: string) {
       return damages.delete(id);
     },
-    listBanners() {
+    async listBanners() {
       return [...banners.values()].sort((a, b) => a.position - b.position || a.id.localeCompare(b.id)).map((item) => copy(item));
     },
-    createBanner(input: Omit<CatalogBanner, "id" | "position"> & { id?: string; position?: number }) {
+    async createBanner(input: Omit<CatalogBanner, "id" | "position"> & { id?: string; position?: number }) {
       const banner: CatalogBanner = {
         ...input,
         id: input.id ?? crypto.randomUUID(),
@@ -496,16 +549,32 @@ export function createCatalog(options: { now?: () => Date; bannerOverrides?: Map
       banners.set(banner.id, banner);
       return copy(banner);
     },
-    updateBanner(id: string, patch: Partial<Omit<CatalogBanner, "id">>) {
+    async updateBanner(id: string, patch: Partial<Omit<CatalogBanner, "id">>) {
       const banner = banners.get(id);
       if (!banner) return null;
       Object.assign(banner, patch);
       return copy(banner);
     },
-    removeBanner(id: string) {
+    async removeBanner(id: string) {
       return banners.delete(id);
+    },
+    exportState(): CatalogState {
+      return {
+        products: [...products.values()].map((item) => copy(item)),
+        accessories: [...accessories.values()].map((item) => copy(item)),
+        damages: [...damages.values()].map((item) => copy(item)),
+      };
+    },
+    importState(state: CatalogState) {
+      products.clear();
+      accessories.clear();
+      damages.clear();
+      for (const item of state.products) products.set(item.id, copy(item));
+      for (const item of state.accessories) accessories.set(item.id, copy(item));
+      for (const item of state.damages) damages.set(item.id, copy(item));
     },
   };
 }
 
-export type Catalog = ReturnType<typeof createCatalog>;
+type MemoryCatalog = ReturnType<typeof createCatalog>;
+export type Catalog = Omit<MemoryCatalog, "exportState" | "importState">;

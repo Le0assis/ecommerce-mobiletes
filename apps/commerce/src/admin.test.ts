@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { hashAdminPassword } from "./auth";
 import { clearRateLimit, createApp } from "./app";
+import { createPostgresCatalog } from "./db/postgres-catalog";
+import { openTestDatabase } from "./db/test-database";
 
 const password = "senha-de-teste";
 
@@ -155,7 +157,14 @@ describe("admin", () => {
 
   it("cria produto com selo no limite, arquiva em vez de apagar e esconde avaria privada", async () => {
     process.env.ADMIN_PASSWORD_HASH = hashAdminPassword(password);
-    const app = createApp({ now: () => new Date("2026-10-23T12:00:00.000Z") });
+    const database = await openTestDatabase();
+    const now = () => new Date("2026-10-23T12:00:00.000Z");
+    const app = createApp({
+      now,
+      catalog: createPostgresCatalog(database.db, { now }),
+      persistent: true,
+    });
+    try {
     const login = await app.request("/v1/admin/login", {
       method: "POST",
       headers: { "content-type": "application/json", "x-forwarded-for": "crud-admin" },
@@ -270,6 +279,9 @@ describe("admin", () => {
     const stillThere = await app.request("/v1/admin/products?q=oficina-limite", { headers });
     const list = await stillThere.json();
     expect(list.products.some((item: { status: string }) => item.status === "arquivado")).toBe(true);
+    } finally {
+      await database.close();
+    }
   });
 
   it("mostra o selo oculto no exemplo sem largura e publica só o banner ativo", async () => {

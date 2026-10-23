@@ -36,6 +36,13 @@
       "when": 1792760444625,
       "tag": "0004_products_habilitacao_ficha",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792800000000,
+      "tag": "0005_product_specs_numeric",
+      "breakpoints": true
     }
   ]
 }

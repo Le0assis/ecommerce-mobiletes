@@ -1,8 +1,28 @@
-import { describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createApp } from "./app";
+import { createPostgresCatalog } from "./db/postgres-catalog";
+import { seedCatalog } from "./db/seed-catalog";
+import { openTestDatabase } from "./db/test-database";
 
 describe("API de commerce", () => {
-  const app = createApp({ now: () => new Date("2026-10-22T12:00:00.000Z") });
+  let app!: ReturnType<typeof createApp>;
+  let close: () => Promise<void> = async () => undefined;
+
+  beforeAll(async () => {
+    const database = await openTestDatabase();
+    await seedCatalog(database.db);
+    const now = () => new Date("2026-10-22T12:00:00.000Z");
+    app = createApp({
+      now,
+      catalog: createPostgresCatalog(database.db, { now }),
+      persistent: true,
+    });
+    close = database.close;
+  }, 30_000);
+
+  afterAll(async () => {
+    await close();
+  });
 
   it("responde saúde", async () => {
     const response = await app.request("/health");

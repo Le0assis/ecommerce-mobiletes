@@ -174,7 +174,7 @@ export function AdminCatalog({ token, section }: { token?: string; section: "pro
               <div>
                 <h2 className="text-2xl font-light">Produtos</h2>
                 <p className="mt-1 max-w-xl text-sm text-muted-foreground">
-                  Habilitado entra na loja. Desabilitado sai da busca, do quiz, do carrinho e do checkout. Criar, editar e arquivar ainda ficam na memória da API: o Postgres não recebe este cadastro.
+                  Habilitado entra na loja. Desabilitado sai da busca, do quiz, do carrinho e do checkout. Criar, editar e arquivar grava no Postgres. Sem o banco, a API responde 503 e não confirma o cadastro. Arquivar não apaga a linha.
                 </p>
               </div>
               <Button type="button" className="h-11 rounded-full" onClick={() => void send("/v1/admin/products", "POST", emptyProduct())}>

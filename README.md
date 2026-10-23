@@ -15,7 +15,7 @@ Você não precisa saber programar para seguir este guia. Cada passo diz o que f
 - Uma API que recalcula o pedido. Pix, boleto e cartão são simulados: nenhum dinheiro sai da conta.
 - Opcionalmente, Postgres, Redis e Meilisearch via Docker.
 
-Sem Docker a loja também abre. O catálogo mora no código. Pedido e test ride ficam na memória da API até você desligar o processo.
+Sem Docker a loja também abre. A vitrine lê a API. Sem Postgres, a semente de exemplo continua visível e criar produto no admin responde 503. Pedido e test ride ficam na memória da API até você desligar o processo.
 
 ## 1. Instalar as ferramentas
 
@@ -224,7 +224,7 @@ O que cada linha significa:
 | `ADMIN_TOKEN` | `troque-este-token` | Cabeçalho `x-admin-token` fora de produção. Em desenvolvimento, se esta linha não existir, a API aceita `dev-admin-token`. Em produção o cabeçalho não autentica. |
 | `STOREFRONT_ORIGIN` | `http://127.0.0.1:43123` | Endereço exato da vitrine. A API só libera chamadas de browser vindas dele. Se você abrir o site por outro endereço, o checkout no browser pode falhar. |
 
-Se for rodar **sem Docker**, não deixe o `DATABASE_URL` apontando para um Postgres desligado. Apague ou comente (coloque `#` no começo) as linhas `DATABASE_URL`, `REDIS_URL`, `MEILI_HOST` e `MEILI_MASTER_KEY`. A API sobe do mesmo jeito e avisa que está em memória.
+Se for rodar **sem Docker**, não deixe o `DATABASE_URL` apontando para um Postgres desligado. Apague ou comente (coloque `#` no começo) as linhas `DATABASE_URL`, `REDIS_URL`, `MEILI_HOST` e `MEILI_MASTER_KEY`. A API sobe do mesmo jeito. A loja lê a semente em memória. Criar ou editar produto no admin responde 503 até o banco existir.
 
 ### 4.2 Vitrine (`apps/storefront/.env.local`)
 
@@ -293,7 +293,7 @@ Isso copia modelos, cores, acessórios, lojas e banners para o Postgres. Pode ro
 
 Deu certo quando o terminal imprime `Catálogo gravado no Postgres.`
 
-A vitrine **não lê** essa cópia para desenhar a home. Ela lê o mesmo catálogo no pacote `@lume/domain`, para a página abrir mesmo sem banco. O seed existe para o banco nascer igual ao código. Pedido e test ride, se o `DATABASE_URL` estiver no ar, também são gravados no Postgres. O admin de estoque desta versão ainda altera a memória do processo.
+Com `DATABASE_URL`, a vitrine lê essa cópia em `GET /v1/products`, junto dos modelos de `@lume/domain`. O admin grava produto, ficha, variante, foto, acessório e avaria nesse banco. O seed pode rodar de novo: atualiza as oito scooters e não religa um produto que o admin desabilitou. Pedido e test ride, se o `DATABASE_URL` estiver no ar, também são gravados no Postgres. `PATCH /v1/admin/stock` continua só na memória dos modelos de domínio.
 
 ## 6. Rodar sem Docker
 

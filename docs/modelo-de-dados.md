@@ -1,6 +1,6 @@
 # Modelo de dados
 
-O catálogo que a vitrine lê está em `packages/domain/src/catalog.ts`. O Postgres em `apps/commerce/src/db/schema.ts` guarda pedidos e, desde a migration `0001_autopropelidos_catalog`, o catálogo de autopropelidos. A vitrine ainda não lê essas tabelas.
+O catálogo de demonstração da casa continua em `packages/domain/src/catalog.ts`. O Postgres em `apps/commerce/src/db/schema.ts` guarda pedidos e, desde a migration `0001_autopropelidos_catalog`, o cadastro de autopropelidos. Com `DATABASE_URL`, a vitrine lê esse cadastro em `GET /v1/products` junto do domínio.
 
 ## Modelo (`Motorcycle`)
 
@@ -50,7 +50,7 @@ A tabela `fiscal_documents` existe com status `nao_emitida`. Não há emissão.
 
 ## Postgres do catálogo autopropelido
 
-Migration `apps/commerce/drizzle/0001_autopropelidos_catalog.sql`. Dinheiro continua em centavos inteiros. A vitrine hoje chama `autopropelidoBadge` no catálogo de código. No Postgres, os mesmos quatro campos ficam em `product_specs`: potência nominal até 1.000 W, 32 km/h, largura até 70 cm e entre-eixos até 130 cm. Sem um deles, o selo fica oculto. A migration `0004_products_habilitacao_ficha` leva esses tetos para os `CHECK` de `product_specs` e cria `products.is_enabled`. As colunas de medida continuam inteiras.
+Migration `apps/commerce/drizzle/0001_autopropelidos_catalog.sql`. Dinheiro continua em centavos inteiros. A vitrine chama `autopropelidoBadge` na resposta, nunca grava o selo. No Postgres, os quatro campos nominais ficam em `product_specs`: potência até 1.000 W, 32 km/h, largura até 70 cm e entre-eixos até 130 cm. Sem um deles, o selo fica oculto. A migration `0004_products_habilitacao_ficha` cria `products.is_enabled` e os `CHECK` de teto. A `0005_product_specs_numeric` passa as medidas para `numeric(12,2)` e recria os mesmos tetos. `rangeKm` da API é `range_km_declared`.
 
 | Tabela | Papel |
 | --- | --- |
@@ -79,6 +79,6 @@ Uma avaria é uma unidade: várias linhas no mesmo produto ou variante são vár
 
 Em `0001`, produto que já existia recebe `brand`, `style`, `tagline` e `description` vazios, e acessório que já existia recebe `slug` igual ao `id` e `kind` vazio. Essas colunas entram nullable, o backfill roda, e só então ficam `NOT NULL`. `stock`, `status`, `is_sample` e os timestamps já nasciam com default. `0002` só acrescenta `NOT NULL` com default (`subtitle`, `position`). `0003` não acrescenta coluna.
 
-`products.is_enabled` é `boolean NOT NULL DEFAULT true`, independente de `status`. A listagem pública (`status = ativo`) também exige `is_enabled`. A migration `0004_products_habilitacao_ficha` cria a coluna e o índice `products_is_enabled_idx` com `IF NOT EXISTS`, e troca os CHECKs de `product_specs` pelos tetos de `productSpecsBody` (`<= 20000` W, `150` km/h, `300` cm, `400` cm, `1000` kg, `1500` mm, `200` V, `500` Ah, `48` h, `1000` km), ainda aceitando `NULL` e `>= 0`. Cada CHECK faz `DROP CONSTRAINT IF EXISTS` antes de nascer de novo. As colunas continuam inteiras: `32.5` passa no Zod e não cabe no `integer`.
+`products.is_enabled` é `boolean NOT NULL DEFAULT true`, independente de `status`. A listagem pública (`status = ativo`) também exige `is_enabled`. A migration `0004_products_habilitacao_ficha` cria a coluna e o índice `products_is_enabled_idx` com `IF NOT EXISTS`, e troca os CHECKs de `product_specs` pelos tetos de `productSpecsBody` (`<= 20000` W, `150` km/h, `300` cm, `400` cm, `1000` kg, `1500` mm, `200` V, `500` Ah, `48` h, `1000` km), ainda aceitando `NULL` e `>= 0`. Cada CHECK faz `DROP CONSTRAINT IF EXISTS` antes de nascer de novo. A `0005` altera as onze medidas para `numeric(12,2)` e repete esses CHECK. As duas migrations podem rodar de novo.
 
-O CRUD de `/v1/admin` desta etapa guarda produtos, variantes, fotos, acessórios, avarias e banners na memória do processo, com a mesma semente das 8 scooters. Não escreve no Postgres. A lista do que o Backend ainda precisa gravar está em `docs/api.md`. O checkout continua no catálogo de `@lume/domain` e recusa linha desabilitada com `produto_desabilitado`.
+O CRUD de produto, ficha, variante, foto, acessório e avaria grava no Postgres. Cada escrita relê o cadastro e regrava essas tabelas no mesmo processo, com um mutex. `product_colors` é apagada nesse flush: a cor viva é `product_variants`. Banners não entram no flush. Sem banco, a escrita responde 503. `DELETE` de produto só muda `status` para `arquivado`. O checkout e `POST /v1/pricing/configure` precificam o produto do banco pelo `base_price_cents` e pela variante; linha desabilitada ou fora de `ativo` responde `produto_desabilitado`. O catálogo de `@lume/domain` continua no preço quando o id não está no cadastro.

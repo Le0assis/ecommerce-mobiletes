@@ -10,8 +10,8 @@ Erro de domínio volta como JSON `{ error, message }` e o status adequado. A men
 
 | Método | Caminho | Resposta |
 | --- | --- | --- |
-| GET | `/v1/products` | `{ products }` do catálogo de `@lume/domain` mais os ativos da memória do admin. Sem lista de lojas. Filtro `cidade` não inclui a memória. |
-| GET | `/v1/products/:slug` | `{ product, accessories, reviews }` ou 404. `reviews` fica vazio no produto que só existe na memória. |
+| GET | `/v1/products` | `{ products }` do catálogo de `@lume/domain` mais os produtos `ativo` e `is_enabled` do cadastro. Com Postgres, essa segunda lista sai do banco. Sem `DATABASE_URL`, sai da semente em memória. Sem lista de lojas. Filtro `cidade` não inclui o cadastro. |
+| GET | `/v1/products/:slug` | `{ product, accessories, reviews }` ou 404. `reviews` fica vazio no produto do cadastro. Slug que existe e não está `ativo` e habilitado responde 404, mesmo que o domínio tenha o mesmo slug. |
 | GET | `/v1/reviews?produto=` | semente mais relatos pendentes do processo |
 | GET | `/v1/banners` | carrossel: só ativos, ordenados por `position`. Campos `imageUrl`, `subtitle`, `href`, `title`. |
 | GET | `/v1/orders/:code` | `{ order }` ou 404. Código em maiúsculas |
@@ -20,7 +20,7 @@ Cada produto, na lista e em `product`, tem a mesma forma:
 
 `id`, `slug`, `name`, `brand`, `category`, `style` (`retro` | `citycoco` | `esportivo` | `null`), `tagline`, `description`, `basePriceCents`, `isSample`, `isEnabled`, `rangeKm` (número declarado ou `null`), `topSpeedKmh`, `powerKw`, `powerNominalW`, `widthCm`, `wheelbaseCm`, `torqueNm`, `batteryKwh`, `weightKg`, `seatHeightMm`, `chargeHours`, `fastChargeMin`, `registrationClass`, `licenseNote`, `optimalSpeedKmh`, `colors` (`id`, `name`, `hex`, `priceDeltaCents`, `stock`), `batteries` (`id`, `name`, `kwh`, `rangeKm`, `priceDeltaCents`, `stock`), `accessoryIds`, `specs`, `variants`, `accessories`, `damages`, `images`, `autopropelido`.
 
-`specs`: `powerNominalW`, `powerPeakW`, `topSpeedKmh`, `widthCm`, `wheelbaseCm`, `weightKg`, `seatHeightMm`, `batteryV`, `batteryAh`, `batteryChem`, `batteryRemovable`, `chargeHours`, `rangeKmDeclared`, `hasSpeedLimiter`, `hasBell`, `hasLights`. Medida desconhecida é `null`. O `PATCH` da ficha aceita decimal entre 0 e o teto de `productSpecsBody` (`32.5` entra). Os tetos são 20000 W nominal, 20000 W de pico, 150 km/h, 300 cm de largura, 400 cm de entre-eixos, 1000 kg, 1500 mm de banco, 200 V, 500 Ah, 48 h e 1000 km de autonomia declarada. Negativo responde “O valor não pode ser negativo”. No catálogo de domínio, `rangeKm` e `specs.rangeKmDeclared` são o mesmo número. No cadastro em memória, `rangeKm` copia `rangeKmDeclared` e pode ser `null`. `batteryKwh` e `batteries` ficam vazios nesse cadastro: não se inventa kWh.
+`specs`: `powerNominalW`, `powerPeakW`, `topSpeedKmh`, `widthCm`, `wheelbaseCm`, `weightKg`, `seatHeightMm`, `batteryV`, `batteryAh`, `batteryChem`, `batteryRemovable`, `chargeHours`, `rangeKmDeclared`, `hasSpeedLimiter`, `hasBell`, `hasLights`. Medida desconhecida é `null`. O `PATCH` da ficha aceita decimal entre 0 e o teto de `productSpecsBody` (`32.5` entra). Os tetos são 20000 W nominal, 20000 W de pico, 150 km/h, 300 cm de largura, 400 cm de entre-eixos, 1000 kg, 1500 mm de banco, 200 V, 500 Ah, 48 h e 1000 km de autonomia declarada. Negativo responde “O valor não pode ser negativo”. `rangeKm` é a autonomia declarada pelo fabricante, o mesmo valor de `specs.rangeKmDeclared`. Se a ficha não tem autonomia, os dois ficam `null`. Pico, potência e o simulador não preenchem esse campo. No Postgres as medidas são `numeric(12,2)` (migration `0005_product_specs_numeric`), com os mesmos `CHECK`. `batteryKwh` e `batteries` ficam vazios no cadastro: não se inventa kWh.
 
 `variants`: `id`, `sku`, `colorName`, `colorHex`, `batteryLabel`, `priceDeltaCents`, `stock`, `active`. No domínio, uma variante por cor.
 
@@ -38,12 +38,12 @@ Todos POST com JSON.
 
 | Caminho | Corpo | Uso |
 | --- | --- | --- |
-| `/v1/pricing/configure` | `productId`, `colorId`, `accessoryIds` | A vitrine pinta com `priceProduct` a partir da ficha. Esta rota ainda resolve só `@lume/domain` |
+| `/v1/pricing/configure` | `productId`, `colorId`, `accessoryIds`, `batteryId?` | Preço do cadastro quando o id ou o slug existe nele. Senão, `@lume/domain`. A vitrine ainda pinta com `priceProduct` a partir da ficha pública |
 | `/v1/pricing/installments` | `amountCents`, `max?` | Planos de 1 até `max` |
 | `/v1/shipping/quote` | `cep`, `weightKg` | Cotação |
 | `/v1/quiz` | uso, km/dia, ladeiras, carga da bateria, quem vai junto, carga, orçamento, estilo e cor | `{ recommendations: [{ slug, name, score, reasons, accessories }] }` de 0 a 3 |
 
-`POST /v1/quiz` pontua o catálogo de `@lume/domain` junto com os produtos ativos e habilitados da memória (amostra e os criados no admin). Rascunho, arquivado e desabilitado ficam de fora. O teto do orçamento é rígido: até 6 mil não devolve quem passa de R$ 6.000, e 6 a 10 mil não passa de R$ 10.000. Se ninguém cabe, a lista vem vazia e a vitrine mostra as mais próximas de `GET /v1/products` mais um WhatsApp, sem inventar preço. O estilo muda a ordem. Autonomia declarada ausente entra na conta como 0 km, sem virar número de fabricante na ficha: `rangeKm` na API continua `null`. A tela do quiz chama essa rota e busca o preço na lista de produtos.
+`POST /v1/quiz` pontua o catálogo de `@lume/domain` junto com os produtos `ativo` e habilitados do cadastro (Postgres quando o banco responde; a semente em memória quando não há `DATABASE_URL`). Rascunho, arquivado e desabilitado ficam de fora. O teto do orçamento é rígido: até 6 mil não devolve quem passa de R$ 6.000, e 6 a 10 mil não passa de R$ 10.000. Se ninguém cabe, a lista vem vazia e a vitrine mostra as mais próximas de `GET /v1/products` mais um WhatsApp, sem inventar preço. O estilo muda a ordem. Autonomia declarada ausente entra na conta como 0 km, sem virar número de fabricante na ficha: `rangeKm` na API continua `null`. A tela do quiz chama essa rota e busca o preço na lista de produtos.
 
 `POST /v1/range` saiu da API pública. A estimativa `estimateRange` continua em `@lume/domain`. O simulador saiu da vitrine; o código antigo fica em `backup/lume-versao-completa`.
 
@@ -53,7 +53,7 @@ Todos POST com JSON.
 
 `POST /v1/reviews` — `productId`, `city`, `rating` 1–5, `title`, `body`. Resposta marca `pending: true` e não entra na semente publicada.
 
-`POST /v1/checkout` — `lines[]` (`productId`, `colorId`, `accessoryIds`, `batteryId?`, `qty` 1–2, no máximo 5 linhas), `cep`, `shippingServiceId` (`dedicado`), `method` (`pix` | `boleto` | `cartao`), `installments` (1 se não for cartão), `couponCode?`, `customer` (`name`, `email`, `phone`). Não há retirada em loja. Linha cujo produto da memória está desabilitado ou fora de `ativo` responde 400 `{ error: "produto_desabilitado", message: "Esse modelo não está habilitado." }`. O preço da linha continua saindo só de `@lume/domain`.
+`POST /v1/checkout` — `lines[]` (`productId`, `colorId`, `accessoryIds`, `batteryId?`, `qty` 1–2, no máximo 5 linhas), `cep`, `shippingServiceId` (`dedicado`), `method` (`pix` | `boleto` | `cartao`), `installments` (1 se não for cartão), `couponCode?`, `customer` (`name`, `email`, `phone`). Não há retirada em loja. Produto do cadastro entra pelo `id` ou pelo `slug`. A variante é a cor. Sem `batteryId`, a série entra com delta zero. Pix e boleto continuam nos descontos de `@lume/domain`. O frete usa `specs.weightKg`; peso ausente ou zero responde `peso_invalido` e não inventa quilograma. Linha desabilitada ou fora de `ativo` responde 400 `{ error: "produto_desabilitado", message: "Esse modelo não está habilitado." }` e o pedido não é criado. Id desconhecido no cadastro segue para `@lume/domain` e, se também não existir, responde `produto_inexistente`.
 
 `POST /v1/orders/:code/sandbox` avança um passo do rastreio. A mensagem contém `LUME-SANDBOX`.
 
@@ -73,24 +73,20 @@ Fora de produção, `x-admin-token` ainda abre o admin (o valor de `ADMIN_TOKEN`
 
 `PATCH /v1/admin/stock` — `productId`, `colorId`, `stock`. Não altera `@lume/domain`.
 
-O catálogo de autopropelidos que a API atende hoje vive na memória do processo, semeado com `sampleScooters` (Yadea, Aima, MotoChefe, Shineray, MXF e Watts, todas com `isSample: true` e `isEnabled: true`). A vitrine não tem outro catálogo local: se a API cai, a página mostra erro. O `POST`, o `PATCH` e o `DELETE` de produto respondem nessa memória. Não há gravação no Postgres. `GET /health` com `persistence: "postgres-configurado"` só diz que `DATABASE_URL` existe; o cadastro do admin continua no processo. Checkout segue precificando `@lume/domain`.
+O cadastro de autopropelidos grava no Postgres quando `DATABASE_URL` conecta: produto, ficha, variante, foto, acessório, vínculo e avaria. A semente continua Yadea, Aima, MotoChefe, Shineray, MXF e Watts, com `isSample: true`. A vitrine não tem outro catálogo local: se a API cai, a página mostra erro. Sem `DATABASE_URL`, ou com o banco fora, `POST`, `PATCH` e `DELETE` desse cadastro respondem 503 `{ error: "catalogo_indisponivel", message: "O cadastro precisa do Postgres." }` e não guardam o produto na memória. A leitura pública, nesse caso, continua na semente do processo. `GET /health` com `persistence: "postgres-configurado"` só diz que `DATABASE_URL` existe. Pedido e test ride seguem o atalho de `persist.ts`. O carrossel (`/v1/admin/banners` e `GET /v1/banners`) continua na memória do processo; o flush do cadastro não apaga a tabela `banners`.
 
-### O que o Backend precisa gravar
+`products.is_enabled` já está na migration `0004_products_habilitacao_ficha`. O JSON chama o campo `isEnabled`. `status` continua `rascunho | ativo | arquivado`. Habilitado não substitui o status. O `PATCH` aceita `{ isEnabled }`. A listagem pública, o slug, a busca (`q`) e o quiz exigem `status = ativo` e `is_enabled = true`.
 
-A decisão da fase 5 é criar, editar e excluir produto no Postgres, sem sucesso só de memória. A coluna já existe. Falta o repositório:
+`DELETE /v1/admin/products/:id` arquiva (`status: "arquivado"`). A linha, a ficha e as variantes continuam no banco. Apagar de verdade não está aprovado.
 
-1. `products.is_enabled boolean not null default true` está na migration `0004_products_habilitacao_ficha`, com índice. O JSON da API chama o campo `isEnabled`. `status` continua `rascunho | ativo | arquivado`. Habilitado não substitui o status. O `PATCH` aceita `{ isEnabled }`.
-2. Repositório que leia e grave `products`, `product_specs`, `product_variants`, `product_images`, `product_accessories` e `damages` nas rotas que já existem: `POST /v1/admin/products`, `PATCH /v1/admin/products/:id` (ficha em `{ specs }`, vínculo em `{ accessories }`, e `{ isEnabled }`) e `DELETE /v1/admin/products/:id`. Hoje o `DELETE` arquiva (`status: "arquivado"`). A decisão pede excluir: apagar a linha e deixar o `ON DELETE CASCADE` levar ficha, variantes, fotos, cores legadas, vínculos e avarias. A tela ainda diz “Arquivar” porque a rota arquiva.
-3. Sem `DATABASE_URL`, ou com o banco fora, essas três rotas devem responder 503 e não confirmar o cadastro na memória. Pedido e test ride podem continuar no atalho atual de `persist.ts`. O catálogo não.
-4. `GET /v1/products`, `GET /v1/products/:slug` e `POST /v1/quiz` já filtram `status = ativo` e `isEnabled` na memória. A leitura do Postgres tem de repetir o mesmo filtro. A busca da loja usa essa lista.
-5. `POST /v1/checkout` e `POST /v1/pricing/configure` precisam precificar o produto do Postgres. Hoje os dois resolvem só `@lume/domain`, então uma scooter de exemplo habilitada falha no pagamento com `produto_inexistente`. Linha desabilitada já recebe `produto_desabilitado` quando o id está na memória.
-6. `product_specs` guarda inteiros. O `PATCH` aceita decimal (`32.5`). A migration `0004` só acrescentou o teto no `CHECK`. A coluna precisa de `numeric`, senão a ficha gravada perde a casa.
-7. Rodar de novo o seed atualiza as oito scooters pela chave e apaga `foston-x15-max`. Não recoloca `is_enabled` numa linha que o admin já desligou. A Watts da semente é a W1, piso de demonstração R$ 4.300, sem bateria nem autonomia inventadas.
+A migration `0005_product_specs_numeric` converte as medidas de `product_specs` para `numeric(12,2)`. Pode rodar de novo: altera o tipo outra vez e recria os `CHECK` com os mesmos tetos. `32.5` volta na leitura. No arranque, a API aplica só `0004` e `0005` (idempotentes) em cima de um banco que já passou por `db:push`. O histórico `0000`–`0003` não roda de novo nesse arranque.
+
+Rodar de novo o seed atualiza as oito scooters pela chave e apaga `foston-x15-max`. Não recoloca `is_enabled` numa linha que o admin já desligou. A Watts da semente é a W1, piso de demonstração R$ 4.300, sem bateria nem autonomia inventadas. Estoque de exemplo é 0: o checkout dessa cor responde `cor_sem_estoque` até o admin gravar estoque.
 
 | Método | Caminho | Uso |
 | --- | --- | --- |
 | GET/POST | `/v1/admin/products` | Lista com `q` e cria. |
-| PATCH/DELETE | `/v1/admin/products/:id` | Edita, inclusive `{ isEnabled }`. DELETE ainda arquiva (`arquivado`). O Postgres precisa passar a apagar a linha. |
+| PATCH/DELETE | `/v1/admin/products/:id` | Edita, inclusive `{ isEnabled }` e `{ specs }`. DELETE arquiva (`arquivado`) e mantém a linha. |
 | POST | `/v1/admin/products/:id/duplicate` | Cópia em rascunho. |
 | POST/PATCH/DELETE | `/v1/admin/products/:id/variants` e `.../variants/:variantId` | Variantes. |
 | POST/PATCH/DELETE | `/v1/admin/products/:id/images` e `.../images/:imageId` | Foto, ordem e capa. |

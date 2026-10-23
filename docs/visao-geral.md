@@ -18,11 +18,11 @@ A vitrine está completa como experiência, com dado e pagamento simulados:
 - Conta de sandbox, lista de desejos e lista de pedidos deste navegador.
 - Guias, legislação, FAQ, garantia e agendamento de serviço.
 - Páginas institucionais: sobre, energia, garantia, trocas, financiamento, contato, privacidade.
-- Admin com senha única e cookie httpOnly. Fora de produção o token de desenvolvimento ainda entra. Pedidos e o cadastro novo ficam na memória da API. A vitrine lê `GET /v1/products`.
+- Admin com senha única e cookie httpOnly. Fora de produção o token de desenvolvimento ainda entra. O cadastro de produto grava no Postgres; sem o banco a escrita responde 503. Pedidos seguem o atalho da API. A vitrine lê `GET /v1/products`.
 
 ## O que esta versão não entrega
 
-Pagamento real, webhook, ViaCEP, Melhor Envio, NF-e, CMS, busca Meilisearch, glTF, conta com link mágico, e estoque do admin refletido na vitrine. A lista fechada está no [roadmap](roadmap.md).
+Pagamento real, webhook, ViaCEP, Melhor Envio, NF-e, CMS, busca Meilisearch, glTF e conta com link mágico. O estoque da variante do Postgres aparece no card e no checkout; `PATCH /v1/admin/stock` continua só no catálogo de domínio. A lista fechada está no [roadmap](roadmap.md).
 
 ## Como a loja deve parecer
 

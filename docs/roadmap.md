@@ -10,7 +10,7 @@ Vitrine em seis etapas empilhadas, sem merge: fundação multimarca, configurado
 
 A loja que essas etapas somam: home, catálogo com marca, galeria, configurador, comparador, quiz, calculadora, carrinho, checkout, conta sandbox, pedidos, desejos, financiamento, WhatsApp, troca, guias, legislação, FAQ, serviço e admin em memória. Camada `lib/catalog.ts` e `lib/shop-api.ts`.
 
-Em `feat/lume-autopropelidos`, a vitrine tirou o filtro Cidade da loja, a aba Lojas, o simulador de autonomia, os acessórios do configurador e o formulário de test ride. A ficha do modelo é uma tabela ao lado do preço. A comparação com gasolina ficou. A loja só lista produto habilitado. O admin já alterna `isEnabled`, mas criar, editar e excluir produto ainda não gravam no Postgres. Esse passo está descrito em `docs/api.md`.
+Em `feat/lume-autopropelidos`, a vitrine tirou o filtro Cidade da loja, a aba Lojas, o simulador de autonomia, os acessórios do configurador e o formulário de test ride. A ficha do modelo é uma tabela ao lado do preço. A comparação com gasolina ficou. A loja só lista produto `ativo` e habilitado. Criar, editar e arquivar produto grava no Postgres. `DELETE` ainda arquiva. A forma está em `docs/api.md`.
 
 ## MVP-a — cobrar de verdade
 

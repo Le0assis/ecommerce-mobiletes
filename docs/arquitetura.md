@@ -30,7 +30,7 @@ A vitrine lê modelos em `GET /v1/products` por `apps/storefront/lib/catalog.ts`
 
 ## De onde vem o catálogo
 
-`GET /v1/products` junta o catálogo de `@lume/domain` com os ativos da memória do admin. O Postgres da migration continua sendo o seed do banco; o CRUD do admin ainda não grava nele. O checkout recalcula na API e ainda só encontra os modelos de `@lume/domain`. Um produto só da memória aparece na vitrine e falha no pagamento até o checkout passar a usar a mesma ficha. Estoque do admin muda o card desses produtos da memória. O estoque dos modelos de domínio segue o código.
+`GET /v1/products` junta o catálogo de `@lume/domain` com os produtos `ativo` e habilitados do cadastro. Com Postgres, o CRUD do admin grava esse cadastro e o checkout usa o `basePriceCents` e a variante. Sem banco, a escrita do cadastro responde 503 e a leitura pública fica na semente do processo. O modelo que só existe em `@lume/domain` continua com o preço e o estoque do código. `PATCH /v1/admin/stock` não altera a variante do Postgres.
 
 ## O que fica no navegador
 
@@ -42,4 +42,4 @@ Nada disso é conta. Não há CPF.
 
 ## Persistência da API
 
-Sem `DATABASE_URL`, pedido e test ride morrem quando o processo cai. Com Postgres alcançável, a API tenta gravar e, se falhar, ainda responde sucesso e registra o erro. Redis e Meilisearch sobem no Compose e não entram no caminho do pedido.
+Sem `DATABASE_URL`, pedido e test ride morrem quando o processo cai, e o cadastro de produto não aceita escrita (503). Com Postgres alcançável, o cadastro grava de verdade e a API tenta gravar pedido e test ride; se esses dois falharem, ainda responde sucesso e registra o erro. Redis e Meilisearch sobem no Compose e não entram no caminho do pedido.
