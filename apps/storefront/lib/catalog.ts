@@ -24,6 +24,7 @@ export {
   formatCep,
   installmentByCount,
   LAUNCH_INTEREST_FREE_UP_TO,
+  assertShippingWeight,
   quoteShipping,
   simulateInstallments,
 } from "@lume/domain";

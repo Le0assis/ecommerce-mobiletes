@@ -4,9 +4,9 @@ import { DisabledCartNotice, useShop } from "@/components/shop-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { amountForMethod, formatBRL, formatCep, installmentByCount, priceProduct, quoteShipping, type StoreProduct } from "@/lib/catalog";
+import { amountForMethod, assertShippingWeight, formatBRL, formatCep, installmentByCount, priceProduct, quoteShipping, type StoreProduct } from "@/lib/catalog";
 import { track } from "@/lib/analytics";
-import { pesoInvalidoMessage, produtoDesabilitadoMessage } from "@/lib/commerce";
+import { commerceCode, pesoInvalidoMessage, produtoDesabilitadoMessage } from "@/lib/commerce";
 import { placeOrder } from "@/lib/shop-api";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -37,13 +37,13 @@ export function CheckoutForm({ products, catalogMessage }: { products: StoreProd
         if ("error" in priced) throw new Error(priced.error);
         return { line, quote: priced.quote };
       });
+      for (const item of quotes) assertShippingWeight(item.quote.weightKg ?? Number.NaN);
       const weight = quotes.reduce((sum, item) => sum + (item.quote.weightKg ?? 0) * item.line.qty, 0);
-      if (!(weight > 0)) return { error: pesoInvalidoMessage };
       const shipping = quoteShipping(cep, weight);
       return { quotes, shipping };
     } catch (cause) {
-      const message = cause instanceof Error ? cause.message : "CEP inválido.";
-      return { error: message === "Peso fora da faixa de transporte." ? pesoInvalidoMessage : message };
+      if (commerceCode(cause) === "peso_invalido") return { error: pesoInvalidoMessage };
+      return { error: cause instanceof Error ? cause.message : "CEP inválido." };
     }
   }, [shop.lines, cep, products]);
 
@@ -76,7 +76,7 @@ export function CheckoutForm({ products, catalogMessage }: { products: StoreProd
       shop.clear();
       router.push(`/pedido/${order.code}`);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Falha no checkout.");
+      setError(commerceCode(cause) === "peso_invalido" ? pesoInvalidoMessage : cause instanceof Error ? cause.message : "Falha no checkout.");
       setPending(false);
     }
   }
