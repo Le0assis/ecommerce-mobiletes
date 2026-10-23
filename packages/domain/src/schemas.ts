@@ -32,7 +32,8 @@ export const installmentsBody = z.object({
 
 export const shippingBody = z.object({
   cep: z.string().min(8).max(12),
-  weightKg: z.number().positive().max(400),
+  /** Ausente, null, zero ou acima de 400 kg vira `peso_invalido` na rota, não erro de payload. */
+  weightKg: z.number().nullable().optional(),
 });
 
 export const rangeBody = z.object({

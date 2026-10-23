@@ -23,6 +23,7 @@ import {
   recommendMotorcycles,
   selectProvider,
   shippingBody,
+  assertShippingWeight,
   quoteShipping,
   stockPatchBody,
   serviceBody,
@@ -272,7 +273,9 @@ export function createApp(deps: CommerceDeps = {}) {
     })),
   );
 
-  app.post("/v1/shipping/quote", async (c) => read(c, shippingBody, (input) => quoteShipping(input.cep, input.weightKg)));
+  app.post("/v1/shipping/quote", async (c) =>
+    read(c, shippingBody, (input) => quoteShipping(input.cep, input.weightKg ?? Number.NaN)),
+  );
 
   app.get("/v1/banners", async (c) => {
     const list = (await catalog.listBanners())
@@ -356,6 +359,7 @@ export function createApp(deps: CommerceDeps = {}) {
               ? applyDiscount(net, 300)
               : net;
       }
+      for (const item of quotes) assertShippingWeight(item.quote.product.weightKg);
       const weight = quotes.reduce((sum, item) => sum + item.quote.product.weightKg * item.line.qty, 0);
       const shipping = quoteShipping(input.cep, weight);
       const service = shipping.services.find((item) => item.id === input.shippingServiceId);

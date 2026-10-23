@@ -52,14 +52,19 @@ export function formatCep(cep: string): string {
   return `${digits.slice(0, 5)}-${digits.slice(5)}`;
 }
 
+/** Frete dedicado aceita peso acima de zero e até 400 kg. */
+export function assertShippingWeight(weightKg: number) {
+  if (!Number.isFinite(weightKg) || weightKg <= 0 || weightKg > 400) {
+    throw new DomainError("peso_invalido", "Peso fora da faixa de transporte.");
+  }
+}
+
 export function quoteShipping(cepInput: string, weightKg: number): ShippingQuote {
   const cep = normalizeCep(cepInput);
   if (!cep) {
     throw new DomainError("cep_invalido", "Informe um CEP com 8 dígitos.");
   }
-  if (!Number.isFinite(weightKg) || weightKg <= 0 || weightKg > 400) {
-    throw new DomainError("peso_invalido", "Peso fora da faixa de transporte.");
-  }
+  assertShippingWeight(weightKg);
 
   const zone = zones[cep[0]];
   if (!zone) {

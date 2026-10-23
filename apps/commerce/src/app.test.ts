@@ -45,6 +45,34 @@ describe("API de commerce", () => {
     expect(body.products.map((item: { slug: string }) => item.slug)).toEqual(["rua"]);
   });
 
+  it("responde peso_invalido no frete quando o peso falta, é zero ou passa de 400 kg", async () => {
+    const cases = [
+      { cep: "01310-100" },
+      { cep: "01310-100", weightKg: null },
+      { cep: "01310-100", weightKg: 0 },
+      { cep: "01310-100", weightKg: -1 },
+      { cep: "01310-100", weightKg: 400.01 },
+    ];
+    for (const body of cases) {
+      const response = await app.request("/v1/shipping/quote", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      expect(response.status).toBe(400);
+      const json = await response.json();
+      expect(json.error).toBe("peso_invalido");
+      expect(json.message).toBe("Peso fora da faixa de transporte.");
+    }
+    const ok = await app.request("/v1/shipping/quote", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ cep: "01310-100", weightKg: 80 }),
+    });
+    expect(ok.status).toBe(200);
+    expect((await ok.json()).services[0].priceCents).toBe(29_000 + 80 * 180);
+  });
+
   it("recalcula o checkout e destaca o Pix sem confiar no preço do cliente", async () => {
     const response = await app.request("/v1/checkout", {
       method: "POST",

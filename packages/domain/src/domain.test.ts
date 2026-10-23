@@ -78,6 +78,20 @@ describe("frete por CEP", () => {
     expect(() => quoteShipping("00000-000", 100)).toThrow(DomainError);
   });
 
+  it("responde peso_invalido quando o peso falta, é zero ou passa de 400 kg", () => {
+    for (const weight of [0, -1, 400.01, Number.NaN, Number.POSITIVE_INFINITY]) {
+      expect(() => quoteShipping("01310-100", weight)).toThrow(DomainError);
+      try {
+        quoteShipping("01310-100", weight);
+      } catch (error) {
+        expect(error).toBeInstanceOf(DomainError);
+        expect((error as DomainError).code).toBe("peso_invalido");
+        expect((error as DomainError).message).toBe("Peso fora da faixa de transporte.");
+      }
+    }
+    expect(quoteShipping("01310-100", 400).services[0]?.priceCents).toBe(29_000 + 400 * 180);
+  });
+
   it("cobra menos no frete de São Paulo do que no Norte", () => {
     const sp = quoteShipping("01310-100", 120);
     const north = quoteShipping("66000-000", 120);

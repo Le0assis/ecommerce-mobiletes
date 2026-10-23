@@ -324,6 +324,44 @@ describe("fase 5: cadastro no Postgres", () => {
     });
   });
 
+  it("recusa o checkout com peso ausente, zero ou acima de 400 kg", async () => {
+    const before = await (await app.request("/v1/admin/overview", { headers })).json();
+    async function pay() {
+      return app.request("/v1/checkout", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          lines: [{ productId: "watts-w1", colorId: "watts-w1-padrao", accessoryIds: [], qty: 1 }],
+          cep: "01310-100",
+          shippingServiceId: "dedicado",
+          method: "pix",
+          installments: 1,
+          customer,
+        }),
+      });
+    }
+    for (const weightKg of [null, 0, 401]) {
+      const patched = await app.request("/v1/admin/products/watts-w1", {
+        method: "PATCH",
+        headers,
+        body: JSON.stringify({ specs: { weightKg } }),
+      });
+      expect(patched.status).toBe(200);
+      const refused = await pay();
+      expect(refused.status).toBe(400);
+      const body = await refused.json();
+      expect(body.error).toBe("peso_invalido");
+      expect(body.message).toBe("Peso fora da faixa de transporte.");
+    }
+    const after = await (await app.request("/v1/admin/overview", { headers })).json();
+    expect(after.orders).toBe(before.orders);
+    await app.request("/v1/admin/products/watts-w1", {
+      method: "PATCH",
+      headers,
+      body: JSON.stringify({ specs: { weightKg: 80 } }),
+    });
+  });
+
   it("convive com a migration do DBA no nome is_enabled e nos tetos da ficha", async () => {
     const side = await openTestDatabase();
     try {
