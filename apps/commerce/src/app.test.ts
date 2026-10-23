@@ -285,8 +285,12 @@ describe("API de commerce", () => {
     expect(samples).toHaveLength(8);
     expect(
       samples.every(
-        (item: { weightKg: number; description: string }) =>
-          item.weightKg > 0 && item.weightKg <= 400 && item.description.includes("peso de exemplo, a confirmar"),
+        (item: { weightKg: number; description: string; slug: string; variants: { stock: number; colorName: string }[] }) =>
+          item.weightKg > 0 &&
+          item.weightKg <= 400 &&
+          item.description.includes("peso de exemplo, a confirmar") &&
+          item.variants.every((variant) => variant.stock === 5) &&
+          (item.slug === "watts-w1" || item.variants.every((variant) => variant.colorName === "A confirmar")),
       ),
     ).toBe(true);
 

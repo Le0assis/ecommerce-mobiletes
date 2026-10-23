@@ -88,6 +88,7 @@ export async function seedCatalog(db: Database) {
           colorHex: product.variant.colorHex,
           batteryLabel: product.variant.batteryLabel,
           priceDeltaCents: product.variant.priceDeltaCents,
+          // estoque de exemplo
           stock: product.variant.stock,
           active: true,
         })),

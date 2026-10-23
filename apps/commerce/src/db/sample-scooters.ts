@@ -92,7 +92,8 @@ const placeholderColor = {
   colorName: "A confirmar",
   colorHex: "#8a8a8a",
   priceDeltaCents: 0,
-  stock: 0,
+  // estoque de exemplo
+  stock: 5,
 };
 
 export const sampleScooters: SampleScooter[] = [
@@ -289,6 +290,7 @@ export const sampleScooters: SampleScooter[] = [
       // cor de exemplo, a confirmar com Léo
       colorName: "Preto (EXEMPLO)",
       colorHex: "#111111",
+      // estoque de exemplo
       stock: 5,
     },
   },
