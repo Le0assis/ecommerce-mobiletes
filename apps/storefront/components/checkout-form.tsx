@@ -19,7 +19,7 @@ export function CheckoutForm() {
   const [cep, setCep] = useState("01310-100");
   const [method, setMethod] = useState<Method>("pix");
   const [installments, setInstallments] = useState(21);
-  const [serviceId, setServiceId] = useState<"retirada" | "dedicado">("dedicado");
+  const [serviceId, setServiceId] = useState("dedicado");
   const [couponCode, setCouponCode] = useState("");
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);

@@ -34,7 +34,7 @@ Cor: `id`, `name`, `hex`, `priceDeltaCents`, `stock`. Acessório: `id`, `name`, 
 
 ## Frete
 
-CEP com 8 dígitos. `00000000` é inválido. Região pelo primeiro dígito. Serviços `retirada` e `dedicado` quando a região tem loja. Não é Correios.
+CEP com 8 dígitos. `00000000` é inválido. Região pelo primeiro dígito. O único serviço é `dedicado`, entrega em casa. Não há retirada em loja. Não é Correios.
 
 ## Pedido
 

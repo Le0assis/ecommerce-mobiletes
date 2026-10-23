@@ -11,14 +11,14 @@ export async function CompareTable({ searchParams }: PageProps<"/comparar">) {
     .map((slug) => getMotorcycle(slug.trim()))
     .filter((item) => item !== undefined)
     .slice(0, 3);
-  const rows: { label: string; read: (item: (typeof selected)[number]) => string }[] = [
+  const rows: { label: string; hint?: string; read: (item: (typeof selected)[number]) => string }[] = [
     { label: "Marca", read: (item) => item.brand },
     { label: "Categoria", read: (item) => categoryLabel[item.category] },
     { label: "Habilitação", read: (item) => registrationLabel[item.registrationClass] },
     { label: "Preço", read: (item) => formatBRL(item.basePriceCents) },
     { label: "21× sem juros", read: (item) => formatBRL(installmentByCount(item.basePriceCents, 21).installmentCents) },
     { label: "Pix −5%", read: (item) => formatBRL(Math.round(item.basePriceCents * 0.95)) },
-    { label: "Autonomia", read: (item) => `${item.rangeKm} km` },
+    { label: "Autonomia (declarada)", hint: "Autonomia declarada pelo fabricante", read: (item) => `${item.rangeKm} km` },
     { label: "Velocidade", read: (item) => `${item.topSpeedKmh} km/h` },
     { label: "Bateria", read: (item) => `${item.batteryKwh} kWh` },
     { label: "Peso", read: (item) => `${item.weightKg} kg` },
@@ -53,7 +53,9 @@ export async function CompareTable({ searchParams }: PageProps<"/comparar">) {
             <tbody>
               {rows.map((row) => (
                 <tr key={row.label} className="border-t border-white/10">
-                  <th className="p-3 text-sm font-normal text-muted-foreground">{row.label}</th>
+                  <th className="p-3 text-sm font-normal text-muted-foreground" aria-label={row.hint} title={row.hint}>
+                    {row.label}
+                  </th>
                   {selected.map((product) => (
                     <td key={product.id} className="nums p-3">
                       {row.read(product)}

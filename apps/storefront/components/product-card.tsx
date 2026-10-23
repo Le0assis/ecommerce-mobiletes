@@ -34,7 +34,9 @@ export function ProductCard({ product }: { product: Motorcycle }) {
           <dd>{product.topSpeedKmh} km/h</dd>
         </div>
         <div>
-          <dt className="text-muted-foreground">Autonomia</dt>
+          <dt className="text-muted-foreground" aria-label="Autonomia declarada pelo fabricante" title="Autonomia declarada pelo fabricante">
+            Autonomia (declarada)
+          </dt>
           <dd>{product.rangeKm} km</dd>
         </div>
       </dl>

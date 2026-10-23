@@ -62,7 +62,9 @@ async function HomeContent() {
               <dd className="text-sm text-muted-foreground">km/h</dd>
             </div>
             <div>
-              <dt className="text-sm text-muted-foreground">Autonomia de referência</dt>
+              <dt className="text-sm text-muted-foreground" aria-label="Autonomia declarada pelo fabricante" title="Autonomia declarada pelo fabricante">
+                Autonomia (declarada)
+              </dt>
               <dd className="display text-6xl">{apex.rangeKm}</dd>
               <dd className="text-sm text-muted-foreground">km</dd>
             </div>
@@ -129,7 +131,9 @@ async function HomeContent() {
                 ))}
               </tr>
               <tr className="border-t border-white/10">
-                <th className="py-4 font-normal text-muted-foreground">Autonomia</th>
+                <th className="py-4 font-normal text-muted-foreground" aria-label="Autonomia declarada pelo fabricante" title="Autonomia declarada pelo fabricante">
+                  Autonomia (declarada)
+                </th>
                 {compared.map((product) => (
                   <td key={product.id}>{product.rangeKm} km</td>
                 ))}

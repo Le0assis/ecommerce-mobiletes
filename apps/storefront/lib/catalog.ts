@@ -21,7 +21,6 @@ export {
   categoryLabel,
   cities,
   configurePrice,
-  dealers,
   estimateFuelSavings,
   estimateRange,
   filterShowroom,

@@ -55,7 +55,7 @@ export const cartLineBody = z.object({
 export const checkoutBody = z.object({
   lines: z.array(cartLineBody).min(1).max(5),
   cep: z.string().min(8).max(12),
-  shippingServiceId: z.enum(["retirada", "dedicado"]),
+  shippingServiceId: z.enum(["dedicado"]),
   method: z.enum(["pix", "boleto", "cartao"]),
   installments: z.number().int().min(1).max(21).default(1),
   couponCode: z.string().trim().max(20).optional(),

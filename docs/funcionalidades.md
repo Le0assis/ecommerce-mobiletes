@@ -60,11 +60,11 @@ O carrossel da home (`components/home-carousel.tsx`) lê `GET /v1/banners` e, se
 
 `/test-ride` não agenda mais. A página, a faixa fixa, o menu, o rodapé e o card de preço abrem `wa.me` por `whatsappHref` (`lib/whatsapp.ts`), o mesmo número de `NEXT_PUBLIC_WHATSAPP` do botão flutuante. Não há formulário nem `POST /v1/test-rides` a partir da vitrine. A rota antiga `/lojas` redireciona para `/contato`.
 
-O agendamento de serviço (`components/service-form.tsx`) ainda escolhe uma loja de demonstração porque `POST /v1/service-bookings` exige `dealerId`. Isso não é a aba Lojas.
+O serviço (`app/servico/page.tsx`, `components/service-form.tsx`) não lista loja. A conversa é o WhatsApp (`whatsappHref`) ou `/contato`. A vitrine não chama `POST /v1/service-bookings`.
 
 ## Lojas
 
-A aba, a página, o mapa, os stories e o filtro Cidade da loja saíram. Não reponha link para `/lojas`: a rota redireciona para `/contato`. `GET /v1/dealers` saiu da API pública; a lista autenticada ficou em `GET /v1/admin/dealers`. O dado de dealers continua no domínio para o serviço.
+A aba, a página, o mapa, os stories e o filtro Cidade da loja saíram. Não reponha link para `/lojas`: a rota redireciona para `/contato`. `GET /v1/dealers` saiu da API pública; a lista autenticada ficou em `GET /v1/admin/dealers`. O frete não oferece retirada.
 
 ## Carrinho
 
@@ -76,7 +76,7 @@ Quantidade máxima 2. Linha igual (mesmo modelo, cor e acessórios) soma. `clear
 
 `components/checkout-form.tsx`.
 
-Métodos: Pix (−5%), boleto (−3%), cartão 1 a 21 vezes sem juros. A prévia usa `amountForMethod` e soma o frete. A parcela da prévia inclui o frete. O POST manda linhas, CEP, serviço, método e cliente. A API ignora qualquer total. Pix de demonstração começa com `LUME-MOCK-PIX`.
+Métodos: Pix (−5%), boleto (−3%), cartão 1 a 21 vezes sem juros. A prévia usa `amountForMethod` e soma o frete. A parcela da prévia inclui o frete. O único serviço é `dedicado` (“Entrega da moto em casa”). O POST manda linhas, CEP, serviço, método e cliente. A API ignora qualquer total. Pix de demonstração começa com `LUME-MOCK-PIX`.
 
 Depois do sucesso, `rememberOrder` grava o código e `clear` esvazia o carrinho. A navegação vai para `/pedido/[code]`.
 

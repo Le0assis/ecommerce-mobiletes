@@ -32,7 +32,7 @@ describe("API de commerce", () => {
       body: JSON.stringify({
         lines: [{ productId: "apex", colorId: "obsidiana", accessoryIds: [], qty: 1 }],
         cep: "01310-100",
-        shippingServiceId: "retirada",
+        shippingServiceId: "dedicado",
         method: "pix",
         installments: 1,
         customer: { name: "Gustavo Teste", email: "gustavo@example.com", phone: "11999990000" },
@@ -40,7 +40,7 @@ describe("API de commerce", () => {
     });
     expect(response.status).toBe(200);
     const body = await response.json();
-    expect(body.order.totalCents).toBe(5_975_500);
+    expect(body.order.totalCents).toBe(6_043_020);
     expect(body.order.provider).toBe("mercadopago");
     expect(body.order.pix.copyPaste).toContain("LUME-MOCK-PIX");
   });
@@ -73,7 +73,7 @@ describe("API de commerce", () => {
       body: JSON.stringify({
         lines: [{ productId: "s", colorId: "obsidiana", accessoryIds: [], qty: 1 }],
         cep: "05435-000",
-        shippingServiceId: "retirada",
+        shippingServiceId: "dedicado",
         method: "pix",
         installments: 1,
         couponCode: "LUME10",

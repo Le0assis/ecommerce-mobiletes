@@ -122,7 +122,7 @@ Identificadores estáveis para o backlog. O que está marcado como vitrine já e
 ### Carrinho, frete e checkout
 
 - RF-CAR-01. Carrinho local com quantidade até 2, preço refeito a partir da configuração. Vitrine.
-- RF-FRE-01. CEP com 8 dígitos. `00000000` é inválido. Tabela por prefixo, dois serviços quando a região tem loja: retirada e transporte dedicado. Vitrine. Não é cotação dos Correios.
+- RF-FRE-01. CEP com 8 dígitos. `00000000` é inválido. Tabela por prefixo, um serviço: transporte dedicado até em casa. Sem retirada em loja. Vitrine. Não é cotação dos Correios.
 - RF-FRE-02. ViaCEP para preencher rua e cidade, e Melhor Envio ou transportadora dedicada no lugar da tabela. v1.
 - RF-PAY-01. Métodos: Pix, boleto, cartão 1 a 21x. Pix e boleto são à vista. Vitrine simulada, com prévia de frete e parcela no checkout.
 - RF-PAY-04. Cupom sobre o subtotal configurado, antes do desconto do meio e sem atingir o frete. Códigos de demonstração LUME10 e OFICINA. Etapa 3.

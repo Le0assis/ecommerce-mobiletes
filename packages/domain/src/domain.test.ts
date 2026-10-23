@@ -78,14 +78,14 @@ describe("frete por CEP", () => {
     expect(() => quoteShipping("00000-000", 100)).toThrow(DomainError);
   });
 
-  it("cobra menos e oferece retirada em São Paulo", () => {
+  it("cobra menos no frete de São Paulo do que no Norte", () => {
     const sp = quoteShipping("01310-100", 120);
     const north = quoteShipping("66000-000", 120);
     const spShip = sp.services.find((item) => item.id === "dedicado");
     const northShip = north.services.find((item) => item.id === "dedicado");
 
-    expect(sp.services.some((item) => item.id === "retirada")).toBe(true);
-    expect(north.services.some((item) => item.id === "retirada")).toBe(false);
+    expect(sp.services.map((item) => item.id)).toEqual(["dedicado"]);
+    expect(north.services.map((item) => item.id)).toEqual(["dedicado"]);
     expect(spShip && northShip && spShip.priceCents < northShip.priceCents).toBe(true);
     expect(spShip && northShip && spShip.days < northShip.days).toBe(true);
   });

@@ -56,7 +56,9 @@ export function Hero({
               </dd>
             </div>
             <div>
-              <dt className="text-xs tracking-[0.16em] text-muted-foreground uppercase">Autonomia</dt>
+              <dt className="text-xs tracking-[0.12em] text-muted-foreground uppercase" aria-label="Autonomia declarada pelo fabricante" title="Autonomia declarada pelo fabricante">
+                Autonomia (declarada)
+              </dt>
               <dd className="display text-6xl md:text-7xl">
                 {range}
                 <span className="ml-2 text-lg font-normal tracking-normal text-muted-foreground">km</span>
