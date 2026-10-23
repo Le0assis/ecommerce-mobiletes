@@ -1,11 +1,19 @@
 "use client";
 
 import { Button, buttonVariants } from "@/components/ui/button";
-import { estimateFuelSavings, formatBRL, installmentByCount, recommendMotorcycles, type QuizAnswers } from "@/lib/catalog";
+import { estimateFuelSavings, formatBRL, installmentByCount, type QuizAnswers, type StoreProduct } from "@/lib/catalog";
 import { cn } from "cn";
 import { motion, useReducedMotion } from "motion/react";
 import Link from "next/link";
-import { useState } from "react";
+import { useRef, useState } from "react";
+
+type QuizHit = {
+  slug: string;
+  name: string;
+  score: number;
+  reasons: string[];
+  accessories: { kind: string; name: string; reason: string }[];
+};
 
 const steps: {
   key: keyof QuizAnswers;
@@ -97,13 +105,44 @@ const steps: {
   },
 ];
 
-export function Quiz() {
+export function Quiz({ products, catalogMessage }: { products: StoreProduct[]; catalogMessage: string | null }) {
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<Partial<QuizAnswers>>({});
+  const [result, setResult] = useState<QuizHit[]>([]);
+  const [pending, setPending] = useState(false);
+  const [settled, setSettled] = useState(false);
+  const [error, setError] = useState("");
+  const request = useRef(0);
   const reduce = useReducedMotion();
   const current = steps[step];
   const done = step >= steps.length;
-  const result = done ? recommendMotorcycles(answers as QuizAnswers) : [];
+
+  async function ask(payload: QuizAnswers) {
+    const id = request.current + 1;
+    request.current = id;
+    setPending(true);
+    setSettled(false);
+    setError("");
+    try {
+      const response = await fetch("/api/commerce/v1/quiz", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const body = (await response.json().catch(() => ({}))) as { message?: string; recommendations?: QuizHit[] };
+      if (request.current !== id) return;
+      if (!response.ok) throw new Error(body.message ?? "O quiz não respondeu.");
+      setResult(body.recommendations ?? []);
+    } catch (cause) {
+      if (request.current !== id) return;
+      setError(cause instanceof Error ? cause.message : "O quiz não respondeu.");
+    } finally {
+      if (request.current === id) {
+        setPending(false);
+        setSettled(true);
+      }
+    }
+  }
 
   return (
     <div className="mt-10">
@@ -128,8 +167,11 @@ export function Quiz() {
                 variant="outline"
                 className="h-14 justify-start rounded-full border-white/15 px-5 text-base"
                 onClick={() => {
-                  setAnswers((previous) => ({ ...previous, [current.key]: option.value }));
-                  setStep((value) => value + 1);
+                  const next = { ...answers, [current.key]: option.value };
+                  const nextStep = step + 1;
+                  setAnswers(next);
+                  setStep(nextStep);
+                  if (nextStep >= steps.length) void ask(next as QuizAnswers);
                 }}
               >
                 {option.label}
@@ -144,46 +186,71 @@ export function Quiz() {
         </motion.div>
       ) : (
         <div className="grid gap-4">
-          {result.map((item) => (
-            <article key={item.product.id} className="rounded-[1.8rem] border border-white/10 p-6">
-              <h2 className="display text-5xl">{item.product.name}</h2>
-              <p className="nums mt-2 text-lg">
-                {formatBRL(item.product.basePriceCents)} · 21× de {formatBRL(installmentByCount(item.product.basePriceCents, 21).installmentCents)}
-              </p>
-              <p className="nums mt-2 text-sm text-muted-foreground">
-                Energia contra um carro de 12 km/L, em 800 km/mês:{" "}
-                {formatBRL(
-                  estimateFuelSavings({
+          {catalogMessage ? <p className="text-sm text-signal">{catalogMessage} Os nomes ainda vêm do quiz.</p> : null}
+          {pending ? <p className="text-muted-foreground">Calculando os modelos…</p> : null}
+          {error ? <p className="text-sm text-signal">{error}</p> : null}
+          {settled && !pending && !error && result.length === 0 ? <p className="text-muted-foreground">Nenhum modelo cabe nessa combinação.</p> : null}
+          {result.map((item) => {
+            const product = products.find((entry) => entry.slug === item.slug);
+            const savings =
+              product && typeof product.batteryKwh === "number" && typeof product.rangeKm === "number"
+                ? estimateFuelSavings({
                     kmPerMonth: 800,
-                    batteryKwh: item.product.batteryKwh ?? 1,
-                    rangeKm: item.product.rangeKm,
+                    batteryKwh: product.batteryKwh,
+                    rangeKm: product.rangeKm,
                     electricityCentsPerKwh: 95,
                     gasolineCentsPerLiter: 649,
                     gasolineKmPerLiter: 12,
-                  }).savedMonthCents,
-                )}{" "}
-                de diferença estimada
-              </p>
-              <ul className="mt-4 grid gap-2 text-sm text-muted-foreground">
-                {item.reasons.map((reason) => (
-                  <li key={reason}>{reason}</li>
-                ))}
-              </ul>
-              {item.accessories.length > 0 ? (
+                  }).savedMonthCents
+                : null;
+            return (
+              <article key={item.slug} className="rounded-[1.8rem] border border-white/10 p-6">
+                <h2 className="display text-5xl">{item.name}</h2>
+                {product ? (
+                  <p className="nums mt-2 text-lg">
+                    {formatBRL(product.basePriceCents)} · 21× de {formatBRL(installmentByCount(product.basePriceCents, 21).installmentCents)}
+                  </p>
+                ) : (
+                  <p className="mt-2 text-sm text-muted-foreground">O preço deste modelo não veio na lista.</p>
+                )}
+                {savings != null ? (
+                  <p className="nums mt-2 text-sm text-muted-foreground">
+                    Energia contra um carro de 12 km/L, em 800 km/mês: {formatBRL(savings)} de diferença estimada
+                  </p>
+                ) : null}
                 <ul className="mt-4 grid gap-2 text-sm text-muted-foreground">
-                  {item.accessories.map((accessory) => (
-                    <li key={accessory.kind}>
-                      {accessory.name}. {accessory.reason}
-                    </li>
+                  {item.reasons.map((reason) => (
+                    <li key={reason}>{reason}</li>
                   ))}
                 </ul>
-              ) : null}
-              <Link href={`/motos/${item.product.slug}`} className={cn(buttonVariants(), "mt-5 h-11 rounded-full")}>
-                Configurar
-              </Link>
-            </article>
-          ))}
-          <Button variant="ghost" className="justify-start px-0" onClick={() => { setStep(0); setAnswers({}); }}>
+                {item.accessories.length > 0 ? (
+                  <ul className="mt-4 grid gap-2 text-sm text-muted-foreground">
+                    {item.accessories.map((accessory) => (
+                      <li key={accessory.kind}>
+                        {accessory.name}. {accessory.reason}
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+                <Link href={`/motos/${item.slug}`} className={cn(buttonVariants(), "mt-5 h-11 rounded-full")}>
+                  Configurar
+                </Link>
+              </article>
+            );
+          })}
+          <Button
+            variant="ghost"
+            className="justify-start px-0"
+            onClick={() => {
+              request.current += 1;
+              setStep(0);
+              setAnswers({});
+              setResult([]);
+              setPending(false);
+              setSettled(false);
+              setError("");
+            }}
+          >
             Refazer
           </Button>
         </div>

@@ -1,7 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { brands, categoryLabel, type CatalogOrder, type Category } from "@/lib/catalog";
-
-const categories = Object.keys(categoryLabel) as Category[];
+import type { CatalogOrder } from "@/lib/catalog";
 
 const labelClass = "grid gap-2 text-[11px] tracking-normal text-muted-foreground";
 
@@ -15,11 +13,15 @@ export function CategorySearch({
   q,
   order = "destaque",
   brand,
+  categories,
+  brands,
 }: {
   category?: string;
   q?: string;
   order?: CatalogOrder | string;
   brand?: string;
+  categories: { id: string; label: string }[];
+  brands: string[];
 }) {
   return (
     <form action="/motos" className="grid gap-y-5 rounded-[2rem] border border-white/10 bg-[#121216]/80 p-4 shadow-2xl backdrop-blur-xl md:p-5">
@@ -29,8 +31,8 @@ export function CategorySearch({
           <select name="categoria" defaultValue={category ?? ""} className={selectClass}>
             <option value="">Todas</option>
             {categories.map((item) => (
-              <option key={item} value={item}>
-                {categoryLabel[item]}
+              <option key={item.id} value={item.id}>
+                {item.label}
               </option>
             ))}
           </select>
@@ -39,7 +41,7 @@ export function CategorySearch({
           Marca
           <select name="marca" defaultValue={brand ?? ""} className={selectClass}>
             <option value="">Todas</option>
-            {brands().map((item) => (
+            {brands.map((item) => (
               <option key={item} value={item}>
                 {item}
               </option>

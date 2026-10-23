@@ -1,4 +1,3 @@
-import { banners, type Banner } from "@/lib/catalog";
 import { whatsappGreeting, whatsappHref } from "@/lib/whatsapp";
 
 export type HomeSlide = {
@@ -11,23 +10,27 @@ export type HomeSlide = {
   external: boolean;
 };
 
-function fromBanner(item: Banner): HomeSlide {
+type ApiBanner = {
+  id: string;
+  eyebrow?: string;
+  title: string;
+  subtitle?: string | null;
+  href: string;
+  imageUrl?: string | null;
+  position?: number;
+  active: boolean;
+};
+
+function fromBanner(item: ApiBanner): HomeSlide {
   return {
     id: item.id,
-    eyebrow: item.eyebrow,
+    eyebrow: item.eyebrow ?? "LUME",
     title: item.title,
     subtitle: item.subtitle ?? "",
     href: item.href,
     imageUrl: item.imageUrl ?? null,
     external: item.href.startsWith("http"),
   };
-}
-
-function fallbackSlides(): HomeSlide[] {
-  return banners
-    .filter((item) => item.active)
-    .sort((a, b) => (a.position ?? 0) - (b.position ?? 0) || a.id.localeCompare(b.id))
-    .map(fromBanner);
 }
 
 const extras: HomeSlide[] = [
@@ -61,19 +64,19 @@ function fillSlides(slides: HomeSlide[]): HomeSlide[] {
   return next.slice(0, 5);
 }
 
-/** Banners ativos da API. Se a API não responder, usa a mesma lista do domínio. */
+/** Banners ativos da API. Sem resposta, ficam o quiz e o WhatsApp. Não usa o catálogo do código. */
 export async function loadHomeSlides(): Promise<HomeSlide[]> {
   const base = process.env.COMMERCE_API_URL ?? "http://127.0.0.1:8787";
   try {
     const response = await fetch(`${base}/v1/banners`, {
-      next: { revalidate: 60 },
-      signal: AbortSignal.timeout(1500),
+      cache: "no-store",
+      signal: AbortSignal.timeout(4000),
     });
-    if (!response.ok) return fillSlides(fallbackSlides());
-    const body = (await response.json()) as { banners?: Banner[] };
+    if (!response.ok) return fillSlides([]);
+    const body = (await response.json()) as { banners?: ApiBanner[] };
     const slides = (body.banners ?? []).filter((item) => item.active).map(fromBanner);
-    return fillSlides(slides.length > 0 ? slides : fallbackSlides());
+    return fillSlides(slides);
   } catch {
-    return fillSlides(fallbackSlides());
+    return fillSlides([]);
   }
 }

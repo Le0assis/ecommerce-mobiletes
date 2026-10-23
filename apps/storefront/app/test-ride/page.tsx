@@ -1,5 +1,5 @@
 import { buttonVariants } from "@/components/ui/button";
-import { getMotorcycle } from "@/lib/catalog";
+import { loadProduct } from "@/lib/catalog";
 import { whatsappGreeting, whatsappHref } from "@/lib/whatsapp";
 import { cn } from "cn";
 import type { Metadata } from "next";
@@ -8,9 +8,12 @@ import { Suspense } from "react";
 async function RideGate({ searchParams }: PageProps<"/test-ride">) {
   const query = await searchParams;
   const modelo = typeof query.modelo === "string" ? query.modelo : "";
-  const product = modelo ? getMotorcycle(modelo) : undefined;
-  const message = product ? `Olá, quero falar sobre a ${product.name}.` : whatsappGreeting;
+  const product = modelo ? await loadProduct(modelo) : null;
+  const name = product?.ok ? product.data.product.name : "";
+  const message = name ? `Olá, quero falar sobre a ${name}.` : whatsappGreeting;
   return (
+    <>
+      {modelo && product && !product.ok && !product.notFound ? <p className="mt-6 text-sm text-signal">{product.message}</p> : null}
     <a
       href={whatsappHref(message)}
       className={cn(buttonVariants(), "mt-8 inline-flex h-12 rounded-full px-6")}
@@ -19,6 +22,7 @@ async function RideGate({ searchParams }: PageProps<"/test-ride">) {
     >
       Falar no WhatsApp
     </a>
+    </>
   );
 }
 

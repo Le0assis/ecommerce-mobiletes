@@ -1,4 +1,5 @@
 import { CategorySearch } from "@/components/category-search";
+import { CatalogDown } from "@/components/catalog-state";
 import { Hero } from "@/components/hero";
 import { HomeCarousel } from "@/components/home-carousel";
 import { loadHomeSlides } from "@/lib/home-slides";
@@ -7,7 +8,7 @@ import { CityRulesNotice } from "@/components/self-propelled-seal";
 import { ProductCard } from "@/components/product-card";
 import { TrustRow } from "@/components/trust-row";
 import { buttonVariants } from "@/components/ui/button";
-import { AUTOPROPELIDO_NOTICE, configurePrice, formatBRL, getMotorcycle, installmentByCount, motorcycles, reviews } from "@/lib/catalog";
+import { formatBRL, installmentByCount, loadProducts, loadReviews, measure, priceProduct, productBrands, productCategories } from "@/lib/catalog";
 import { cn } from "cn";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -21,28 +22,38 @@ export default function HomePage() {
 }
 
 async function HomeContent() {
-  const apex = getMotorcycle("apex");
-  if (!apex) return null;
+  const loaded = await loadProducts();
+  if (!loaded.ok) return <CatalogDown message={loaded.message} />;
+  const products = loaded.data;
+  const featured = products.find((item) => item.slug === "apex") ?? products[0];
+  if (!featured) return <CatalogDown message="O catálogo chegou vazio." />;
   const slides = await loadHomeSlides();
-  const quote = configurePrice({ productId: apex.id, colorId: "obsidiana" });
-  const compared = ["s", "via", "apex"].map((slug) => getMotorcycle(slug)).filter((item) => item !== undefined);
+  const reviews = await loadReviews();
+  const color = featured.colors.find((item) => item.stock > 0) ?? featured.colors[0];
+  const priced = priceProduct(featured, { colorId: color?.id });
+  if ("error" in priced) return <CatalogDown message={priced.error} />;
+  const quote = priced.quote;
+  const compared = ["s", "via", "apex"].map((slug) => products.find((item) => item.slug === slug)).filter((item) => item !== undefined);
+  const stories = reviews.ok ? reviews.data.slice(0, 2) : [];
 
   return (
     <>
-      <SampleBanner show={catalogHasSample()} clearNav />
+      <SampleBanner show={catalogHasSample(products)} clearNav />
       <HomeCarousel slides={slides} />
       <Hero
         anchor={false}
-        name={apex.name}
-        speed={apex.topSpeedKmh}
-        range={apex.rangeKm}
+        name={featured.name}
+        speed={featured.topSpeedKmh}
+        range={featured.rangeKm}
         priceCents={quote.subtotalCents}
         pixCents={quote.pixCents}
+        href={`/motos/${featured.slug}`}
+        cta={featured.slug === "apex" ? "Reservar a Apex" : `Reservar ${featured.name}`}
       />
       <div className="relative z-10 mx-auto -mt-8 max-w-6xl px-5">
-        <CategorySearch />
+        <CategorySearch categories={productCategories(products)} brands={productBrands(products)} />
         <div className="mt-4 px-2">
-          <CityRulesNotice text={AUTOPROPELIDO_NOTICE} />
+          <CityRulesNotice text={featured.autopropelido.notice} />
         </div>
       </div>
       <TrustRow />
@@ -57,15 +68,15 @@ async function HomeContent() {
           </h2>
           <dl className="nums mt-10 grid max-w-xl grid-cols-2 gap-6 text-paper">
             <div>
-              <dt className="text-sm text-muted-foreground">Apex</dt>
-              <dd className="display text-6xl">{apex.topSpeedKmh}</dd>
+              <dt className="text-sm text-muted-foreground">{featured.name.replace("LUME ", "")}</dt>
+              <dd className="display text-6xl">{featured.topSpeedKmh ?? "—"}</dd>
               <dd className="text-sm text-muted-foreground">km/h</dd>
             </div>
             <div>
               <dt className="text-sm text-muted-foreground" aria-label="Autonomia declarada pelo fabricante" title="Autonomia declarada pelo fabricante">
                 Autonomia (declarada)
               </dt>
-              <dd className="display text-6xl">{apex.rangeKm}</dd>
+              <dd className="display text-6xl">{featured.rangeKm ?? "—"}</dd>
               <dd className="text-sm text-muted-foreground">km</dd>
             </div>
           </dl>
@@ -83,7 +94,7 @@ async function HomeContent() {
           </Link>
         </div>
         <div className="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {motorcycles.map((product) => (
+          {products.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}
         </div>
@@ -103,54 +114,56 @@ async function HomeContent() {
           </div>
         </div>
       </section>
-      <section className="mx-auto max-w-6xl px-5 py-20">
-        <h2 className="display text-6xl md:text-8xl">Três motos, uma tabela.</h2>
-        <div className="mt-8 overflow-x-auto">
-          <table className="w-full min-w-[40rem] text-left text-sm">
-            <thead className="text-muted-foreground">
-              <tr>
-                <th className="py-3 font-normal"> </th>
-                {compared.map((product) => (
-                  <th key={product.id} className="py-3 font-normal text-paper">
-                    {product.name}
+      {compared.length > 0 ? (
+        <section className="mx-auto max-w-6xl px-5 py-20">
+          <h2 className="display text-6xl md:text-8xl">Três motos, uma tabela.</h2>
+          <div className="mt-8 overflow-x-auto">
+            <table className="w-full min-w-[40rem] text-left text-sm">
+              <thead className="text-muted-foreground">
+                <tr>
+                  <th className="py-3 font-normal"> </th>
+                  {compared.map((product) => (
+                    <th key={product.id} className="py-3 font-normal text-paper">
+                      {product.name}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="nums">
+                <tr className="border-t border-white/10">
+                  <th className="py-4 font-normal text-muted-foreground">Preço</th>
+                  {compared.map((product) => (
+                    <td key={product.id}>{formatBRL(product.basePriceCents)}</td>
+                  ))}
+                </tr>
+                <tr className="border-t border-white/10">
+                  <th className="py-4 font-normal text-muted-foreground">21× sem juros</th>
+                  {compared.map((product) => (
+                    <td key={product.id}>{formatBRL(installmentByCount(product.basePriceCents, 21).installmentCents)}</td>
+                  ))}
+                </tr>
+                <tr className="border-t border-white/10">
+                  <th className="py-4 font-normal text-muted-foreground" aria-label="Autonomia declarada pelo fabricante" title="Autonomia declarada pelo fabricante">
+                    Autonomia (declarada)
                   </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="nums">
-              <tr className="border-t border-white/10">
-                <th className="py-4 font-normal text-muted-foreground">Preço</th>
-                {compared.map((product) => (
-                  <td key={product.id}>{formatBRL(product.basePriceCents)}</td>
-                ))}
-              </tr>
-              <tr className="border-t border-white/10">
-                <th className="py-4 font-normal text-muted-foreground">21× sem juros</th>
-                {compared.map((product) => (
-                  <td key={product.id}>{formatBRL(installmentByCount(product.basePriceCents, 21).installmentCents)}</td>
-                ))}
-              </tr>
-              <tr className="border-t border-white/10">
-                <th className="py-4 font-normal text-muted-foreground" aria-label="Autonomia declarada pelo fabricante" title="Autonomia declarada pelo fabricante">
-                  Autonomia (declarada)
-                </th>
-                {compared.map((product) => (
-                  <td key={product.id}>{product.rangeKm} km</td>
-                ))}
-              </tr>
-              <tr className="border-t border-white/10">
-                <th className="py-4 font-normal text-muted-foreground">Máxima</th>
-                {compared.map((product) => (
-                  <td key={product.id}>{product.topSpeedKmh} km/h</td>
-                ))}
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <Link href="/comparar" className={cn(buttonVariants({ variant: "outline" }), "mt-6 h-11 rounded-full border-white/20 px-5")}>
-          Abrir o comparador
-        </Link>
-      </section>
+                  {compared.map((product) => (
+                    <td key={product.id}>{measure(product.rangeKm, "km")}</td>
+                  ))}
+                </tr>
+                <tr className="border-t border-white/10">
+                  <th className="py-4 font-normal text-muted-foreground">Máxima</th>
+                  {compared.map((product) => (
+                    <td key={product.id}>{measure(product.topSpeedKmh, "km/h")}</td>
+                  ))}
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <Link href="/comparar" className={cn(buttonVariants({ variant: "outline" }), "mt-6 h-11 rounded-full border-white/20 px-5")}>
+            Abrir o comparador
+          </Link>
+        </section>
+      ) : null}
       <section className="px-5 pb-20">
         <div className="mx-auto grid max-w-6xl overflow-hidden rounded-[2rem] border border-white/10 bg-[#141418] md:grid-cols-2">
           <div className="p-8 md:p-12">
@@ -163,17 +176,21 @@ async function HomeContent() {
           </div>
           <div className="border-t border-white/10 p-8 md:border-t-0 md:border-l md:p-12">
             <h3 className="text-lg">Quem já anda</h3>
-            <ul className="mt-6 grid gap-6">
-              {reviews.slice(0, 2).map((review) => (
-                <li key={review.id}>
-                  <p className="text-paper">{review.title}</p>
-                  <p className="mt-2 text-sm text-muted-foreground">{review.body}</p>
-                  <p className="mt-2 text-xs tracking-[0.14em] text-muted-foreground uppercase">
-                    {review.city} · {review.rating}/5
-                  </p>
-                </li>
-              ))}
-            </ul>
+            {stories.length === 0 ? (
+              <p className="mt-6 text-sm text-muted-foreground">{reviews.ok ? "Ainda não há relato publicado." : reviews.message}</p>
+            ) : (
+              <ul className="mt-6 grid gap-6">
+                {stories.map((review) => (
+                  <li key={review.id}>
+                    <p className="text-paper">{review.title}</p>
+                    <p className="mt-2 text-sm text-muted-foreground">{review.body}</p>
+                    <p className="mt-2 text-xs tracking-[0.14em] text-muted-foreground uppercase">
+                      {review.city} · {review.rating}/5
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </div>
       </section>

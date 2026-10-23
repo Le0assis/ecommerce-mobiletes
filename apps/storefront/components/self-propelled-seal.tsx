@@ -1,8 +1,7 @@
-import { autopropelidoBadge, specsForAutopropelido, type Motorcycle } from "@/lib/catalog";
+import type { StoreBadge } from "@/lib/catalog";
 import Link from "next/link";
 
-export function SelfPropelledSeal({ product, notice = false }: { product: Motorcycle; notice?: boolean }) {
-  const badge = autopropelidoBadge(specsForAutopropelido(product));
+export function SelfPropelledSeal({ badge, notice = false }: { badge: StoreBadge; notice?: boolean }) {
   if (!badge.eligible || !badge.label) {
     if (!notice) return null;
     return (
@@ -20,6 +19,7 @@ export function SelfPropelledSeal({ product, notice = false }: { product: Motorc
 }
 
 export function CityRulesNotice({ text }: { text: string }) {
+  if (!text) return null;
   return (
     <p className="text-sm text-muted-foreground">
       <Link href="/legislacao" className="underline-offset-4 hover:underline">

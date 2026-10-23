@@ -3,7 +3,7 @@
 import { BikeSvg } from "@/components/bike-svg";
 import { HeroFilm } from "@/components/hero-film";
 import { buttonVariants } from "@/components/ui/button";
-import { formatBRL, installmentByCount } from "@lume/domain";
+import { formatBRL, installmentByCount } from "@/lib/catalog";
 import { cn } from "cn";
 import { motion, useReducedMotion } from "motion/react";
 import Link from "next/link";
@@ -14,13 +14,17 @@ export function Hero({
   range,
   priceCents,
   pixCents,
+  href = "/motos/apex",
+  cta = "Reservar a Apex",
   anchor = true,
 }: {
   name: string;
-  speed: number;
-  range: number;
+  speed: number | null;
+  range: number | null;
   priceCents: number;
   pixCents: number;
+  href?: string;
+  cta?: string;
   anchor?: boolean;
 }) {
   const reduce = useReducedMotion();
@@ -51,7 +55,7 @@ export function Hero({
             <div>
               <dt className="text-xs tracking-[0.16em] text-muted-foreground uppercase">Velocidade</dt>
               <dd className="display text-6xl md:text-7xl">
-                {speed}
+                {speed ?? "—"}
                 <span className="ml-2 text-lg font-normal tracking-normal text-muted-foreground">km/h</span>
               </dd>
             </div>
@@ -60,7 +64,7 @@ export function Hero({
                 Autonomia (declarada)
               </dt>
               <dd className="display text-6xl md:text-7xl">
-                {range}
+                {range ?? "—"}
                 <span className="ml-2 text-lg font-normal tracking-normal text-muted-foreground">km</span>
               </dd>
             </div>
@@ -78,10 +82,10 @@ export function Hero({
               <span className="text-sm text-muted-foreground">−5%</span>
             </p>
             <div className="mt-5 flex flex-wrap items-center gap-4">
-              <Link href="/motos/apex" className={cn(buttonVariants({ size: "lg" }), "h-12 rounded-full px-6 text-base")}>
-                Reservar a Apex
+              <Link href={href} className={cn(buttonVariants({ size: "lg" }), "h-12 rounded-full px-6 text-base")}>
+                {cta}
               </Link>
-              <Link href="/motos/apex" className="text-sm text-paper underline-offset-4 hover:underline">
+              <Link href={href} className="text-sm text-paper underline-offset-4 hover:underline">
                 Configurar
               </Link>
             </div>

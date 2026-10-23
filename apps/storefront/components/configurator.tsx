@@ -9,15 +9,14 @@ import { useShop } from "@/components/shop-provider";
 import { track } from "@/lib/analytics";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
-  configurePrice,
   formatBRL,
+  illustrationCategory,
   installmentByCount,
-  packsFor,
-  registrationLabel,
-  registrationNote,
-  relatedMotorcycles,
-  reviewsFor,
-  type Motorcycle,
+  measure,
+  priceProduct,
+  registrationCopy,
+  type StoreProduct,
+  type StoreReview,
 } from "@/lib/catalog";
 import { productIsSample, SampleBanner } from "@/components/sample-banner";
 import { SelfPropelledSeal } from "@/components/self-propelled-seal";
@@ -33,15 +32,19 @@ const BikeViewer = dynamic(() => import("@/components/bike-viewer").then((mod) =
   loading: () => <p className="grid h-full place-items-center text-sm text-muted-foreground">Abrindo o 360°…</p>,
 });
 
-function formatMeasure(value: number | null | undefined, suffix: string) {
-  if (typeof value !== "number" || !Number.isFinite(value)) return "não informado";
-  return `${new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 }).format(value)} ${suffix}`;
-}
-
-export function Configurator({ product }: { product: Motorcycle }) {
+export function Configurator({
+  product,
+  related,
+  reviews,
+}: {
+  product: StoreProduct;
+  related: StoreProduct[];
+  reviews: StoreReview[];
+}) {
   const router = useRouter();
   const shop = useShop();
   const pendingReviews = usePendingReviews(product.slug);
+  const packs = product.batteries;
 
   useEffect(() => {
     document.documentElement.dataset.configurator = "ready";
@@ -50,30 +53,35 @@ export function Configurator({ product }: { product: Motorcycle }) {
     };
   }, []);
 
-  const packs = packsFor(product);
   const firstColor = product.colors.find((color) => color.stock > 0) ?? product.colors[0];
   const [colorId, setColorId] = useState(firstColor?.id ?? "");
-  const [batteryId, setBatteryId] = useState(packs[0]?.id ?? "serie");
+  const [batteryId, setBatteryId] = useState(packs[0]?.id ?? "");
   const [spin, setSpin] = useState(false);
   const quoteResult = useMemo(() => {
-    try {
-      return { quote: configurePrice({ productId: product.id, colorId, accessoryIds: [], batteryId }), error: "" };
-    } catch (cause) {
-      return { quote: null, error: cause instanceof Error ? cause.message : "Não foi possível calcular." };
-    }
-  }, [product.id, colorId, batteryId]);
+    const priced = priceProduct(product, {
+      colorId: colorId || undefined,
+      batteryId: batteryId || undefined,
+      accessoryIds: [],
+    });
+    if ("error" in priced) return { quote: null, error: priced.error };
+    return { quote: priced.quote, error: "" };
+  }, [product, colorId, batteryId]);
   const quote = quoteResult.quote;
   const error = quoteResult.error;
   const plan = quote ? installmentByCount(quote.subtotalCents, 21) : null;
   const color = product.colors.find((item) => item.id === colorId);
-  const reviews = reviewsFor(product.slug);
-  const related = relatedMotorcycles(product);
   const wished = shop.wished(product.slug);
+  const registration = registrationCopy(product.registrationClass);
 
   function reserve() {
-    if (!quote) return;
+    if (!quote || !colorId) return;
     track("reservar", { product: product.slug, color: colorId });
-    shop.addLine({ productId: product.id, colorId, accessoryIds: [], batteryId });
+    shop.addLine({
+      productId: product.id,
+      colorId,
+      accessoryIds: [],
+      batteryId: quote.battery?.id,
+    });
     router.push("/checkout");
   }
 
@@ -88,7 +96,12 @@ export function Configurator({ product }: { product: Motorcycle }) {
                 <BikeViewer color={color.hex} />
               </div>
             ) : (
-              <ProductGallery name={product.name} variant={product.category} color={color?.hex ?? "#f4f4f2"} />
+              <ProductGallery
+                name={product.name}
+                variant={illustrationCategory(product.category)}
+                color={color?.hex ?? "#f4f4f2"}
+                images={product.images}
+              />
             )}
             <Button variant="outline" className="absolute top-4 right-4 rounded-full border-white/20" onClick={() => setSpin((value) => !value)}>
               {spin ? "Ver ilustração" : "Ver em 360°"}
@@ -97,12 +110,13 @@ export function Configurator({ product }: { product: Motorcycle }) {
           <div className="order-3 lg:order-none lg:mt-6">
             <SpecTable product={product} />
             <p className="mt-4 max-w-xl text-sm text-muted-foreground">{product.description}</p>
-            <p className="mt-3 text-xs text-muted-foreground">{product.licenseNote}</p>
+            {product.licenseNote ? <p className="mt-3 text-xs text-muted-foreground">{product.licenseNote}</p> : null}
             <aside className="mt-4 max-w-xl rounded-2xl border border-white/10 p-4">
               <p className="text-xs tracking-[0.16em] text-muted-foreground uppercase">Habilitação e emplacamento</p>
-              <p className="mt-2 text-paper">{registrationLabel[product.registrationClass]}</p>
-              <p className="mt-2 text-sm text-muted-foreground">{registrationNote[product.registrationClass]}</p>
+              <p className="mt-2 text-paper">{registration.label}</p>
+              {registration.note ? <p className="mt-2 text-sm text-muted-foreground">{registration.note}</p> : null}
             </aside>
+            <DamageList product={product} />
           </div>
         </div>
         <div className="order-2 lg:order-none">
@@ -110,32 +124,36 @@ export function Configurator({ product }: { product: Motorcycle }) {
             {product.brand} · {product.tagline}
           </p>
           <h1 className="display mt-3 text-7xl">{product.name.replace("LUME ", "")}</h1>
-          <SelfPropelledSeal product={product} notice />
+          <SelfPropelledSeal badge={product.autopropelido} notice />
           <p className="nums mt-6">
-            <span className="display block text-6xl">{product.topSpeedKmh}</span>
+            <span className="display block text-6xl">{product.topSpeedKmh ?? "—"}</span>
             <span className="text-sm text-muted-foreground">km/h de velocidade máxima</span>
           </p>
-          <fieldset className="mt-8">
-            <legend className="text-xs tracking-[0.16em] text-muted-foreground uppercase">Cor</legend>
-            <div className="mt-3 flex flex-wrap gap-3">
-              {product.colors.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  disabled={item.stock <= 0}
-                  aria-pressed={item.id === colorId}
-                  data-testid={`color-${item.id}`}
-                  onClick={() => setColorId(item.id)}
-                  className="flex items-center gap-2 rounded-full border border-white/15 px-3 py-2 text-sm aria-pressed:border-signal disabled:opacity-40"
-                >
-                  <span className="size-4 rounded-full border border-white/30" style={{ background: item.hex }} />
-                  {item.name}
-                  {item.priceDeltaCents > 0 ? <span className="nums text-muted-foreground">+{formatBRL(item.priceDeltaCents)}</span> : null}
-                  {item.stock <= 0 ? <span>esgotada</span> : null}
-                </button>
-              ))}
-            </div>
-          </fieldset>
+          {product.colors.length > 0 ? (
+            <fieldset className="mt-8">
+              <legend className="text-xs tracking-[0.16em] text-muted-foreground uppercase">Cor</legend>
+              <div className="mt-3 flex flex-wrap gap-3">
+                {product.colors.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    disabled={item.stock <= 0}
+                    aria-pressed={item.id === colorId}
+                    data-testid={`color-${item.id}`}
+                    onClick={() => setColorId(item.id)}
+                    className="flex items-center gap-2 rounded-full border border-white/15 px-3 py-2 text-sm aria-pressed:border-signal disabled:opacity-40"
+                  >
+                    <span className="size-4 rounded-full border border-white/30" style={{ background: item.hex }} />
+                    {item.name}
+                    {item.priceDeltaCents > 0 ? <span className="nums text-muted-foreground">+{formatBRL(item.priceDeltaCents)}</span> : null}
+                    {item.stock <= 0 ? <span>esgotada</span> : null}
+                  </button>
+                ))}
+              </div>
+            </fieldset>
+          ) : (
+            <p className="mt-8 text-sm text-muted-foreground">Este modelo ainda não tem cor cadastrada. O preço é o de tabela.</p>
+          )}
           {packs.length > 1 ? (
             <fieldset className="mt-6">
               <legend className="text-xs tracking-[0.16em] text-muted-foreground uppercase">Bateria</legend>
@@ -158,8 +176,10 @@ export function Configurator({ product }: { product: Motorcycle }) {
                 ))}
               </div>
             </fieldset>
+          ) : packs.length === 0 ? (
+            <p className="mt-6 text-sm text-muted-foreground">Sem pacote de bateria nesta ficha. A reserva segue com a de série, delta zero.</p>
           ) : null}
-          <SavingsCalculator batteryKwh={quote?.battery.kwh ?? product.batteryKwh} rangeKm={quote?.battery.rangeKm ?? product.rangeKm} />
+          <SavingsCalculator batteryKwh={quote?.battery?.kwh ?? product.batteryKwh} rangeKm={quote?.battery?.rangeKm ?? product.rangeKm} />
           {quote && plan ? (
             <div className="mt-6 rounded-[1.8rem] border border-white/10 bg-[#141418] p-5">
               <p className="nums text-4xl font-light" data-testid="live-price">
@@ -186,7 +206,7 @@ export function Configurator({ product }: { product: Motorcycle }) {
                 </div>
               </details>
               <div className="mt-5 flex flex-wrap gap-3">
-                <Button className="h-12 rounded-full px-6" onClick={reserve} data-testid="reserve">
+                <Button className="h-12 rounded-full px-6" onClick={reserve} data-testid="reserve" disabled={!colorId}>
                   Reservar
                 </Button>
                 <Button variant="outline" className="h-12 rounded-full border-white/20 px-6" onClick={() => shop.toggleWish(product.slug)}>
@@ -240,14 +260,16 @@ export function Configurator({ product }: { product: Motorcycle }) {
         <ReviewForm productId={product.slug} />
       </section>
 
-      <section className="mx-auto max-w-6xl px-5 pb-20">
-        <h2 className="display text-5xl md:text-7xl">Perto desta.</h2>
-        <div className="mt-8 grid gap-4 md:grid-cols-3">
-          {related.map((item) => (
-            <ProductCard key={item.id} product={item} />
-          ))}
-        </div>
-      </section>
+      {related.length > 0 ? (
+        <section className="mx-auto max-w-6xl px-5 pb-20">
+          <h2 className="display text-5xl md:text-7xl">Perto desta.</h2>
+          <div className="mt-8 grid gap-4 md:grid-cols-3">
+            {related.map((item) => (
+              <ProductCard key={item.id} product={item} />
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       {quote && plan ? (
         <div className="fixed inset-x-0 bottom-0 z-30 border-t border-white/10 bg-[#0c0c0e]/92 p-3 backdrop-blur md:hidden">
@@ -256,7 +278,7 @@ export function Configurator({ product }: { product: Motorcycle }) {
               <p className="nums text-lg">{formatBRL(quote.subtotalCents)}</p>
               <p className="text-xs text-muted-foreground">21× de {formatBRL(plan.installmentCents)}</p>
             </div>
-            <Button className="h-12 rounded-full px-6" onClick={reserve}>
+            <Button className="h-12 rounded-full px-6" onClick={reserve} disabled={!colorId}>
               Reservar
             </Button>
           </div>
@@ -266,20 +288,33 @@ export function Configurator({ product }: { product: Motorcycle }) {
   );
 }
 
-function SpecTable({ product }: { product: Motorcycle }) {
+function batteryLine(product: StoreProduct) {
+  const parts: string[] = [];
+  if (typeof product.batteryKwh === "number") parts.push(`${product.batteryKwh.toLocaleString("pt-BR")} kWh`);
+  if (typeof product.specs.batteryV === "number") parts.push(`${product.specs.batteryV} V`);
+  if (typeof product.specs.batteryAh === "number") parts.push(`${product.specs.batteryAh} Ah`);
+  if (product.specs.batteryChem) parts.push(product.specs.batteryChem);
+  if (product.specs.batteryRemovable === true) parts.push("removível");
+  if (product.specs.batteryRemovable === false) parts.push("fixa");
+  if (parts.length === 0) return "não informado";
+  const missingElectrical = product.specs.batteryV == null && product.specs.batteryAh == null && product.specs.batteryRemovable == null;
+  if (typeof product.batteryKwh === "number" && missingElectrical) {
+    return `${parts.join(" · ")}. Tensão, Ah e se é removível: não informado`;
+  }
+  return parts.join(" · ");
+}
+
+function SpecTable({ product }: { product: StoreProduct }) {
   const rows: [string, string][] = [
-    ["Potência nominal", formatMeasure(product.powerNominalW, "W")],
-    ["Velocidade máx.", `${product.topSpeedKmh} km/h`],
-    [
-      "Bateria",
-      `${product.batteryKwh.toLocaleString("pt-BR")} kWh. Tensão, Ah e se é removível: não informado`,
-    ],
-    ["Largura", formatMeasure(product.widthCm, "cm")],
-    ["Entre-eixos", formatMeasure(product.wheelbaseCm, "cm")],
-    ["Peso", `${product.weightKg} kg`],
-    ["Altura do banco", `${product.seatHeightMm} mm`],
-    ["Tempo de carga", `${product.chargeHours} h`],
-    ["Autonomia declarada", `${product.rangeKm} km`],
+    ["Potência nominal", measure(product.powerNominalW ?? product.specs.powerNominalW, "W")],
+    ["Velocidade máx.", measure(product.topSpeedKmh, "km/h")],
+    ["Bateria", batteryLine(product)],
+    ["Largura", measure(product.widthCm ?? product.specs.widthCm, "cm")],
+    ["Entre-eixos", measure(product.wheelbaseCm ?? product.specs.wheelbaseCm, "cm")],
+    ["Peso", measure(product.weightKg, "kg")],
+    ["Altura do banco", measure(product.seatHeightMm, "mm")],
+    ["Tempo de carga", measure(product.chargeHours, "h")],
+    ["Autonomia declarada", measure(product.rangeKm ?? product.specs.rangeKmDeclared, "km")],
   ];
 
   return (
@@ -305,5 +340,31 @@ function SpecTable({ product }: { product: Motorcycle }) {
         A autonomia é o número publicado do modelo, só como dado. A potência nominal só entra quando o fabricante informa o valor em watts. A potência de pico não ocupa essa linha.
       </p>
     </div>
+  );
+}
+
+function DamageList({ product }: { product: StoreProduct }) {
+  if (product.damages.length === 0) return null;
+  return (
+    <section className="mt-6 max-w-xl">
+      <h2 className="text-sm text-paper">Avarias à venda</h2>
+      <ul className="mt-3 grid gap-3">
+        {product.damages.map((damage) => (
+          <li key={damage.id} className="rounded-2xl border border-white/10 p-4">
+            <p className="text-paper">{damage.description}</p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              {damage.severity} · desconto {formatBRL(damage.discountCents)}
+            </p>
+            {damage.images.length > 0 ? (
+              <div className="mt-3 flex gap-2 overflow-x-auto">
+                {damage.images.map((image) => (
+                  <img key={image.id} src={image.url} alt="" className="h-20 w-28 rounded-xl object-cover" />
+                ))}
+              </div>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }

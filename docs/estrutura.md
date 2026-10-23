@@ -32,7 +32,7 @@ docker-compose.yml       Postgres 54329, Redis 63799, Meilisearch 7709
 | `lib/admin-api.ts` | Chamadas do admin e upload por URL assinada |
 | `components/configurator.tsx` | O gesto de comprar um modelo |
 | `components/shop-provider.tsx` | Carrinho, desejos, códigos de pedido |
-| `lib/catalog.ts` | Leitura. Ponto de troca do catálogo |
+| `lib/catalog.ts` | Leitura de `GET /v1/products` e preço de prévia |
 | `lib/shop-api.ts` | Escrita. Ponto de troca das mutações |
 | `lib/commerce.ts` | `fetch` de `/api/commerce` |
 

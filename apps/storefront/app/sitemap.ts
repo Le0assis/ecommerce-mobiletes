@@ -1,8 +1,10 @@
-import { guides, motorcycles } from "@lume/domain";
+import { loadProducts } from "@/lib/catalog";
+import { guides } from "@lume/domain";
 import type { MetadataRoute } from "next";
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = process.env.NEXT_PUBLIC_SITE_URL ?? "http://127.0.0.1:43123";
+  const loaded = await loadProducts();
   const paths = [
     "",
     "/motos",
@@ -22,7 +24,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/servico",
     ...guides.map((guide) => `/guias/${guide.slug}`),
     "/privacidade",
-    ...motorcycles.map((product) => `/motos/${product.slug}`),
+    ...(loaded.ok ? loaded.data.map((product) => `/motos/${product.slug}`) : []),
   ];
   return paths.map((path) => ({ url: `${base}${path}`, changeFrequency: "weekly" as const, priority: path === "" ? 1 : 0.7 }));
 }

@@ -1,10 +1,10 @@
-import { motorcycles, type Motorcycle } from "@/lib/catalog";
+import type { StoreProduct } from "@/lib/catalog";
 
-export function productIsSample(product: Motorcycle | object): boolean {
-  return "isSample" in product && (product as { isSample?: unknown }).isSample === true;
+export function productIsSample(product: { isSample?: boolean }): boolean {
+  return product.isSample === true;
 }
 
-export function catalogHasSample(list: Motorcycle[] = motorcycles): boolean {
+export function catalogHasSample(list: StoreProduct[]): boolean {
   return list.some((product) => productIsSample(product));
 }
 

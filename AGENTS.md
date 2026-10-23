@@ -12,7 +12,7 @@ Regras que não se negociam ao implementar:
 - O vermelho `#ff2d2d` é o único acento de marca, no CTA principal, no ponto da marca e num detalhe da moto. O verde-água `#32bcad` só aparece no selo Pix.
 - Campanha de lançamento: 21x sem juros. Não reescreva a Tabela Price. Para encurtar a carência, baixe `LAUNCH_INTEREST_FREE_UP_TO`.
 - Pix de demonstração começa com `LUME-MOCK-PIX`. Sem CPF. Sem nome de pessoa em review.
-- A vitrine lê o catálogo por `apps/storefront/lib/catalog.ts`. Estoque editado no admin não muda a vitrine nesta versão.
+- A vitrine lê o catálogo em `GET /v1/products`, por `apps/storefront/lib/catalog.ts`. Sem a API, a página mostra erro e não abre o catálogo do código. O checkout ainda precifica só `@lume/domain`. Estoque editado no admin muda o card dos produtos da memória; o catálogo de domínio continua com o estoque do código.
 - Marcas parceiras (VOLTIS, BRUMA, SENDA) são inventadas. Não copie nome, foto ou preço de Segway, NIU, Super Soco, Yadea ou de outra loja.
 - `registrationClass` é texto de referência. Não transforme em aconselhamento de CNH.
 - Carrinho antigo em `lume-shop-v1` pode não ter `orderCodes`. O parse precisa continuar aceitando.

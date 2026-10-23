@@ -3,13 +3,15 @@
 import { estimateFuelSavings, formatBRL } from "@/lib/catalog";
 import { useMemo, useState } from "react";
 
-export function SavingsCalculator({ batteryKwh, rangeKm }: { batteryKwh: number; rangeKm: number }) {
+export function SavingsCalculator({ batteryKwh, rangeKm }: { batteryKwh: number | null; rangeKm: number | null }) {
   const [km, setKm] = useState(800);
   const [kwhCents, setKwhCents] = useState(95);
   const [literCents, setLiterCents] = useState(649);
   const [kmPerLiter, setKmPerLiter] = useState(12);
+  const ready = typeof batteryKwh === "number" && typeof rangeKm === "number";
 
   const result = useMemo(() => {
+    if (typeof batteryKwh !== "number" || typeof rangeKm !== "number") return { savings: null, error: "" };
     try {
       return {
         savings: estimateFuelSavings({
@@ -26,6 +28,14 @@ export function SavingsCalculator({ batteryKwh, rangeKm }: { batteryKwh: number;
       return { savings: null, error: cause instanceof Error ? cause.message : "Não foi possível estimar." };
     }
   }, [km, kwhCents, literCents, kmPerLiter, batteryKwh, rangeKm]);
+
+  if (!ready) {
+    return (
+      <p className="mt-6 text-sm text-muted-foreground">
+        A comparação com gasolina precisa de kWh e da autonomia declarada. Este modelo não publica os dois.
+      </p>
+    );
+  }
 
   return (
     <fieldset className="mt-6 rounded-[1.5rem] border border-white/10 p-4">

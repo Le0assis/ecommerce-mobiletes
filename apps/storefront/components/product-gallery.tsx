@@ -1,7 +1,7 @@
 "use client";
 
 import { BikeSvg } from "@/components/bike-svg";
-import type { Category } from "@/lib/catalog";
+import type { Category, StoreImage } from "@/lib/catalog";
 import { useState } from "react";
 
 const frames = [
@@ -16,12 +16,43 @@ export function ProductGallery({
   name,
   variant,
   color,
+  images = [],
 }: {
   name: string;
   variant: Category;
   color: string;
+  images?: StoreImage[];
 }) {
+  const photos = [...images].sort((a, b) => Number(b.isCover) - Number(a.isCover) || a.position - b.position);
   const [frame, setFrame] = useState<Frame>("lateral");
+  const [photo, setPhoto] = useState(0);
+  const current = photos[photo] ?? photos[0];
+
+  if (current) {
+    return (
+      <div>
+        <div className="relative grid h-[28rem] place-items-center overflow-hidden">
+          <img src={current.url} alt={current.alt || name} className="h-full w-full object-contain" />
+          {photos.length > 1 ? (
+            <div className="absolute bottom-4 left-4 flex gap-2" role="tablist" aria-label="Fotos">
+              {photos.map((item, index) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={index === photo}
+                  onClick={() => setPhoto(index)}
+                  className="rounded-full border border-white/20 bg-[#0c0c0e]/80 px-3 py-1 text-xs aria-selected:border-signal"
+                >
+                  {item.isCover ? "Capa" : index + 1}
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>

@@ -24,7 +24,7 @@ O varejo brasileiro que serviu de referência mostra a parcela grande e o Pix. `
 
 ## ADR 6 — Catálogo no domínio, vitrine independente da API
 
-A página abre e o configurador responde sem rede. O custo é o admin de estoque não alterar a vitrine. Aceito até o banco ser a fonte, no MVP-a. A troca passa por `lib/catalog.ts`.
+A vitrine passou a ler `GET /v1/products`. Sem a API, a página mostra erro em vez de abrir o catálogo do código. Pix, parcela e frete de prévia continuam nas funções do domínio, em cima dos números da resposta. O checkout ainda precifica só `@lume/domain`.
 
 ## ADR 7 — Pagamento simulado com prefixo
 

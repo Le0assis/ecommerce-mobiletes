@@ -139,7 +139,7 @@ Identificadores estáveis para o backlog. O que está marcado como vitrine já e
 
 ### Admin e conteúdo
 
-- RF-ADM-01. Visão de estoque por cor, variantes de bateria, banners, cupons, guias, pedidos recentes, trocas e serviços, com token. Etapa 6. O ajuste de estoque desta versão vale para a memória do processo, não para a vitrine, que lê o catálogo do código. Serviço e troca ficam na mesma memória até o processo cair.
+- RF-ADM-01. Visão de estoque por cor, variantes de bateria, banners, cupons, guias, pedidos recentes, trocas e serviços, com token. Etapa 6. O ajuste de estoque desta versão vale para a memória do processo. A vitrine lê `GET /v1/products`, então o card dos produtos dessa memória acompanha o estoque. O catálogo de domínio continua com o estoque do código. Serviço e troca ficam na mesma memória até o processo cair.
 - RF-ADM-02. CRUD de produto, preço, cor, acessório, banner e pedido, com papel de operador. v1.
 - RF-CMS-01. Páginas de campanha e filme editáveis no Payload, no mesmo Postgres. v1, depois que a compra funcionar. Não usar Sanity: o conteúdo ficaria fora da conta e o time passaria a operar outro idioma de conteúdo.
 
@@ -288,7 +288,7 @@ erDiagram
 Tabelas em `apps/commerce/src/db/schema.ts` e no SQL `apps/commerce/drizzle/`:
 
 - `customers`, `addresses` — conta e CEP. CPF não está na coluna.
-- `products`, `product_specs`, `product_variants`, `product_images`, `product_colors`, `accessories`, `product_accessories`, `damages`, `damage_images` — catálogo de autopropelidos. `product_colors` fica da migration inicial. O seed de exemplo marca `is_sample`. A vitrine ainda lê o catálogo do código.
+- `products`, `product_specs`, `product_variants`, `product_images`, `product_colors`, `accessories`, `product_accessories`, `damages`, `damage_images` — catálogo de autopropelidos. `product_colors` fica da migration inicial. O seed de exemplo marca `is_sample`. A vitrine lê a API, que hoje mistura domínio e memória; o CRUD ainda não grava neste Postgres.
 - `dealers` — loja.
 - `test_ride_bookings` — agendamento.
 - `orders` — cabeçalho, método, provedor, parcelas, totais e o payload da configuração em `jsonb`.
@@ -311,7 +311,7 @@ Monorepo, domínio testado, direção visual, API com checkout simulado, Compose
 
 ### Vitrine — este repositório
 
-Páginas e fluxos com dado de demonstração: home, catálogo com filtro e ordem, PDP com cor, acessório, 360°, autonomia, parcelas, review e modelos próximos, comparação, quiz, test ride, lojas com esquema, carrinho, checkout com prévia, conta local, pedidos, desejos e páginas institucionais. `apps/storefront/lib/catalog.ts` e `lib/shop-api.ts` são o ponto de troca quando o banco passar a mandar.
+Páginas e fluxos com dado de demonstração: home, catálogo com filtro e ordem, PDP com cor, 360°, autonomia, parcelas, review e modelos próximos, comparação, quiz, WhatsApp, carrinho, checkout com prévia, conta local, pedidos, desejos e páginas institucionais. A leitura de modelo está em `apps/storefront/lib/catalog.ts` (`GET /v1/products`). A escrita continua em `lib/shop-api.ts`.
 
 ### MVP-a — cobrar de verdade
 

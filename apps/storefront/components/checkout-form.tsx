@@ -4,7 +4,7 @@ import { useShop } from "@/components/shop-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { amountForMethod, configurePrice, formatBRL, formatCep, installmentByCount, quoteShipping } from "@/lib/catalog";
+import { amountForMethod, formatBRL, formatCep, installmentByCount, priceProduct, quoteShipping, type StoreProduct } from "@/lib/catalog";
 import { track } from "@/lib/analytics";
 import { placeOrder } from "@/lib/shop-api";
 import Link from "next/link";
@@ -13,7 +13,7 @@ import { useMemo, useState } from "react";
 
 type Method = "pix" | "boleto" | "cartao";
 
-export function CheckoutForm() {
+export function CheckoutForm({ products, catalogMessage }: { products: StoreProduct[]; catalogMessage: string | null }) {
   const shop = useShop();
   const router = useRouter();
   const [cep, setCep] = useState("01310-100");
@@ -27,17 +27,20 @@ export function CheckoutForm() {
   const preview = useMemo(() => {
     if (shop.lines.length === 0) return null;
     try {
-      const quotes = shop.lines.map((line) => ({
-        line,
-        quote: configurePrice(line),
-      }));
-      const weight = quotes.reduce((sum, item) => sum + item.quote.product.weightKg * item.line.qty, 0);
+      const quotes = shop.lines.map((line) => {
+        const product = products.find((item) => item.id === line.productId);
+        if (!product) throw new Error("Um modelo do carrinho saiu do catálogo.");
+        const priced = priceProduct(product, { colorId: line.colorId, batteryId: line.batteryId, accessoryIds: line.accessoryIds });
+        if ("error" in priced) throw new Error(priced.error);
+        return { line, quote: priced.quote };
+      });
+      const weight = quotes.reduce((sum, item) => sum + (item.quote.weightKg ?? 0) * item.line.qty, 0);
       const shipping = quoteShipping(cep, weight);
       return { quotes, shipping };
     } catch (cause) {
       return { error: cause instanceof Error ? cause.message : "CEP inválido." };
     }
-  }, [shop.lines, cep]);
+  }, [shop.lines, cep, products]);
 
   const shipping = (preview && "shipping" in preview ? preview.shipping : null) ?? null;
   const service = shipping?.services.find((item) => item.id === serviceId) ?? shipping?.services[0];
@@ -67,6 +70,10 @@ export function CheckoutForm() {
       setError(cause instanceof Error ? cause.message : "Falha no checkout.");
       setPending(false);
     }
+  }
+
+  if (catalogMessage) {
+    return <p className="mt-8 text-sm text-signal">{catalogMessage}</p>;
   }
 
   if (shop.lines.length === 0) {
@@ -154,7 +161,7 @@ export function CheckoutForm() {
                 <span>
                   {item.quote.product.name}
                   <span className="mt-1 block text-muted-foreground">
-                    {item.quote.color.name} · {item.line.qty}
+                    {item.quote.color?.name ?? "Sem cor"} · {item.line.qty}
                   </span>
                 </span>
                 <span className="nums">{formatBRL(amountForMethod(method, item.quote) * item.line.qty)}</span>

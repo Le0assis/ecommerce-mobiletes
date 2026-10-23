@@ -38,12 +38,12 @@ Todos POST com JSON.
 
 | Caminho | Corpo | Uso |
 | --- | --- | --- |
-| `/v1/pricing/configure` | `productId`, `colorId`, `accessoryIds` | A vitrine calcula no domínio e não precisa desta rota para pintar |
+| `/v1/pricing/configure` | `productId`, `colorId`, `accessoryIds` | A vitrine pinta com `priceProduct` a partir da ficha. Esta rota ainda resolve só `@lume/domain` |
 | `/v1/pricing/installments` | `amountCents`, `max?` | Planos de 1 até `max` |
 | `/v1/shipping/quote` | `cep`, `weightKg` | Cotação |
 | `/v1/quiz` | uso, km/dia, ladeiras, carga da bateria, quem vai junto, carga, orçamento, estilo e cor | `{ recommendations: [{ slug, name, score, reasons, accessories }] }` de 0 a 3 |
 
-`POST /v1/quiz` pontua o catálogo de `@lume/domain` junto com os produtos ativos da memória (amostra e os criados no admin). Rascunho e arquivado ficam de fora. O teto do orçamento é rígido: até 6 mil não devolve quem passa de R$ 6.000, e 6 a 10 mil não passa de R$ 10.000. Se ninguém cabe, a lista vem vazia. O estilo muda a ordem. Autonomia declarada ausente entra na conta como 0 km, sem virar número de fabricante na ficha: `rangeKm` na API continua `null`. A tela do quiz ainda chama `recommendMotorcycles` sem esse catálogo.
+`POST /v1/quiz` pontua o catálogo de `@lume/domain` junto com os produtos ativos da memória (amostra e os criados no admin). Rascunho e arquivado ficam de fora. O teto do orçamento é rígido: até 6 mil não devolve quem passa de R$ 6.000, e 6 a 10 mil não passa de R$ 10.000. Se ninguém cabe, a lista vem vazia. O estilo muda a ordem. Autonomia declarada ausente entra na conta como 0 km, sem virar número de fabricante na ficha: `rangeKm` na API continua `null`. A tela do quiz chama essa rota e busca o preço na lista de produtos.
 
 `POST /v1/range` saiu da API pública. A estimativa `estimateRange` continua em `@lume/domain`. O simulador saiu da vitrine; o código antigo fica em `backup/lume-versao-completa`.
 

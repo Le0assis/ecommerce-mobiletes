@@ -11,6 +11,7 @@ flowchart LR
   pg[(Postgres)]
 
   browser --> web
+  web -->|leitura do catálogo| api
   web --> domain
   web -->|mutação| api
   api --> domain
@@ -25,11 +26,11 @@ flowchart LR
 | Vitrine | Apresentar, guardar carrinho neste navegador, chamar a API nas mutações | Inventar centavos |
 | API | Recalcular o pedido, gravar pedido e test ride, validar com Zod | Confiar no total que o browser mandou |
 
-A vitrine importa o domínio por `apps/storefront/lib/catalog.ts`. As escritas passam por `apps/storefront/lib/shop-api.ts`, que fala com `/api/commerce` (rewrite para o Hono). Trocar a fonte do catálogo para o Postgres é substituir as funções desses dois arquivos, não espalhar `fetch` nas páginas.
+A vitrine lê modelos em `GET /v1/products` por `apps/storefront/lib/catalog.ts`. Pix, boleto, parcela e a prévia de frete continuam nas funções de `@lume/domain`, aplicadas aos números da API. As escritas passam por `apps/storefront/lib/shop-api.ts`, que fala com `/api/commerce` (rewrite para o Hono). Sem a API, a página mostra erro. Não há fallback para o array de motos do código.
 
-## Por que o catálogo não vem do banco hoje
+## De onde vem o catálogo
 
-A página abre com a API desligada. O configurador muda cor e acessório sem esperar a rede. O seed do Postgres espelha o mesmo catálogo, mas a vitrine não o lê. Um ajuste de estoque no admin vale para a memória do processo da API e não muda o card da loja. Isso é deliberado até o MVP-a.
+`GET /v1/products` junta o catálogo de `@lume/domain` com os ativos da memória do admin. O Postgres da migration continua sendo o seed do banco; o CRUD do admin ainda não grava nele. O checkout recalcula na API e ainda só encontra os modelos de `@lume/domain`. Um produto só da memória aparece na vitrine e falha no pagamento até o checkout passar a usar a mesma ficha. Estoque do admin muda o card desses produtos da memória. O estoque dos modelos de domínio segue o código.
 
 ## O que fica no navegador
 

@@ -1,6 +1,8 @@
 import { AccountForm } from "@/components/account-form";
 import { AccountSession } from "@/components/account-session";
+import { loadProducts } from "@/lib/catalog";
 import type { Metadata } from "next";
+import { Suspense } from "react";
 
 export const metadata: Metadata = { title: "Conta" };
 
@@ -12,7 +14,20 @@ export default function AccountPage() {
         O perfil local continua neste navegador. A sessão de sandbox liga o e-mail aos pedidos que ainda estão na memória da API.
       </p>
       <AccountSession />
-      <AccountForm />
+      <Suspense fallback={<p className="mt-8 text-muted-foreground">Abrindo os modelos salvos…</p>}>
+        <AccountNames />
+      </Suspense>
     </main>
+  );
+}
+
+async function AccountNames() {
+  const loaded = await loadProducts();
+  const names = loaded.ok ? Object.fromEntries(loaded.data.map((item) => [item.slug, item.name])) : {};
+  return (
+    <div className="grid gap-3">
+      {loaded.ok ? null : <p className="text-sm text-signal">{loaded.message}</p>}
+      <AccountForm names={names} />
+    </div>
   );
 }
