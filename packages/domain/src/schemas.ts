@@ -24,12 +24,15 @@ export const rangeBody = z.object({
 });
 
 export const quizBody = z.object({
-  use: z.enum(["cidade", "misto", "estrada"]),
-  dailyKm: z.enum(["ate30", "30a80", "80a150", "mais150"]),
-  pace: z.enum(["ate50", "ate110", "livre"]),
-  budgetCents: z.number().int().positive(),
-  outlet: z.boolean(),
-  passenger: z.enum(["sozinho", "garupa"]),
+  use: z.enum(["trabalho", "entregas", "passeio", "crianca"]),
+  dailyKm: z.enum(["ate20", "20a40", "40a70", "mais70"]),
+  hills: z.boolean(),
+  charging: z.enum(["tomada", "removivel"]),
+  carry: z.enum(["sozinho", "passageiro", "crianca", "pet"]),
+  cargo: z.enum(["bau", "cesta", "nenhum"]),
+  budget: z.enum(["ate6", "6a10", "mais10"]),
+  style: z.enum(["retro", "citycoco", "esportivo"]),
+  color: z.enum(["escura", "clara", "quente", "indiferente"]),
 });
 
 export const testRideBody = z.object({

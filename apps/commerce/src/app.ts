@@ -194,6 +194,24 @@ export function createApp(deps: CommerceDeps = {}) {
 
   app.post("/v1/shipping/quote", async (c) => read(c, shippingBody, (input) => quoteShipping(input.cep, input.weightKg)));
 
+  app.get("/v1/banners", (c) => {
+    const list = banners
+      .map((item, index) => ({
+        id: item.id,
+        slot: item.slot,
+        eyebrow: item.eyebrow,
+        title: item.title,
+        subtitle: item.subtitle ?? "",
+        href: item.href,
+        imageUrl: item.imageUrl ?? null,
+        position: item.position ?? index,
+        active: bannerState.get(item.id) ?? item.active,
+      }))
+      .filter((item) => item.active)
+      .sort((a, b) => a.position - b.position || a.id.localeCompare(b.id));
+    return c.json({ banners: list });
+  });
+
   app.post("/v1/quiz", async (c) =>
     read(c, quizBody, (input) => ({
       recommendations: recommendMotorcycles(input).map((item) => ({
@@ -201,6 +219,7 @@ export function createApp(deps: CommerceDeps = {}) {
         name: item.product.name,
         score: item.score,
         reasons: item.reasons,
+        accessories: item.accessories,
       })),
     })),
   );

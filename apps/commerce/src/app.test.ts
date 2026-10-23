@@ -194,6 +194,44 @@ describe("API de commerce", () => {
     );
   });
 
+  it("entrega banners ativos e a recomendação do quiz", async () => {
+    const banners = await app.request("/v1/banners");
+    expect(banners.status).toBe(200);
+    const listed = await banners.json();
+    expect(listed.banners.map((item: { id: string }) => item.id)).toEqual(["hero-apex", "faixa-pix"]);
+    expect(listed.banners[0].position).toBe(0);
+    expect(listed.banners[0].imageUrl).toBeNull();
+
+    const hidden = createApp({ banners: new Map([["faixa-pix", false]]) });
+    const filtered = await hidden.request("/v1/banners");
+    const body = await filtered.json();
+    expect(body.banners.map((item: { id: string }) => item.id)).toEqual(["hero-apex"]);
+
+    const quiz = await app.request("/v1/quiz", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        use: "trabalho",
+        dailyKm: "ate20",
+        hills: false,
+        charging: "tomada",
+        carry: "sozinho",
+        cargo: "nenhum",
+        budget: "mais10",
+        style: "esportivo",
+        color: "indiferente",
+      }),
+    });
+    const result = await quiz.json();
+    expect(quiz.status).toBe(200);
+    expect(result.recommendations.length).toBeGreaterThanOrEqual(1);
+    expect(result.recommendations.length).toBeLessThanOrEqual(3);
+    expect(result.recommendations[0].reasons.length).toBeGreaterThan(0);
+    expect(result.recommendations[0].accessories.map((item: { kind: string }) => item.kind)).toEqual(
+      expect.arrayContaining(["retrovisor", "capacete", "suporte-celular"]),
+    );
+  });
+
   it("protege o admin", async () => {
     const denied = await app.request("/v1/admin/overview");
     expect(denied.status).toBe(401);

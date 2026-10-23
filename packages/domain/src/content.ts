@@ -26,10 +26,13 @@ export type Review = {
 
 export type Banner = {
   id: string;
-  slot: "home-hero" | "home-faixa";
+  slot: "home-hero" | "home-faixa" | "home-carrossel";
   eyebrow: string;
   title: string;
+  subtitle?: string;
   href: string;
+  imageUrl?: string | null;
+  position?: number;
   active: boolean;
 };
 
@@ -149,7 +152,10 @@ export const banners: Banner[] = [
     slot: "home-hero",
     eyebrow: "Coleção 2026",
     title: "A cidade em silêncio.",
+    subtitle: "Apex em destaque",
     href: "/motos/apex",
+    imageUrl: null,
+    position: 0,
     active: true,
   },
   {
@@ -157,7 +163,10 @@ export const banners: Banner[] = [
     slot: "home-faixa",
     eyebrow: "Pagamento",
     title: "5% no Pix. 21x sem juros no cartão.",
+    subtitle: "",
     href: "/motos/apex",
+    imageUrl: null,
+    position: 1,
     active: true,
   },
 ];

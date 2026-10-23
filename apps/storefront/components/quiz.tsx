@@ -14,56 +14,85 @@ const steps: {
 }[] = [
   {
     key: "use",
-    title: "Onde você anda?",
+    title: "Qual é o uso?",
     options: [
-      { label: "Cidade", value: "cidade" },
-      { label: "Cidade e estrada", value: "misto" },
-      { label: "Estrada", value: "estrada" },
+      { label: "Trabalho", value: "trabalho" },
+      { label: "Entregas", value: "entregas" },
+      { label: "Passeio", value: "passeio" },
+      { label: "Levar criança", value: "crianca" },
     ],
   },
   {
     key: "dailyKm",
     title: "Quantos quilômetros por dia?",
     options: [
-      { label: "Até 30", value: "ate30" },
-      { label: "30 a 80", value: "30a80" },
-      { label: "80 a 150", value: "80a150" },
-      { label: "Mais de 150", value: "mais150" },
+      { label: "Até 20", value: "ate20" },
+      { label: "20 a 40", value: "20a40" },
+      { label: "40 a 70", value: "40a70" },
+      { label: "Mais de 70", value: "mais70" },
     ],
   },
   {
-    key: "pace",
-    title: "Que velocidade você precisa?",
-    options: [
-      { label: "Até 50 km/h", value: "ate50" },
-      { label: "Até 110 km/h", value: "ate110" },
-      { label: "Sem teto baixo", value: "livre" },
-    ],
-  },
-  {
-    key: "budgetCents",
-    title: "Até quanto, antes dos acessórios?",
-    options: [
-      { label: formatBRL(1_800_000), value: 1_800_000 },
-      { label: formatBRL(2_500_000), value: 2_500_000 },
-      { label: formatBRL(4_000_000), value: 4_000_000 },
-      { label: formatBRL(7_000_000), value: 7_000_000 },
-    ],
-  },
-  {
-    key: "outlet",
-    title: "Tem tomada na garagem?",
+    key: "hills",
+    title: "Tem ladeira no caminho?",
     options: [
       { label: "Sim", value: true },
       { label: "Não", value: false },
     ],
   },
   {
-    key: "passenger",
-    title: "Anda com garupa?",
+    key: "charging",
+    title: "Onde você carrega?",
     options: [
-      { label: "Sozinho", value: "sozinho" },
-      { label: "Às vezes", value: "garupa" },
+      { label: "Na tomada da garagem", value: "tomada" },
+      { label: "Preciso tirar a bateria", value: "removivel" },
+    ],
+  },
+  {
+    key: "carry",
+    title: "O que vai junto?",
+    options: [
+      { label: "Só eu", value: "sozinho" },
+      { label: "Passageiro", value: "passageiro" },
+      { label: "Criança", value: "crianca" },
+      { label: "Pet", value: "pet" },
+    ],
+  },
+  {
+    key: "cargo",
+    title: "Que carga você leva?",
+    options: [
+      { label: "Baú", value: "bau" },
+      { label: "Cesta na frente", value: "cesta" },
+      { label: "Nenhuma", value: "nenhum" },
+    ],
+  },
+  {
+    key: "budget",
+    title: "Qual é o orçamento?",
+    options: [
+      { label: "Até R$ 6 mil", value: "ate6" },
+      { label: "R$ 6 a 10 mil", value: "6a10" },
+      { label: "Mais de R$ 10 mil", value: "mais10" },
+    ],
+  },
+  {
+    key: "style",
+    title: "Qual estilo?",
+    options: [
+      { label: "Retrô", value: "retro" },
+      { label: "Citycoco", value: "citycoco" },
+      { label: "Esportivo", value: "esportivo" },
+    ],
+  },
+  {
+    key: "color",
+    title: "E a cor?",
+    options: [
+      { label: "Escura", value: "escura" },
+      { label: "Clara", value: "clara" },
+      { label: "Quente", value: "quente" },
+      { label: "Tanto faz", value: "indiferente" },
     ],
   },
 ];
@@ -126,7 +155,7 @@ export function Quiz() {
                 {formatBRL(
                   estimateFuelSavings({
                     kmPerMonth: 800,
-                    batteryKwh: item.product.batteryKwh,
+                    batteryKwh: item.product.batteryKwh ?? 1,
                     rangeKm: item.product.rangeKm,
                     electricityCentsPerKwh: 95,
                     gasolineCentsPerLiter: 649,
@@ -140,6 +169,11 @@ export function Quiz() {
                   <li key={reason}>{reason}</li>
                 ))}
               </ul>
+              {item.accessories.length > 0 ? (
+                <p className="mt-4 text-sm text-muted-foreground">
+                  Acessórios: {item.accessories.map((accessory) => accessory.name).join(", ")}.
+                </p>
+              ) : null}
               <Link href={`/motos/${item.product.slug}`} className={cn(buttonVariants(), "mt-5 h-11 rounded-full")}>
                 Configurar
               </Link>

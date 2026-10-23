@@ -46,7 +46,11 @@ Até três slugs em `?modelos=`. O preço é o de entrada, sem acessório. O pic
 
 `components/quiz.tsx` chama `recommendMotorcycles`. As mesmas respostas podem ir a `POST /v1/quiz`; a tela calcula no domínio para não depender da API. O passo anima com Motion e respeita `prefers-reduced-motion`.
 
+Perguntas: uso (trabalho, entregas, passeio, levar criança), km por dia (até 20, 20 a 40, 40 a 70, mais de 70), ladeira, tomada ou bateria removível, sozinho / passageiro / criança / pet, baú / cesta / nenhum, orçamento até 6 mil, 6 a 10 mil ou mais de 10 mil, estilo retrô / citycoco / esportivo e cor escura / clara / quente / tanto faz. O resultado traz de 1 a 3 modelos, o motivo e os acessórios sugeridos (baú 29–41 L, cesta, cadeirinha, retrovisor, capacete, capa, suporte de celular, gaiola pet). Não há pergunta de CNH.
+
 Estender: pergunta nova é um passo no array e um campo em `QuizAnswers`, com teste no domínio.
+
+O carrossel da home lê `GET /v1/banners`: foto, título, subtítulo, link e ordem. Só entra slide ativo.
 
 ## Test ride
 

@@ -5,7 +5,6 @@ import { installmentByCount } from "./financing";
 import { applyDiscount, formatBRL } from "./money";
 import { couponDiscount } from "./coupons";
 import { configurePrice } from "./pricing";
-import { recommendMotorcycles } from "./quiz";
 import { estimateRange } from "./range";
 import { estimateFuelSavings } from "./savings";
 import { formatCep, normalizeCep, quoteShipping } from "./shipping";
@@ -165,31 +164,5 @@ describe("vitrine por categoria e cidade", () => {
     const result = filterShowroom({ city: "Recife" });
     expect(result.dealers).toHaveLength(0);
     expect(result.products).toHaveLength(0);
-  });
-});
-
-describe("quiz", () => {
-  it("manda a mobilete para o uso curto e barato", () => {
-    const [first] = recommendMotorcycles({
-      use: "cidade",
-      dailyKm: "ate30",
-      pace: "ate50",
-      budgetCents: 1_800_000,
-      outlet: true,
-      passenger: "sozinho",
-    });
-    expect(first?.product.slug).toBe("s");
-  });
-
-  it("manda a Serra ou a Apex para estrada longa", () => {
-    const result = recommendMotorcycles({
-      use: "estrada",
-      dailyKm: "mais150",
-      pace: "livre",
-      budgetCents: 7_000_000,
-      outlet: true,
-      passenger: "garupa",
-    });
-    expect(result.map((item) => item.product.slug)).toContain("serra");
   });
 });

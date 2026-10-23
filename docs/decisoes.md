@@ -49,3 +49,7 @@ Não há script de anúncio. `track` não faz nada até `NEXT_PUBLIC_ANALYTICS=c
 ## ADR 12 — Selo autopropelido calculado
 
 A Resolução CONTRAN 996/2023 pede potência nominal até 1.000 W, 32 km/h, 70 cm de largura e 130 cm de entre-eixos. `autopropelidoBadge` aplica os quatro com `<=`. Valor ausente, negativo ou não finito entra em `missing` e o selo some. `registrationClass` e `powerKw` não ligam o selo. O aviso "verifique as regras da sua cidade" vai em todo resultado. Zero conta como medida informada.
+
+## ADR 13 — Pontuação do quiz
+
+O plano não fixou os pontos. `recommendMotorcycles` soma orçamento (até 6 mil, 6 a 10 mil, acima de 10 mil), autonomia declarada contra faixas de 20, 40, 70 e 90 km, uso, ladeira, bateria removível, quem vai junto, carga, estilo e cor. Bateria sem ficha não ganha o ponto de removível nem é eliminada. Garupa, quando `carries` não veio, só é presumida fora de mobilete. Criança e pet não são presumidos. Voltam no máximo três com pontuação positiva; se ninguém passar de zero, volta o menos distante. Acessórios sugeridos dependem da resposta, não de um cadastro novo.
