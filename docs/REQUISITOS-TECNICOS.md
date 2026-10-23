@@ -297,7 +297,7 @@ Tabelas em `apps/commerce/src/db/schema.ts` e no SQL `apps/commerce/drizzle/`:
 
 O que o código de domínio trata e o schema ainda não separa em tabela própria (fica no `jsonb` do pedido até a v1): linha de acessório, pagamento e remessa. Quando o webhook existir, `payments` ganha tabela com status e id externo. Não guardar PAN nem CVV.
 
-Índices que o DBA cria junto com o tráfego real: `orders.customer_email`, `orders.created_at`, `test_ride_bookings.dealer_id`, `product_colors (product_id, color_id)` já é único.
+Índices do catálogo de autopropelidos (slug, SKU, filtro, ordem e chave estrangeira) estão na migration `0003_catalogo_integridade`, junto com check de preço e estoque e o `ON DELETE` de avarias. Índices que ainda esperam tráfego real: `orders.customer_email`, `orders.created_at`, `test_ride_bookings.dealer_id`. `product_colors (product_id, color_id)` já é único.
 
 Retenção: pedido e documento fiscal pelo prazo legal. Test ride sem compra, 12 meses, depois exclusão. Backup do Postgres com restore testado antes do go-live. Isso é tarefa de DBA, não de migration automática.
 

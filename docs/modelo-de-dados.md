@@ -68,3 +68,11 @@ Migration `apps/commerce/drizzle/0001_autopropelidos_catalog.sql`. Dinheiro cont
 `banners` ganha `image_url`, `position` e `subtitle` na migration `0002_banners_imagem`. O seed copia esses campos do domínio. O slide de demonstração ainda não tem arquivo, então `image_url` fica nulo.
 
 O seed (`apps/commerce/src/db/seed.ts`) grava as 8 scooters de exemplo com `is_sample = true` e `status = ativo`. Rodar de novo atualiza essas linhas pela chave e não duplica. Estoque de exemplo é 0. Cor de exemplo é "A confirmar" (`#8a8a8a`): o plano não trouxe cor. Não há foto, nem avaria, nem vínculo em `product_accessories` — o plano não diz qual acessório cabe em qual modelo, e preço de acessório novo não se inventa. Os acessórios que já estavam no domínio continuam no seed, com `slug` igual ao `id`, `kind` igual ao grupo e estoque 0. Lojas e banners seguem o seed anterior.
+
+## Integridade
+
+Migration `0003_catalogo_integridade`. Preço, delta, estoque, desconto de avaria e posições não aceitam negativo. `products.slug`, `accessories.slug` e `product_variants.sku` são únicos. `status` só aceita `rascunho`, `ativo` ou `arquivado`. `category` só aceita `scooter`, `mobilete` ou `citycoco`. `style` fica livre. `severity` só aceita `leve`, `moderada` ou `grave`. Cada produto tem no máximo uma foto com `is_cover`.
+
+Apagar o produto apaga ficha, variantes, fotos, cores legadas, vínculos e avarias. Apagar a variante zera `variant_id` na foto e na avaria, e o registro continua no produto. Apagar a avaria apaga as fotos dela. Apagar o acessório apaga só o vínculo.
+
+Uma avaria é uma unidade: várias linhas no mesmo produto ou variante são várias unidades. `public` nasce falso. `resolved_at` nulo significa avaria aberta. O índice `damages_public_open_idx` cobre as abertas que podem aparecer no site. O banco não confere se a variante pertence ao mesmo produto; isso fica para o CRUD. Colunas obrigatórias (`NOT NULL`) já nascem nas migrations `0001` e `0002`. `image_url`, medidas desconhecidas da ficha, `battery_label`, `variant_id` e `resolved_at` continuam nulos.
