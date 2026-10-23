@@ -130,8 +130,32 @@ await db
 
 await db
   .insert(bannerTable)
-  .values(banners.map((item) => ({ id: item.id, slot: item.slot, eyebrow: item.eyebrow, title: item.title, href: item.href, active: item.active })))
-  .onConflictDoNothing();
+  .values(
+    banners.map((item, index) => ({
+      id: item.id,
+      slot: item.slot,
+      eyebrow: item.eyebrow,
+      title: item.title,
+      subtitle: item.subtitle ?? "",
+      href: item.href,
+      imageUrl: item.imageUrl ?? null,
+      position: item.position ?? index,
+      active: item.active,
+    })),
+  )
+  .onConflictDoUpdate({
+    target: bannerTable.id,
+    set: {
+      slot: sql`excluded.slot`,
+      eyebrow: sql`excluded.eyebrow`,
+      title: sql`excluded.title`,
+      subtitle: sql`excluded.subtitle`,
+      href: sql`excluded.href`,
+      imageUrl: sql`excluded.image_url`,
+      position: sql`excluded.position`,
+      active: sql`excluded.active`,
+    },
+  });
 
 console.log("Catálogo gravado no Postgres.");
 await close();

@@ -50,7 +50,7 @@ A tabela `fiscal_documents` existe com status `nao_emitida`. Não há emissão.
 
 ## Postgres do catálogo autopropelido
 
-Migration `apps/commerce/drizzle/0001_autopropelidos_catalog.sql`. Dinheiro continua em centavos inteiros. A vitrine não calcula o selo: ele sai de `product_specs` quando potência nominal, velocidade máxima, largura e entre-eixos existem e cabem na CONTRAN 996/2023 (até 1.000 W, 32 km/h, 70 cm e 130 cm). Sem os quatro números, o selo fica oculto.
+Migration `apps/commerce/drizzle/0001_autopropelidos_catalog.sql`. Dinheiro continua em centavos inteiros. A vitrine hoje chama `autopropelidoBadge` no catálogo de código. No Postgres, os mesmos quatro campos ficam em `product_specs`: potência nominal até 1.000 W, 32 km/h, largura até 70 cm e entre-eixos até 130 cm. Sem um deles, o selo fica oculto.
 
 | Tabela | Papel |
 | --- | --- |
@@ -64,5 +64,7 @@ Migration `apps/commerce/drizzle/0001_autopropelidos_catalog.sql`. Dinheiro cont
 | `damage_images` | Foto da avaria, com `position`. |
 
 `product_colors` permanece da migration `0000`. O grão novo de cor e bateria é `product_variants`.
+
+`banners` ganha `image_url`, `position` e `subtitle` na migration `0002_banners_imagem`. O seed copia esses campos do domínio. O slide de demonstração ainda não tem arquivo, então `image_url` fica nulo.
 
 O seed (`apps/commerce/src/db/seed.ts`) grava as 8 scooters de exemplo com `is_sample = true` e `status = ativo`. Rodar de novo atualiza essas linhas pela chave e não duplica. Estoque de exemplo é 0. Cor de exemplo é "A confirmar" (`#8a8a8a`): o plano não trouxe cor. Não há foto, nem avaria, nem vínculo em `product_accessories` — o plano não diz qual acessório cabe em qual modelo, e preço de acessório novo não se inventa. Os acessórios que já estavam no domínio continuam no seed, com `slug` igual ao `id`, `kind` igual ao grupo e estoque 0. Lojas e banners seguem o seed anterior.

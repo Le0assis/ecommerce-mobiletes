@@ -292,7 +292,7 @@ Tabelas em `apps/commerce/src/db/schema.ts` e no SQL `apps/commerce/drizzle/`:
 - `dealers` — loja.
 - `test_ride_bookings` — agendamento.
 - `orders` — cabeçalho, método, provedor, parcelas, totais e o payload da configuração em `jsonb`.
-- `reviews`, `banners`.
+- `reviews`, `banners` — o banner também tem `image_url`, `position` e `subtitle`.
 - `fiscal_documents` — reserva, sem emissão.
 
 O que o código de domínio trata e o schema ainda não separa em tabela própria (fica no `jsonb` do pedido até a v1): linha de acessório, pagamento e remessa. Quando o webhook existir, `payments` ganha tabela com status e id externo. Não guardar PAN nem CVV.

@@ -205,7 +205,10 @@ export const banners = pgTable("banners", {
   slot: text("slot").notNull(),
   eyebrow: text("eyebrow").notNull(),
   title: text("title").notNull(),
+  subtitle: text("subtitle").notNull().default(""),
   href: text("href").notNull(),
+  imageUrl: text("image_url"),
+  position: integer("position").notNull().default(0),
   active: boolean("active").notNull().default(true),
 });
 
