@@ -71,7 +71,12 @@ export type Motorcycle = {
   basePriceCents: number;
   topSpeedKmh: number;
   rangeKm: number;
+  /** Pico, em kW. Não alimenta o selo autopropelido. */
   powerKw: number;
+  /** Nominal, em watts. Sem este campo o selo fica oculto. */
+  powerNominalW?: number | null;
+  widthCm?: number | null;
+  wheelbaseCm?: number | null;
   torqueNm: number;
   batteryKwh: number;
   weightKg: number;

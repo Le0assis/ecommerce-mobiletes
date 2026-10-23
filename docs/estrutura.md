@@ -39,4 +39,4 @@ Página que espera `searchParams` ou `params` faz isso dentro de `<Suspense>`. S
 
 ## Domínio
 
-`catalog.ts` modelos e acessórios. `pricing.ts` configuração. `financing.ts` parcelas. `payments.ts` Pix, boleto e provedor. `shipping.ts` CEP. `range.ts` autonomia. `quiz.ts` recomendação. `showroom.ts` filtro. `content.ts` lojas, reviews, banners. `schemas.ts` corpos da API. `money.ts` formatação. `errors.ts` `DomainError`.
+`catalog.ts` modelos e acessórios. `pricing.ts` configuração. `financing.ts` parcelas. `payments.ts` Pix, boleto e provedor. `shipping.ts` CEP. `range.ts` autonomia. `autopropelido.ts` selo da CONTRAN 996/2023. `quiz.ts` recomendação. `showroom.ts` filtro. `content.ts` lojas, reviews, banners. `schemas.ts` corpos da API. `money.ts` formatação. `errors.ts` `DomainError`.

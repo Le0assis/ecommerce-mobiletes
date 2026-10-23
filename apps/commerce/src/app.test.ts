@@ -177,6 +177,23 @@ describe("API de commerce", () => {
     expect(body.dealers.map((item: { id: string }) => item.id)).toEqual(["sp-vila-madalena"]);
   });
 
+  it("expõe o selo autopropelido calculado e o esconde sem a ficha nominal", async () => {
+    const response = await app.request("/v1/products/s");
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.product.autopropelido.eligible).toBe(false);
+    expect(body.product.autopropelido.label).toBeNull();
+    expect(body.product.autopropelido.notice).toBe("verifique as regras da sua cidade");
+    expect(body.product.autopropelido.missing).toEqual(["powerNominalW", "widthCm", "wheelbaseCm"]);
+    expect(body.product.registrationClass).toBe("ciclomotor");
+
+    const list = await app.request("/v1/products");
+    const listed = await list.json();
+    expect(listed.products.every((item: { autopropelido: { eligible: boolean } }) => item.autopropelido.eligible === false)).toBe(
+      true,
+    );
+  });
+
   it("protege o admin", async () => {
     const denied = await app.request("/v1/admin/overview");
     expect(denied.status).toBe(401);

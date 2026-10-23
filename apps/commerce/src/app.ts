@@ -1,6 +1,8 @@
 import {
   DomainError,
   accessories,
+  autopropelidoBadge,
+  specsForAutopropelido,
   amountForMethod,
   authRequestBody,
   authVerifyBody,
@@ -489,7 +491,10 @@ function trackingFor(status: string) {
 }
 
 function serializeProduct(product: (typeof motorcycles)[number]) {
-  return product;
+  return {
+    ...product,
+    autopropelido: autopropelidoBadge(specsForAutopropelido(product)),
+  };
 }
 
 async function read<T>(c: Context, schema: { safeParse: (value: unknown) => { success: true; data: T } | { success: false; error: { issues: unknown } } }, run: (data: T) => unknown) {

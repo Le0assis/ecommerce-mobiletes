@@ -45,3 +45,7 @@ O dev server escuta em `127.0.0.1:43123`. Origem `localhost` no Next 16 não ent
 ## ADR 11 — Medição só no console, com escolha separada
 
 Não há script de anúncio. `track` não faz nada até `NEXT_PUBLIC_ANALYTICS=console` e `lume-cookies` ser `analytics`. `ok` e `essential` escondem o aviso e não medem. O evento leva slug, cor, meio ou código de pedido, nunca e-mail.
+
+## ADR 12 — Selo autopropelido calculado
+
+A Resolução CONTRAN 996/2023 pede potência nominal até 1.000 W, 32 km/h, 70 cm de largura e 130 cm de entre-eixos. `autopropelidoBadge` aplica os quatro com `<=`. Valor ausente, negativo ou não finito entra em `missing` e o selo some. `registrationClass` e `powerKw` não ligam o selo. O aviso "verifique as regras da sua cidade" vai em todo resultado. Zero conta como medida informada.

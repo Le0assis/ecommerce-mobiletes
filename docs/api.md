@@ -10,8 +10,10 @@ Erro de domínio volta como JSON `{ error, message }` e o status adequado. A men
 
 | Método | Caminho | Resposta |
 | --- | --- | --- |
-| GET | `/v1/products` | `{ products }` do catálogo. Sem lista de lojas. |
-| GET | `/v1/products/:slug` | `{ product }` ou 404 |
+| GET | `/v1/products` | `{ products }` do catálogo. Sem lista de lojas. Cada item traz `autopropelido`. |
+| GET | `/v1/products/:slug` | `{ product }` ou 404. O produto traz `autopropelido`. |
+
+`autopropelido` é calculado no domínio (`autopropelidoBadge`), nunca gravado à mão. Limites da CONTRAN 996/2023: potência nominal até 1.000 W, velocidade até 32 km/h, largura até 70 cm, entre-eixos até 130 cm. Falta qualquer um e `eligible` fica `false`, `label` fica `null` e `missing` lista o campo. `powerKw` é pico e não preenche a nominal. `registrationClass` do catálogo antigo não liga o selo. O aviso fixo é `notice`: "verifique as regras da sua cidade".
 | GET | `/v1/reviews?produto=` | semente mais relatos pendentes do processo |
 | GET | `/v1/orders/:code` | `{ order }` ou 404. Código em maiúsculas |
 

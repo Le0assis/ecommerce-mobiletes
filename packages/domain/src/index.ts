@@ -1,3 +1,4 @@
+export * from "./autopropelido";
 export * from "./catalog";
 export * from "./content";
 export * from "./coupons";
