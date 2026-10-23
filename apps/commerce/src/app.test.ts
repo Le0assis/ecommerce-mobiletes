@@ -212,7 +212,7 @@ describe("API de commerce", () => {
 
     const city = await app.request("/v1/products?categoria=mobilete&cidade=Sao%20Paulo");
     const filtered = await city.json();
-    expect(filtered.products.map((item: { slug: string }) => item.slug)).not.toContain("foston-x15-max");
+    expect(filtered.products.map((item: { slug: string }) => item.slug)).not.toContain("watts-w1");
 
     const sample = await app.request("/v1/products/yadea-dt3");
     const body = await sample.json();
@@ -299,7 +299,7 @@ describe("API de commerce", () => {
     const sportSlugs = sport.recommendations.map((item: { slug: string }) => item.slug);
     expect(retroSlugs[0]).toBe("quiz-retro");
     expect(sportSlugs[0]).toBe("quiz-esporte");
-    expect(retroSlugs).toContain("foston-x15-max");
+    expect(retroSlugs).toContain("watts-w1");
     expect(retroSlugs).not.toContain("quiz-rascunho");
     expect(retroSlugs).not.toContain("yadea-dt3");
     expect(retroSlugs).not.toContain("pico");

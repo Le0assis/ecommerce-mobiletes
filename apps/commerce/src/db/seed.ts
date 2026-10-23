@@ -1,5 +1,5 @@
 import { accessories, banners, dealers } from "@lume/domain";
-import { sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { createDatabase } from "./client";
 import { sampleScooters } from "./sample-scooters";
 import {
@@ -20,6 +20,9 @@ if (!url) {
 const { db, close } = createDatabase(url);
 
 await db.transaction(async (tx) => {
+  // O exemplo barato deixou de ser Foston. A exclusão em cascata leva ficha e variante.
+  await tx.delete(products).where(eq(products.id, "foston-x15-max"));
+
   await tx
     .insert(products)
     .values(
