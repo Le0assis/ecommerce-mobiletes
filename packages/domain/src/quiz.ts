@@ -148,7 +148,8 @@ export function recommendMotorcycles<T extends QuizProduct>(
   const ceiling = budgetCeiling[answers.budget];
   const accessories = suggestAccessories(answers);
 
-  const ranked = source.map((product) => {
+  const ranked = source.flatMap((product) => {
+    if (ceiling != null && product.basePriceCents > ceiling) return [];
     let score = 0;
     const reasons: string[] = [];
     const add = (points: number, reason?: string) => {
@@ -158,12 +159,8 @@ export function recommendMotorcycles<T extends QuizProduct>(
 
     if (ceiling == null) {
       add(product.basePriceCents >= 1_000_000 ? 4 : 2, product.basePriceCents >= 1_000_000 ? "Está na faixa acima de R$ 10 mil." : "Cabe no orçamento informado.");
-    } else if (product.basePriceCents <= ceiling) {
-      add(4, "Cabe no orçamento informado.");
-    } else if (product.basePriceCents <= Math.round(ceiling * 1.12)) {
-      add(1, "Passa um pouco do teto do orçamento.");
     } else {
-      score -= 6;
+      add(4, "Cabe no orçamento informado.");
     }
 
     if (product.rangeKm >= distance * 1.3) {
@@ -235,10 +232,11 @@ export function recommendMotorcycles<T extends QuizProduct>(
       add(2, "Tem a cor pedida.");
     }
 
-    return { product, score, reasons: reasons.slice(0, 8), accessories };
+    return [{ product, score, reasons: reasons.slice(0, 8), accessories }];
   });
 
   const sorted = ranked.sort((a, b) => b.score - a.score || a.product.basePriceCents - b.product.basePriceCents);
+  if (sorted.length === 0) return [];
   const positive = sorted.filter((item) => item.score > 0).slice(0, 3);
   if (positive.length > 0) return positive;
   const fallback = sorted[0];

@@ -35,9 +35,32 @@ export function uploadRejection(input: UploadRequest): string | null {
   return null;
 }
 
+const allowedExtensions = [".jpg", ".jpeg", ".png", ".webp"];
+
+/** Caminho único sob `lume/`. Recusa `..`, barra invertida e prefixo diferente. */
+export function normalizeUploadPathname(input: string): string | null {
+  const raw = input.trim();
+  if (!raw || raw.includes("%") || raw.includes("\\") || raw.includes("\0")) return null;
+  const segments = raw.split("/").filter((part) => part.length > 0 && part !== ".");
+  if (segments.length !== 2 || segments[0] !== "lume") return null;
+  if (segments.some((part) => part === ".." || part.includes(".."))) return null;
+  const filename = segments[1];
+  if (!filename || !/^[A-Za-z0-9._-]+$/.test(filename)) return null;
+  const lower = filename.toLowerCase();
+  if (!allowedExtensions.some((ext) => lower.endsWith(ext))) return null;
+  return `lume/${filename}`;
+}
+
 export function safePathname(filename: string) {
-  const base = filename.trim().replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/^-+/, "");
-  return `lume/${base || "imagem"}`;
+  const base = filename
+    .trim()
+    .split(/[/\\]/)
+    .pop()
+    ?.replace(/[^a-zA-Z0-9._-]+/g, "-")
+    .replace(/^-+/, "")
+    .replace(/\.\.+/g, ".")
+    .replace(/^\.+/, "");
+  return normalizeUploadPathname(`lume/${base || "imagem.jpg"}`) ?? "lume/imagem.jpg";
 }
 
 export async function clientTokenFor(input: UploadRequest) {
@@ -63,9 +86,8 @@ export async function handleBlobUpload(body: HandleUploadBody, request: Request)
     request,
     token,
     onBeforeGenerateToken: async (pathname) => {
-      const lower = pathname.toLowerCase();
-      const known = Object.values(extensions).some((items) => items.some((ext) => lower.endsWith(ext)));
-      if (!known) throw new Error("tipo_recusado");
+      const normalized = normalizeUploadPathname(pathname);
+      if (!normalized || normalized !== pathname) throw new Error("caminho_recusado");
       return {
         allowedContentTypes: [...IMAGE_TYPES],
         maximumSizeInBytes: MAX_IMAGE_BYTES,

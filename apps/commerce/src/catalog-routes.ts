@@ -18,11 +18,17 @@ import type { Context, Hono } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import { verifyAdminPassword } from "./auth";
 import type { Catalog } from "./catalog-store";
+import { clientAddress } from "./client-address";
 import { handleBlobUpload, parseUploadRequest, uploadRejection, clientTokenFor, type UploadRequest } from "./uploads";
 
 export const ADMIN_COOKIE = "lume_admin";
+export const ADMIN_SESSION_MS = 12 * 60 * 60 * 1000;
 
-type Session = { createdAt: number };
+export type Session = { createdAt: number };
+
+export function sessionIsCurrent(session: Session | undefined, nowMs: number) {
+  return session !== undefined && nowMs - session.createdAt < ADMIN_SESSION_MS;
+}
 
 type Schema<T> = {
   safeParse: (value: unknown) => { success: true; data: T } | { success: false; error: { issues: unknown } };
@@ -77,13 +83,15 @@ export function mountCatalogRoutes(
     sessions: Map<string, Session>;
     authorized: (c: Context) => boolean;
     rateLimit: (key: string, limit: number) => boolean;
+    now?: () => Date;
     blobSigner?: (input: UploadRequest) => Promise<{ clientToken: string; pathname: string }>;
   },
 ) {
   const { catalog, sessions, authorized, rateLimit } = options;
+  const now = options.now ?? (() => new Date());
 
   app.post("/v1/admin/login", async (c) => {
-    const ip = c.req.header("x-forwarded-for") ?? "local";
+    const ip = clientAddress(c);
     if (rateLimit(`admin-login:${ip}`, 8)) {
       return c.json({ error: "limite", message: "Muitas tentativas. Espere um minuto." }, 429);
     }
@@ -106,7 +114,7 @@ export function mountCatalogRoutes(
       return c.json({ error: "senha_invalida", message: "Senha inválida." }, 401);
     }
     const token = crypto.randomUUID();
-    sessions.set(token, { createdAt: Date.now() });
+    sessions.set(token, { createdAt: now().getTime() });
     setCookie(c, ADMIN_COOKIE, token, cookieOptions());
     return c.json({ ok: true });
   });
@@ -114,7 +122,7 @@ export function mountCatalogRoutes(
   app.post("/v1/admin/logout", (c) => {
     const token = getCookie(c, ADMIN_COOKIE);
     if (token) sessions.delete(token);
-    deleteCookie(c, ADMIN_COOKIE, { path: "/" });
+    deleteCookie(c, ADMIN_COOKIE, cookieOptions());
     return c.json({ ok: true });
   });
 
@@ -299,8 +307,11 @@ export function mountCatalogRoutes(
         return c.json(signed);
       } catch (error) {
         const message = error instanceof Error ? error.message : "";
-        if (message === "tipo_recusado") {
-          return c.json({ error: "tipo_recusado", message: "Envie JPG, PNG ou WebP de até 5 MB." }, 400);
+        if (message === "tipo_recusado" || message === "caminho_recusado") {
+          return c.json(
+            { error: message, message: message === "caminho_recusado" ? "O arquivo precisa ficar em lume/ e sem .." : "Envie JPG, PNG ou WebP de até 5 MB." },
+            400,
+          );
         }
         return c.json({ error: "blob_indisponivel", message: "Não foi possível assinar o upload." }, 503);
       }

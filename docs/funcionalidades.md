@@ -30,7 +30,7 @@ O 360° (`components/bike-viewer.tsx`) só monta no clique. `html[data-configura
 
 A ficha é uma tabela de duas colunas (Item / Valor) na coluna da galeria, ao lado do card de preço. No celular ela fica depois do preço. Potência nominal lê `powerNominalW`. Sem esse campo, a célula diz “não informado”: `powerKw` é pico e não entra nessa linha. Largura e entre-eixos usam `widthCm` e `wheelbaseCm` quando existem. A autonomia é só o número publicado. O simulador saiu da página. `POST /v1/range` também saiu da API. `estimateRange` continua no domínio, no backup `backup/lume-versao-completa` para a versão anterior. A comparação com gasolina (`SavingsCalculator`) fica.
 
-O selo “Autopropelido, sem CNH” usa `autopropelidoBadge` do domínio. Só aparece com os quatro limites da CONTRAN 996/2023. Não use `registrationClass` para ligá-lo. O aviso “verifique as regras da sua cidade” aponta para `/legislacao` e acompanha o selo; na home e no catálogo o aviso aparece mesmo sem selo. `isSample: true` mostra a faixa “Dado de exemplo”. O catálogo que a vitrine lê hoje ainda é o de `@lume/domain`, então a faixa fica oculta até um modelo vir com esse campo. O seed de exemplo está no Postgres e ainda não alimenta `GET /v1/products`.
+O selo “Autopropelido, sem CNH” usa `autopropelidoBadge` do domínio. Só aparece com os quatro limites da CONTRAN 996/2023. Não use `registrationClass` para ligá-lo. O aviso “verifique as regras da sua cidade” aponta para `/legislacao` e acompanha o selo; na home e no catálogo o aviso aparece mesmo sem selo. `isSample: true` mostra a faixa “Dado de exemplo”. A vitrine ainda lê `@lume/domain` em `lib/catalog.ts`. `GET /v1/products` e `GET /v1/products/:slug` já devolvem o domínio e os ativos da memória do admin, com `specs`, `variants`, `accessories`, `isSample`, avarias públicas, `autopropelido` e `rangeKm`. A troca da vitrine para essa rota usa essa forma; o campo ausente fica `null`, sem número inventado.
 
 Parcelas de 1, 6, 12 e 21: `InstallmentTable` com `compact`. A parcela de 21 continua escrita por extenso. O botão de conversa usa `whatsappHref` em `lib/whatsapp.ts`.
 
@@ -48,7 +48,7 @@ Até três slugs em `?modelos=`. O preço é o de entrada, sem acessório. O pic
 
 ## Quiz
 
-`components/quiz.tsx` chama `recommendMotorcycles`. As mesmas respostas podem ir a `POST /v1/quiz`; a tela calcula no domínio para não depender da API. O passo anima com Motion e respeita `prefers-reduced-motion`.
+`components/quiz.tsx` chama `recommendMotorcycles` só com o catálogo de domínio. `POST /v1/quiz` usa também os produtos ativos da memória, trata o teto de orçamento como limite e deixa o estilo mudar a ordem. A tela ainda não chama essa rota. O passo anima com Motion e respeita `prefers-reduced-motion`.
 
 Perguntas: uso (trabalho, entregas, passeio, levar criança), km por dia (até 20, 20 a 40, 40 a 70, mais de 70), ladeira, tomada ou bateria removível, sozinho / passageiro / criança / pet, baú / cesta / nenhum, orçamento até 6 mil, 6 a 10 mil ou mais de 10 mil, estilo retrô / citycoco / esportivo e cor escura / clara / quente / tanto faz. O resultado traz de 1 a 3 modelos, o motivo e os acessórios sugeridos (baú 29–41 L, cesta, cadeirinha, retrovisor, capacete, capa, suporte de celular, gaiola pet). Não há pergunta de CNH.
 

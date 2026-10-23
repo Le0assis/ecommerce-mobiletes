@@ -194,6 +194,118 @@ describe("API de commerce", () => {
     );
   });
 
+  it("entrega ficha, variantes, acessórios, amostra, avaria pública, selo e autonomia", async () => {
+    const list = await app.request("/v1/products");
+    const listed = await list.json();
+    const apex = listed.products.find((item: { slug: string }) => item.slug === "apex");
+    expect(apex.rangeKm).toBeGreaterThan(0);
+    expect(apex.isSample).toBe(false);
+    expect(apex.specs.rangeKmDeclared).toBe(apex.rangeKm);
+    expect(apex.specs.powerNominalW).toBeNull();
+    expect(apex.variants).toHaveLength(apex.colors.length);
+    expect(apex.accessories.length).toBeGreaterThan(0);
+    expect(apex.accessoryIds.length).toBe(apex.accessories.length);
+    expect(apex.damages).toEqual([]);
+    expect(apex.autopropelido.eligible).toBe(false);
+    expect(apex.images).toEqual([]);
+    expect(listed.products.some((item: { slug: string; isSample: boolean }) => item.slug === "yadea-dt3" && item.isSample)).toBe(true);
+
+    const city = await app.request("/v1/products?categoria=mobilete&cidade=Sao%20Paulo");
+    const filtered = await city.json();
+    expect(filtered.products.map((item: { slug: string }) => item.slug)).not.toContain("foston-x15-max");
+
+    const sample = await app.request("/v1/products/yadea-dt3");
+    const body = await sample.json();
+    expect(body.product.rangeKm).toBe(55);
+    expect(body.product.specs.rangeKmDeclared).toBe(55);
+    expect(body.product.specs.batteryRemovable).toBe(true);
+    expect(body.product.variants[0].sku).toBe("YADEA-DT3");
+    expect(body.product.variants[0].colorName).toBe("A confirmar");
+    expect(body.product.isSample).toBe(true);
+    expect(body.product.style).toBe("esportivo");
+    expect(body.product.damages).toEqual([]);
+    expect(body.product.autopropelido.missing).toEqual(expect.arrayContaining(["widthCm", "wheelbaseCm"]));
+    expect(body.accessories).toEqual(body.product.accessories);
+    expect(body.reviews).toEqual([]);
+
+    const jet = await app.request("/v1/products/motochefe-jet");
+    const openRange = await jet.json();
+    expect(openRange.product.rangeKm).toBeNull();
+    expect(openRange.product.specs.rangeKmDeclared).toBeNull();
+  });
+
+  it("o quiz usa o catálogo ativo, respeita o teto e muda com o estilo", async () => {
+    const headers = { "content-type": "application/json", "x-admin-token": "dev-admin-token" };
+    for (const [slug, style] of [
+      ["quiz-retro", "retro"],
+      ["quiz-esporte", "esportivo"],
+    ] as const) {
+      const created = await app.request("/v1/admin/products", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          slug,
+          name: slug,
+          brand: "LUME",
+          category: "scooter",
+          style,
+          tagline: "Quiz.",
+          description: "Ativo só para o teste do quiz.",
+          basePriceCents: 500_000,
+          status: "ativo",
+          specs: { rangeKmDeclared: 40, topSpeedKmh: 32 },
+        }),
+      });
+      expect(created.status).toBe(200);
+    }
+    const draft = await app.request("/v1/admin/products", {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        slug: "quiz-rascunho",
+        name: "Rascunho",
+        brand: "LUME",
+        category: "scooter",
+        style: "retro",
+        tagline: "Fora.",
+        description: "Rascunho não entra no quiz.",
+        basePriceCents: 100_000,
+        status: "rascunho",
+        specs: { rangeKmDeclared: 200 },
+      }),
+    });
+    expect(draft.status).toBe(200);
+
+    const ask = (style: string) =>
+      app.request("/v1/quiz", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          use: "passeio",
+          dailyKm: "ate20",
+          hills: false,
+          charging: "tomada",
+          carry: "sozinho",
+          cargo: "nenhum",
+          budget: "ate6",
+          style,
+          color: "indiferente",
+        }),
+      });
+
+    const retro = await (await ask("retro")).json();
+    const sport = await (await ask("esportivo")).json();
+    const retroSlugs = retro.recommendations.map((item: { slug: string }) => item.slug);
+    const sportSlugs = sport.recommendations.map((item: { slug: string }) => item.slug);
+    expect(retroSlugs[0]).toBe("quiz-retro");
+    expect(sportSlugs[0]).toBe("quiz-esporte");
+    expect(retroSlugs).toContain("foston-x15-max");
+    expect(retroSlugs).not.toContain("quiz-rascunho");
+    expect(retroSlugs).not.toContain("yadea-dt3");
+    expect(retroSlugs).not.toContain("pico");
+    expect(sportSlugs).not.toContain("pico");
+  });
+
   it("entrega banners ativos e a recomendação do quiz", async () => {
     const banners = await app.request("/v1/banners");
     expect(banners.status).toBe(200);

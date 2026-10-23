@@ -17,6 +17,11 @@ export function adminError(result: AdminResult<unknown>, fallback: string) {
 
 const imageTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
 
+function blobPathname(filename: string) {
+  const base = filename.split(/[/\\]/).pop()?.replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/^\.+/, "") || "foto.jpg";
+  return `lume/${base}`;
+}
+
 function filenameFor(file: File) {
   const current = file.name.trim();
   if (/\.(jpe?g|png|webp)$/i.test(current)) return current;
@@ -30,6 +35,7 @@ export async function uploadAdminImage(file: File, token?: string): Promise<stri
   if (!imageTypes.has(file.type)) throw new Error("Use JPG, PNG ou WebP.");
   if (file.size > 5 * 1024 * 1024) throw new Error("A foto passa de 5 MB.");
   const filename = filenameFor(file);
+  const pathname = blobPathname(filename);
   const headers: Record<string, string> = {};
   if (token) headers["x-admin-token"] = token;
   const ready = await adminFetch("/v1/admin/uploads", {
@@ -38,7 +44,7 @@ export async function uploadAdminImage(file: File, token?: string): Promise<stri
   }, token);
   if (!ready.ok) throw new Error(adminError(ready, "Não foi possível preparar o envio."));
   const { upload } = await import("@vercel/blob/client");
-  const blob = await upload(filename, file, {
+  const blob = await upload(pathname, file, {
     access: "public",
     handleUploadUrl: "/api/commerce/v1/admin/uploads",
     headers,

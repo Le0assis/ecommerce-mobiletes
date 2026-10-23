@@ -219,7 +219,8 @@ O que cada linha significa:
 | `MEILI_HOST` | `http://127.0.0.1:7709` | Meilisearch, reservado para a busca. Sem ele, a busca usa o catálogo em memória. |
 | `MEILI_MASTER_KEY` | `lume-dev-master-key` | Senha do Meilisearch de desenvolvimento. Tem de ser a mesma do `docker-compose.yml`. |
 | `ADMIN_PASSWORD_HASH` | `scrypt$...$...` | Hash scrypt da senha única de admin. A senha não entra no git. Sem este valor, `POST /v1/admin/login` responde 503. |
-| `BLOB_READ_WRITE_TOKEN` | token do Blob | Token de escrita do Vercel Blob. Só no servidor. Sem ele, o upload de foto responde 503. |
+| `BLOB_READ_WRITE_TOKEN` | token do Blob | Token de escrita do Vercel Blob. Só no servidor. Sem ele, o upload de foto responde 503. O caminho aceito é `lume/<arquivo>`. |
+| `TRUSTED_PROXIES` | vazio | IPs que podem informar o cliente. Sem isso, o limite usa o socket e ignora `x-forwarded-for`. Na Vercel, `VERCEL=1` faz a API ler `x-vercel-forwarded-for`. |
 | `ADMIN_TOKEN` | `troque-este-token` | Cabeçalho `x-admin-token` fora de produção. Em desenvolvimento, se esta linha não existir, a API aceita `dev-admin-token`. Em produção o cabeçalho não autentica. |
 | `STOREFRONT_ORIGIN` | `http://127.0.0.1:43123` | Endereço exato da vitrine. A API só libera chamadas de browser vindas dele. Se você abrir o site por outro endereço, o checkout no browser pode falhar. |
 

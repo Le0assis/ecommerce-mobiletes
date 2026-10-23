@@ -1,8 +1,5 @@
 import {
   DomainError,
-  accessories,
-  autopropelidoBadge,
-  specsForAutopropelido,
   amountForMethod,
   authRequestBody,
   authVerifyBody,
@@ -37,8 +34,10 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import type { Context } from "hono";
 import { getCookie } from "hono/cookie";
-import { ADMIN_COOKIE, mountCatalogRoutes } from "./catalog-routes";
+import { ADMIN_COOKIE, mountCatalogRoutes, sessionIsCurrent } from "./catalog-routes";
+import { clientAddress } from "./client-address";
 import { createCatalog } from "./catalog-store";
+import { publicCatalogProduct, publicDomainProduct } from "./public-product";
 import { adminToken } from "./env";
 import type { UploadRequest } from "./uploads";
 
@@ -89,6 +88,10 @@ export type CommerceDeps = {
 
 const hits = new Map<string, { count: number; reset: number }>();
 
+export function clearRateLimit() {
+  hits.clear();
+}
+
 function rateLimit(key: string, limit: number) {
   const now = Date.now();
   const current = hits.get(key);
@@ -122,9 +125,36 @@ export function createApp(deps: CommerceDeps = {}) {
   const catalog = createCatalog({ now, bannerOverrides: deps.banners });
   const adminSessions = new Map<string, { createdAt: number }>();
 
+  function quizCatalog() {
+    const managed = catalog.publicList({}).map((product) => ({
+      id: product.id,
+      slug: product.slug,
+      name: product.name,
+      category: product.category,
+      basePriceCents: product.basePriceCents,
+      rangeKm: product.specs.rangeKmDeclared ?? 0,
+      topSpeedKmh: product.specs.topSpeedKmh ?? undefined,
+      powerNominalW: product.specs.powerNominalW,
+      style: product.style,
+      batteryRemovable: product.specs.batteryRemovable,
+      accessoryIds: product.accessories.map((item) => item.accessoryId),
+      colors: product.variants.map((variant) => ({
+        id: variant.id,
+        name: variant.colorName,
+        hex: variant.colorHex,
+      })),
+    }));
+    const slugs = new Set(managed.map((item) => item.slug));
+    return [...motorcycles.filter((item) => !slugs.has(item.slug)), ...managed];
+  }
+
   function authorized(c: Context) {
     const cookie = getCookie(c, ADMIN_COOKIE);
-    if (cookie && adminSessions.has(cookie)) return true;
+    if (cookie) {
+      const session = adminSessions.get(cookie);
+      if (sessionIsCurrent(session, now().getTime())) return true;
+      if (session) adminSessions.delete(cookie);
+    }
     if (process.env.NODE_ENV === "production") return false;
     const expected = adminToken();
     if (!expected) return false;
@@ -177,15 +207,18 @@ export function createApp(deps: CommerceDeps = {}) {
       city: c.req.query("cidade") ?? undefined,
       brand: c.req.query("marca") ?? undefined,
     });
+    const accessories = catalog.listAccessories();
     return c.json({
       products: [
-        ...result.products.map(serializeProduct),
-        ...catalog.publicList({
-          q: c.req.query("q"),
-          category: c.req.query("categoria") ?? undefined,
-          brand: c.req.query("marca") ?? undefined,
-          city: c.req.query("cidade") ?? undefined,
-        }),
+        ...result.products.map(publicDomainProduct),
+        ...catalog
+          .publicList({
+            q: c.req.query("q"),
+            category: c.req.query("categoria") ?? undefined,
+            brand: c.req.query("marca") ?? undefined,
+            city: c.req.query("cidade") ?? undefined,
+          })
+          .map((product) => publicCatalogProduct(product, accessories)),
       ],
     });
   });
@@ -193,17 +226,15 @@ export function createApp(deps: CommerceDeps = {}) {
   app.get("/v1/products/:slug", (c) => {
     const managed = catalog.publicBySlug(c.req.param("slug"));
     if (managed) {
-      const linked = new Set(managed.accessories.map((item) => item.accessoryId));
-      return c.json({
-        product: managed,
-        accessories: catalog.listAccessories().filter((item) => linked.has(item.id)),
-      });
+      const product = publicCatalogProduct(managed, catalog.listAccessories());
+      return c.json({ product, accessories: product.accessories, reviews: [] });
     }
-    const product = getMotorcycle(c.req.param("slug"));
-    if (!product) return c.json({ error: "produto_inexistente", message: "Modelo não encontrado." }, 404);
+    const found = getMotorcycle(c.req.param("slug"));
+    if (!found) return c.json({ error: "produto_inexistente", message: "Modelo não encontrado." }, 404);
+    const product = publicDomainProduct(found);
     return c.json({
-      product: serializeProduct(product),
-      accessories: accessories.filter((item) => product.accessoryIds.includes(item.id)),
+      product,
+      accessories: product.accessories,
       reviews: [...reviews, ...extraReviews].filter((item) => item.productSlug === product.slug),
     });
   });
@@ -234,7 +265,7 @@ export function createApp(deps: CommerceDeps = {}) {
 
   app.post("/v1/quiz", async (c) =>
     read(c, quizBody, (input) => ({
-      recommendations: recommendMotorcycles(input).map((item) => ({
+      recommendations: recommendMotorcycles(input, quizCatalog()).map((item) => ({
         slug: item.product.slug,
         name: item.product.name,
         score: item.score,
@@ -245,7 +276,7 @@ export function createApp(deps: CommerceDeps = {}) {
   );
 
   app.post("/v1/test-rides", async (c) => {
-    if (rateLimit(`ride:${c.req.header("x-forwarded-for") ?? "local"}`, 20)) {
+    if (rateLimit(`ride:${clientAddress(c)}`, 20)) {
       return c.json({ error: "limite", message: "Muitas tentativas. Espere um minuto." }, 429);
     }
     return read(c, testRideBody, (input) => {
@@ -283,7 +314,7 @@ export function createApp(deps: CommerceDeps = {}) {
   );
 
   app.post("/v1/checkout", async (c) => {
-    if (rateLimit(`pay:${c.req.header("x-forwarded-for") ?? "local"}`, 30)) {
+    if (rateLimit(`pay:${clientAddress(c)}`, 30)) {
       return c.json({ error: "limite", message: "Muitas tentativas. Espere um minuto." }, 429);
     }
     return read(c, checkoutBody, (input) => {
@@ -508,6 +539,7 @@ export function createApp(deps: CommerceDeps = {}) {
     sessions: adminSessions,
     authorized,
     rateLimit,
+    now,
     blobSigner: deps.blobSigner,
   });
 
@@ -529,13 +561,6 @@ function trackingFor(status: string) {
     done: index >= stepIndex,
     current: status === step,
   }));
-}
-
-function serializeProduct(product: (typeof motorcycles)[number]) {
-  return {
-    ...product,
-    autopropelido: autopropelidoBadge(specsForAutopropelido(product)),
-  };
 }
 
 async function read<T>(c: Context, schema: { safeParse: (value: unknown) => { success: true; data: T } | { success: false; error: { issues: unknown } } }, run: (data: T) => unknown) {

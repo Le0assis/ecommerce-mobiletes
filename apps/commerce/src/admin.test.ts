@@ -1,12 +1,15 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { hashAdminPassword } from "./auth";
-import { createApp } from "./app";
+import { clearRateLimit, createApp } from "./app";
 
 const password = "senha-de-teste";
 
 afterEach(() => {
   delete process.env.ADMIN_PASSWORD_HASH;
   delete process.env.BLOB_READ_WRITE_TOKEN;
+  delete process.env.TRUSTED_PROXIES;
+  delete process.env.VERCEL;
+  clearRateLimit();
 });
 
 function cookiePair(response: Response) {
@@ -72,11 +75,82 @@ describe("admin", () => {
         headers: { cookie: cookiePair(login) },
       });
       expect(logout.status).toBe(200);
+      const cleared = (logout.headers.get("set-cookie") ?? "").toLowerCase();
+      expect(cleared).toContain("httponly");
+      expect(cleared).toContain("samesite=lax");
+      expect(cleared).toContain("secure");
+      expect(cleared).toContain("path=/");
+      expect(cleared).toContain("max-age=0");
       const again = await app.request("/v1/admin/overview", { headers: { cookie: cookiePair(login) } });
       expect(again.status).toBe(401);
     } finally {
       process.env.NODE_ENV = previous;
     }
+  });
+
+  it("expira a sessão no servidor depois de 12 horas", async () => {
+    process.env.ADMIN_PASSWORD_HASH = hashAdminPassword(password);
+    let clock = new Date("2026-10-23T12:00:00.000Z");
+    const app = createApp({ now: () => clock });
+    const login = await app.request("/v1/admin/login", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ password }),
+    });
+    const cookie = cookiePair(login);
+    clock = new Date(clock.getTime() + 12 * 60 * 60 * 1000 - 1);
+    const open = await app.request("/v1/admin/overview", { headers: { cookie } });
+    expect(open.status).toBe(200);
+    clock = new Date(clock.getTime() + 1);
+    const expired = await app.request("/v1/admin/overview", { headers: { cookie } });
+    expect(expired.status).toBe(401);
+  });
+
+  it("ignora x-forwarded-for fora de um proxy confiável", async () => {
+    const app = createApp();
+    const peer = { incoming: { socket: { remoteAddress: "203.0.113.10" } } };
+    const attempt = (forwarded: string, env: { incoming: { socket: { remoteAddress: string } } } = peer) =>
+      app.request(
+        "/v1/admin/login",
+        {
+          method: "POST",
+          headers: { "content-type": "application/json", "x-forwarded-for": forwarded },
+          body: JSON.stringify({ password }),
+        },
+        env,
+      );
+
+    for (let index = 0; index < 8; index += 1) {
+      expect((await attempt(`1.1.1.${index}`)).status).toBe(503);
+    }
+    expect((await attempt("8.8.8.8")).status).toBe(429);
+    expect((await attempt("8.8.8.8", { incoming: { socket: { remoteAddress: "203.0.113.11" } } })).status).toBe(503);
+
+    process.env.TRUSTED_PROXIES = "10.0.0.8";
+    const proxy = { incoming: { socket: { remoteAddress: "10.0.0.8" } } };
+    for (let index = 0; index < 8; index += 1) {
+      expect((await attempt(`9.9.9.${index}, 198.51.100.4`, proxy)).status).toBe(503);
+    }
+    expect((await attempt("1.2.3.4, 198.51.100.4", proxy)).status).toBe(429);
+    expect((await attempt("9.9.9.9, 198.51.100.5", proxy)).status).toBe(503);
+
+    delete process.env.TRUSTED_PROXIES;
+    process.env.VERCEL = "1";
+    const onVercel = (client: string, spoof: string) =>
+      app.request("/v1/admin/login", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-forwarded-for": spoof,
+          "x-vercel-forwarded-for": client,
+        },
+        body: JSON.stringify({ password }),
+      });
+    for (let index = 0; index < 8; index += 1) {
+      expect((await onVercel("203.0.113.50", `4.4.4.${index}`)).status).toBe(503);
+    }
+    expect((await onVercel("203.0.113.50", "9.9.9.9")).status).toBe(429);
+    expect((await onVercel("203.0.113.51", "9.9.9.9")).status).toBe(503);
   });
 
   it("cria produto com selo no limite, arquiva em vez de apagar e esconde avaria privada", async () => {
@@ -118,6 +192,13 @@ describe("admin", () => {
       body: JSON.stringify({ sku: "OFICINA-LIMITE", colorName: "Névoa", colorHex: "#c5c8ce", stock: 2 }),
     });
     expect(variant.status).toBe(200);
+
+    const badImage = await app.request(`/v1/admin/products/${product.product.id}/images`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ url: "javascript:alert(1)" }),
+    });
+    expect(badImage.status).toBe(400);
 
     const image = await app.request(`/v1/admin/products/${product.product.id}/images`, {
       method: "POST",
@@ -225,6 +306,19 @@ describe("admin", () => {
     expect(titles).toContain("Quiz novo");
     expect(titles).not.toContain("Oculto");
     expect(listed.banners.find((item: { title: string }) => item.title === "Quiz novo").imageUrl).toBe("https://cdn.example/quiz.webp");
+
+    const script = await app.request("/v1/admin/banners", {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ title: "Script", href: "javascript:alert(1)" }),
+    });
+    expect(script.status).toBe(400);
+    const protocol = await app.request("/v1/admin/banners", {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ title: "Relativo", href: "//cdn.example/slide", imageUrl: "javascript:alert(1)" }),
+    });
+    expect(protocol.status).toBe(400);
   });
 
   it("assina upload só para admin e só em JPG, PNG ou WebP", async () => {

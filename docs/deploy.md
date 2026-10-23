@@ -33,6 +33,8 @@ API:
 | `BLOB_READ_WRITE_TOKEN` | Token de escrita do Vercel Blob, store da LUME. Só no servidor. O admin recebe um token de cliente, com JPG/PNG/WebP e teto de 5 MB. |
 | `ADMIN_TOKEN` | Só vale fora de produção, no cabeçalho `x-admin-token`. Em produção o admin exige o cookie da senha. Não use `dev-admin-token` no ambiente público. |
 | `STOREFRONT_ORIGIN` | A origem exata da vitrine, com esquema e sem caminho. O CORS recusa o resto. |
+| `TRUSTED_PROXIES` | IPs do proxy, separados por vírgula. Só então `x-forwarded-for` entra no limite. Vazio: vale o socket. |
+| `VERCEL` | A plataforma define `1`. A API lê `x-vercel-forwarded-for` e ignora o `x-forwarded-for` do cliente. Não grave isso no `.env` local. |
 
 Pix de demonstração continua prefixado com `LUME-MOCK-PIX`. Não troque esse prefixo por um BR Code enquanto não houver credencial de homologação e webhook.
 

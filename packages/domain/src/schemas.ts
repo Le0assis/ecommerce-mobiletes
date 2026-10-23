@@ -1,5 +1,24 @@
 import { z } from "zod";
 
+/** https com host, ou caminho do site que começa com uma única barra. */
+export function isSafePublicUrl(value: string) {
+  if (!value || value.length > 500 || /[\u0000-\u001F\u007F\\]/.test(value)) return false;
+  if (value.startsWith("//")) return false;
+  if (value.startsWith("/")) return true;
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" && url.hostname.length > 0;
+  } catch {
+    return false;
+  }
+}
+
+const safeUrlMessage = "Use https ou um caminho que comece com /.";
+
+function safeUrl(max: number) {
+  return z.string().trim().min(1).max(max).refine(isSafePublicUrl, { message: safeUrlMessage });
+}
+
 export const configureBody = z.object({
   productId: z.string().min(1),
   colorId: z.string().min(1),
@@ -166,7 +185,7 @@ export const adminVariantPatchBody = z.object({
 });
 
 export const adminImageBody = z.object({
-  url: z.string().trim().url().max(500),
+  url: safeUrl(500),
   alt: z.string().trim().max(160).default(""),
   variantId: z.string().min(1).nullable().optional(),
   position: z.number().int().nonnegative().optional(),
@@ -191,7 +210,7 @@ export const adminAccessoryBody = z.object({
   kind: z.string().trim().min(1).max(40),
   priceCents: z.number().int().nonnegative(),
   stock: z.number().int().nonnegative().default(0),
-  imageUrl: z.string().trim().url().max(500).nullable().optional(),
+  imageUrl: safeUrl(500).nullable().optional(),
 });
 
 export const adminAccessoryPatchBody = z.object({
@@ -200,7 +219,7 @@ export const adminAccessoryPatchBody = z.object({
   kind: z.string().trim().min(1).max(40).optional(),
   priceCents: z.number().int().nonnegative().optional(),
   stock: z.number().int().nonnegative().optional(),
-  imageUrl: z.string().trim().url().max(500).nullable().optional(),
+  imageUrl: safeUrl(500).nullable().optional(),
 });
 
 export const adminDamageBody = z.object({
@@ -212,7 +231,7 @@ export const adminDamageBody = z.object({
   isPublic: z.boolean().default(false),
   resolvedAt: z.string().datetime().nullable().optional(),
   images: z
-    .array(z.object({ url: z.string().trim().url().max(500), position: z.number().int().nonnegative().optional() }))
+    .array(z.object({ url: safeUrl(500), position: z.number().int().nonnegative().optional() }))
     .max(8)
     .optional(),
 });
@@ -225,7 +244,7 @@ export const adminDamagePatchBody = z.object({
   isPublic: z.boolean().optional(),
   resolvedAt: z.string().datetime().nullable().optional(),
   images: z
-    .array(z.object({ url: z.string().trim().url().max(500), position: z.number().int().nonnegative().optional() }))
+    .array(z.object({ url: safeUrl(500), position: z.number().int().nonnegative().optional() }))
     .max(8)
     .optional(),
 });
@@ -235,8 +254,8 @@ export const adminBannerBody = z.object({
   eyebrow: z.string().trim().max(40).default(""),
   title: z.string().trim().min(1).max(120),
   subtitle: z.string().trim().max(160).default(""),
-  href: z.string().trim().min(1).max(300),
-  imageUrl: z.string().trim().url().max(500).nullable().optional(),
+  href: safeUrl(300),
+  imageUrl: safeUrl(500).nullable().optional(),
   position: z.number().int().nonnegative().optional(),
   active: z.boolean().default(true),
 });
@@ -246,8 +265,8 @@ export const adminBannerPatchBody = z.object({
   eyebrow: z.string().trim().max(40).optional(),
   title: z.string().trim().min(1).max(120).optional(),
   subtitle: z.string().trim().max(160).optional(),
-  href: z.string().trim().min(1).max(300).optional(),
-  imageUrl: z.string().trim().url().max(500).nullable().optional(),
+  href: safeUrl(300).optional(),
+  imageUrl: safeUrl(500).nullable().optional(),
   position: z.number().int().nonnegative().optional(),
   active: z.boolean().optional(),
 });

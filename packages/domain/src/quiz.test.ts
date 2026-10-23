@@ -191,6 +191,25 @@ describe("quiz de autopropelidos", () => {
     expect(result[0]?.accessories.some((item) => item.kind === "gaiola-pet" && item.name === "Gaiola pet")).toBe(true);
   });
 
+  it("não recomenda modelo acima de R$ 6 mil quando o teto é até 6 mil", () => {
+    const result = recommendMotorcycles(answers({ budget: "ate6", style: "esportivo", dailyKm: "ate20" }));
+    expect(result.every((item) => item.product.basePriceCents <= 600_000)).toBe(true);
+    expect(result.map((item) => item.product.slug)).not.toContain("pico");
+  });
+
+  it("deixa o estilo trocar o primeiro lugar e descarta quem passa do teto", () => {
+    const pair = [
+      bike({ id: "r", slug: "retro-um", name: "Retrô", style: "retro", basePriceCents: 500_000, rangeKm: 40 }),
+      bike({ id: "e", slug: "esporte-um", name: "Esporte", style: "esportivo", basePriceCents: 500_000, rangeKm: 40 }),
+      bike({ id: "cara", slug: "cara-demais", name: "Cara", style: "retro", basePriceCents: 990_000, rangeKm: 80 }),
+    ];
+    expect(recommendMotorcycles(answers({ budget: "ate6", style: "retro" }), pair)[0]?.product.slug).toBe("retro-um");
+    expect(recommendMotorcycles(answers({ budget: "ate6", style: "esportivo" }), pair)[0]?.product.slug).toBe("esporte-um");
+    expect(recommendMotorcycles(answers({ budget: "ate6", style: "retro" }), pair).map((item) => item.product.slug)).not.toContain(
+      "cara-demais",
+    );
+  });
+
   it("ainda responde com o catálogo de demonstração", () => {
     const result = recommendMotorcycles(
       answers({
