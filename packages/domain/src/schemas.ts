@@ -123,22 +123,23 @@ export const authVerifyBody = z.object({
   code: z.string().trim().min(4).max(40),
 });
 
-const nullableInt = z.number().int().nonnegative().nullable();
+/** Medida da ficha. Aceita decimal (32.5). Vazio chega como null. */
+const nullableMeasure = z.number().nonnegative().nullable();
 
 export const productSpecsBody = z.object({
-  powerNominalW: nullableInt.optional(),
-  powerPeakW: nullableInt.optional(),
-  topSpeedKmh: nullableInt.optional(),
-  widthCm: nullableInt.optional(),
-  wheelbaseCm: nullableInt.optional(),
-  weightKg: nullableInt.optional(),
-  seatHeightMm: nullableInt.optional(),
-  batteryV: nullableInt.optional(),
-  batteryAh: nullableInt.optional(),
+  powerNominalW: nullableMeasure.optional(),
+  powerPeakW: nullableMeasure.optional(),
+  topSpeedKmh: nullableMeasure.optional(),
+  widthCm: nullableMeasure.optional(),
+  wheelbaseCm: nullableMeasure.optional(),
+  weightKg: nullableMeasure.optional(),
+  seatHeightMm: nullableMeasure.optional(),
+  batteryV: nullableMeasure.optional(),
+  batteryAh: nullableMeasure.optional(),
   batteryChem: z.string().trim().max(40).nullable().optional(),
   batteryRemovable: z.boolean().nullable().optional(),
-  chargeHours: nullableInt.optional(),
-  rangeKmDeclared: nullableInt.optional(),
+  chargeHours: nullableMeasure.optional(),
+  rangeKmDeclared: nullableMeasure.optional(),
   hasSpeedLimiter: z.boolean().nullable().optional(),
   hasBell: z.boolean().nullable().optional(),
   hasLights: z.boolean().nullable().optional(),

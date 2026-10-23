@@ -2,6 +2,7 @@
 
 import { Button, buttonVariants } from "@/components/ui/button";
 import { estimateFuelSavings, formatBRL, installmentByCount, type QuizAnswers, type StoreProduct } from "@/lib/catalog";
+import { whatsappHref } from "@/lib/whatsapp";
 import { cn } from "cn";
 import { motion, useReducedMotion } from "motion/react";
 import Link from "next/link";
@@ -105,6 +106,29 @@ const steps: {
   },
 ];
 
+const budgetCeiling: Record<QuizAnswers["budget"], number | null> = {
+  ate6: 600_000,
+  "6a10": 1_000_000,
+  mais10: null,
+};
+
+const budgetLabel: Record<QuizAnswers["budget"], string> = {
+  ate6: "até R$ 6 mil",
+  "6a10": "de R$ 6 a 10 mil",
+  mais10: "acima de R$ 10 mil",
+};
+
+function nearestProducts(products: StoreProduct[], budget?: QuizAnswers["budget"]) {
+  const ceiling = budget ? budgetCeiling[budget] : null;
+  const sorted = [...products].sort(
+    (a, b) => a.basePriceCents - b.basePriceCents || a.name.localeCompare(b.name, "pt-BR"),
+  );
+  if (ceiling == null) return { above: false, options: sorted.slice(0, 3) };
+  const inside = sorted.filter((item) => item.basePriceCents <= ceiling);
+  if (inside.length > 0) return { above: false, options: inside.slice(0, 3) };
+  return { above: true, options: sorted.filter((item) => item.basePriceCents > ceiling).slice(0, 3) };
+}
+
 export function Quiz({ products, catalogMessage }: { products: StoreProduct[]; catalogMessage: string | null }) {
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<Partial<QuizAnswers>>({});
@@ -189,7 +213,7 @@ export function Quiz({ products, catalogMessage }: { products: StoreProduct[]; c
           {catalogMessage ? <p className="text-sm text-signal">{catalogMessage} Os nomes ainda vêm do quiz.</p> : null}
           {pending ? <p className="text-muted-foreground">Calculando os modelos…</p> : null}
           {error ? <p className="text-sm text-signal">{error}</p> : null}
-          {settled && !pending && !error && result.length === 0 ? <p className="text-muted-foreground">Nenhum modelo cabe nessa combinação.</p> : null}
+          {settled && !pending && !error && result.length === 0 ? <EmptyQuiz products={products} budget={answers.budget} /> : null}
           {result.map((item) => {
             const product = products.find((entry) => entry.slug === item.slug);
             const savings =
@@ -255,6 +279,42 @@ export function Quiz({ products, catalogMessage }: { products: StoreProduct[]; c
           </Button>
         </div>
       )}
+    </div>
+  );
+}
+
+function EmptyQuiz({ products, budget }: { products: StoreProduct[]; budget?: QuizAnswers["budget"] }) {
+  const label = budget ? budgetLabel[budget] : "nesse recorte";
+  const { above, options } = nearestProducts(products, budget);
+  const note = options.length === 0
+    ? "O catálogo não trouxe modelo para comparar. O WhatsApp segue aberto."
+    : above
+      ? `O teto ${label} deixa a lista vazia. Estas são as mais próximas no catálogo, com o preço da API.`
+      : "O quiz veio vazio. Estes cabem no orçamento no catálogo, com o preço da API.";
+  return (
+    <div className="rounded-[1.8rem] border border-white/10 p-6">
+      <h2 className="text-3xl font-light">Nenhum modelo cabe nessa combinação.</h2>
+      <p className="mt-3 text-sm text-muted-foreground">{note}</p>
+      {options.length > 0 ? (
+        <ul className="mt-4 grid gap-3">
+          {options.map((product) => (
+            <li key={product.slug} className="flex flex-wrap items-baseline justify-between gap-2">
+              <Link href={`/motos/${product.slug}`} className="text-lg">
+                {product.name}
+              </Link>
+              <span className="nums text-sm text-muted-foreground">{formatBRL(product.basePriceCents)}</span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      <a
+        href={whatsappHref(`Olá, o quiz não encontrou moto ${label}. Quero ver a opção mais próxima.`)}
+        className={cn(buttonVariants(), "mt-5 h-11 rounded-full")}
+        target="_blank"
+        rel="noreferrer"
+      >
+        Falar no WhatsApp
+      </a>
     </div>
   );
 }

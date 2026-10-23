@@ -48,7 +48,7 @@ Até três slugs em `?modelos=`. O preço é o de entrada, sem acessório. O pic
 
 ## Quiz
 
-`components/quiz.tsx` posta em `POST /v1/quiz` e casa o slug com `GET /v1/products` para preço e economia. Sem a lista, o nome ainda aparece e o preço não é inventado. Sem kWh ou autonomia declarada, a linha de gasolina some. O passo anima com Motion e respeita `prefers-reduced-motion`.
+`components/quiz.tsx` posta em `POST /v1/quiz` e casa o slug com `GET /v1/products` para preço e economia. Sem a lista, o nome ainda aparece e o preço não é inventado. Sem kWh ou autonomia declarada, a linha de gasolina some. Se a resposta vier vazia, a tela mostra as opções mais próximas dessa lista (as que cabem no teto, ou as mais baratas acima dele) e um WhatsApp. Não inventa preço e não volta ao catálogo do código. O passo anima com Motion e respeita `prefers-reduced-motion`.
 
 Perguntas: uso (trabalho, entregas, passeio, levar criança), km por dia (até 20, 20 a 40, 40 a 70, mais de 70), ladeira, tomada ou bateria removível, sozinho / passageiro / criança / pet, baú / cesta / nenhum, orçamento até 6 mil, 6 a 10 mil ou mais de 10 mil, estilo retrô / citycoco / esportivo e cor escura / clara / quente / tanto faz. O resultado traz de 1 a 3 modelos, o motivo e os acessórios sugeridos (baú 29–41 L, cesta, cadeirinha, retrovisor, capacete, capa, suporte de celular, gaiola pet). Não há pergunta de CNH.
 
@@ -70,7 +70,7 @@ A aba, a página, o mapa, os stories e o filtro Cidade da loja saíram. Não rep
 
 `components/shop-provider.tsx` e `components/cart-view.tsx`.
 
-Quantidade máxima 2. Linha igual (mesmo modelo, cor e acessórios) soma. `clear` zera as linhas e preserva desejos e códigos de pedido. O preço é refeito com `configurePrice`.
+Quantidade máxima 2. Linha igual (mesmo modelo, cor e acessórios) soma. `clear` zera as linhas e preserva desejos e códigos de pedido. O preço é refeito com `configurePrice`. O badge lê `lume-shop-v1` só depois do mount: o primeiro HTML sai sem contagem, para a hidratação casar quando o carrinho já tem itens. Carrinho antigo sem `orderCodes` continua válido.
 
 ## Checkout
 
@@ -104,12 +104,12 @@ Depois do sucesso, `rememberOrder` grava o código e `clear` esvazia o carrinho.
 
 O cadastro novo lê `GET /v1/admin/products`, `/accessories`, `/damages` e `/banners`. A lista traz ativo, rascunho ou arquivado, exemplo ou confirmado, e o estoque somado das variantes. Criar é `POST /v1/admin/products`. Duplicar é `POST /v1/admin/products/:id/duplicate`. Arquivar é `DELETE` e não apaga a linha.
 
-- Abas: Dados, Ficha, Fotos, Variantes, Acessórios e Avarias. A ficha manda `powerNominalW`. Não copia pico para a nominal. O selo não tem checkbox. Categoria só scooter, mobilete ou citycoco.
+- Abas: Dados, Ficha, Fotos, Variantes, Acessórios e Avarias. A ficha manda `powerNominalW`. Não copia pico para a nominal. O selo não tem checkbox. Categoria só scooter, mobilete ou citycoco. Salvar a ficha confirma com “Ficha salva.” Medida aceita decimal com ponto ou vírgula (`32.5` e `32,5`).
 - Fotos: JPG, PNG ou WebP, até 5 MB, pelo cliente do Blob em `POST /v1/admin/uploads`. O token de escrita não entra no browser. Sem `BLOB_READ_WRITE_TOKEN` o envio avisa e para. A ordem é `PATCH /v1/admin/products/:id/images` com `{ images: [{ id, position, isCover }] }`. A primeira é a capa.
 - Variante: `POST /v1/admin/products/:id/variants`.
 - Acessório: `POST /v1/admin/accessories`. A compatibilidade grava `{ accessories: [{ accessoryId, recommended }] }` no produto.
 - Avaria: `POST /v1/admin/damages` com `isPublic`, `discountCents` e `variantId` opcional. A API pública só devolve as avarias públicas e não resolvidas. A página do modelo lista essas avarias e o desconto. O card e o checkout não aplicam esse desconto.
-- Carrossel: `POST /v1/admin/banners`.
+- Carrossel: criar com `POST /v1/admin/banners`. Cada slide tem Editar (`PATCH /v1/admin/banners/:id`), Ocultar/Mostrar (`PATCH` de `active`) e Excluir (`DELETE`, com confirmação). Link inválido mostra a mensagem do 400 (`issues`, por exemplo “Use https ou um caminho que comece com /.”). A tela avisa que um slide novo pode levar até 60 segundos para aparecer na home.
 
 ## Barra de test ride e menu
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useMemo, useSyncExternalStore, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 
 export type CartLine = {
   productId: string;
@@ -55,10 +55,6 @@ function subscribe(listener: () => void) {
   return () => listeners.delete(listener);
 }
 
-function snapshot() {
-  return localStorage.getItem(storageKey) ?? "";
-}
-
 function publish(next: ShopState) {
   localStorage.setItem(storageKey, JSON.stringify(next));
   for (const listener of listeners) listener();
@@ -74,7 +70,15 @@ function sameLine(a: Omit<CartLine, "qty">, b: CartLine) {
 }
 
 export function ShopProvider({ children }: { children: ReactNode }) {
-  const raw = useSyncExternalStore(subscribe, snapshot, () => "");
+  const [raw, setRaw] = useState("");
+  useEffect(() => {
+    const read = () => setRaw(localStorage.getItem(storageKey) ?? "");
+    read();
+    const stop = subscribe(read);
+    return () => {
+      stop();
+    };
+  }, []);
   const state = useMemo(() => parse(raw), [raw]);
 
   const api = useMemo<ShopContextValue>(() => {

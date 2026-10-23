@@ -20,7 +20,7 @@ Cada produto, na lista e em `product`, tem a mesma forma:
 
 `id`, `slug`, `name`, `brand`, `category`, `style` (`retro` | `citycoco` | `esportivo` | `null`), `tagline`, `description`, `basePriceCents`, `isSample`, `rangeKm` (número declarado ou `null`), `topSpeedKmh`, `powerKw`, `powerNominalW`, `widthCm`, `wheelbaseCm`, `torqueNm`, `batteryKwh`, `weightKg`, `seatHeightMm`, `chargeHours`, `fastChargeMin`, `registrationClass`, `licenseNote`, `optimalSpeedKmh`, `colors` (`id`, `name`, `hex`, `priceDeltaCents`, `stock`), `batteries` (`id`, `name`, `kwh`, `rangeKm`, `priceDeltaCents`, `stock`), `accessoryIds`, `specs`, `variants`, `accessories`, `damages`, `images`, `autopropelido`.
 
-`specs`: `powerNominalW`, `powerPeakW`, `topSpeedKmh`, `widthCm`, `wheelbaseCm`, `weightKg`, `seatHeightMm`, `batteryV`, `batteryAh`, `batteryChem`, `batteryRemovable`, `chargeHours`, `rangeKmDeclared`, `hasSpeedLimiter`, `hasBell`, `hasLights`. Medida desconhecida é `null`. No catálogo de domínio, `rangeKm` e `specs.rangeKmDeclared` são o mesmo número. No cadastro em memória, `rangeKm` copia `rangeKmDeclared` e pode ser `null`. `batteryKwh` e `batteries` ficam vazios nesse cadastro: não se inventa kWh.
+`specs`: `powerNominalW`, `powerPeakW`, `topSpeedKmh`, `widthCm`, `wheelbaseCm`, `weightKg`, `seatHeightMm`, `batteryV`, `batteryAh`, `batteryChem`, `batteryRemovable`, `chargeHours`, `rangeKmDeclared`, `hasSpeedLimiter`, `hasBell`, `hasLights`. Medida desconhecida é `null`. O `PATCH` da ficha aceita decimal não negativo (`32.5`). No catálogo de domínio, `rangeKm` e `specs.rangeKmDeclared` são o mesmo número. No cadastro em memória, `rangeKm` copia `rangeKmDeclared` e pode ser `null`. `batteryKwh` e `batteries` ficam vazios nesse cadastro: não se inventa kWh.
 
 `variants`: `id`, `sku`, `colorName`, `colorHex`, `batteryLabel`, `priceDeltaCents`, `stock`, `active`. No domínio, uma variante por cor.
 
@@ -43,7 +43,7 @@ Todos POST com JSON.
 | `/v1/shipping/quote` | `cep`, `weightKg` | Cotação |
 | `/v1/quiz` | uso, km/dia, ladeiras, carga da bateria, quem vai junto, carga, orçamento, estilo e cor | `{ recommendations: [{ slug, name, score, reasons, accessories }] }` de 0 a 3 |
 
-`POST /v1/quiz` pontua o catálogo de `@lume/domain` junto com os produtos ativos da memória (amostra e os criados no admin). Rascunho e arquivado ficam de fora. O teto do orçamento é rígido: até 6 mil não devolve quem passa de R$ 6.000, e 6 a 10 mil não passa de R$ 10.000. Se ninguém cabe, a lista vem vazia. O estilo muda a ordem. Autonomia declarada ausente entra na conta como 0 km, sem virar número de fabricante na ficha: `rangeKm` na API continua `null`. A tela do quiz chama essa rota e busca o preço na lista de produtos.
+`POST /v1/quiz` pontua o catálogo de `@lume/domain` junto com os produtos ativos da memória (amostra e os criados no admin). Rascunho e arquivado ficam de fora. O teto do orçamento é rígido: até 6 mil não devolve quem passa de R$ 6.000, e 6 a 10 mil não passa de R$ 10.000. Se ninguém cabe, a lista vem vazia e a vitrine mostra as mais próximas de `GET /v1/products` mais um WhatsApp, sem inventar preço. O estilo muda a ordem. Autonomia declarada ausente entra na conta como 0 km, sem virar número de fabricante na ficha: `rangeKm` na API continua `null`. A tela do quiz chama essa rota e busca o preço na lista de produtos.
 
 `POST /v1/range` saiu da API pública. A estimativa `estimateRange` continua em `@lume/domain`. O simulador saiu da vitrine; o código antigo fica em `backup/lume-versao-completa`.
 

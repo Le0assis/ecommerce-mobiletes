@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { adminBannerBody, adminImageBody, isSafePublicUrl } from "./schemas";
+import { adminBannerBody, adminImageBody, adminProductPatchBody, isSafePublicUrl } from "./schemas";
 
 describe("URL pública", () => {
   it("aceita https e caminho do site", () => {
@@ -16,5 +16,10 @@ describe("URL pública", () => {
       expect(adminBannerBody.safeParse({ title: "Slide", href: "/ok", imageUrl: href }).success).toBe(false);
       expect(adminImageBody.safeParse({ url: href }).success).toBe(false);
     }
+  });
+
+  it("aceita decimal na ficha e recusa medida negativa", () => {
+    expect(adminProductPatchBody.safeParse({ specs: { topSpeedKmh: 32.5, widthCm: 70.5 } }).success).toBe(true);
+    expect(adminProductPatchBody.safeParse({ specs: { topSpeedKmh: -1 } }).success).toBe(false);
   });
 });

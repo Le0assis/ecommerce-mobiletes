@@ -265,7 +265,7 @@ export function AdminCatalog({ token, section }: { token?: string; section: "pro
           }}
         />
       ) : null}
-      {section === "carrossel" ? <BannerDesk token={token} banners={banners} onSave={(body) => send("/v1/admin/banners", "POST", body)} /> : null}
+      {section === "carrossel" ? <BannerDesk token={token} banners={banners} onSend={(path, method, body) => send(path, method, body)} /> : null}
     </div>
   );
 }
@@ -308,7 +308,16 @@ function ProductData({ product, onSave }: { product: AdminProduct; onSave: (body
   );
 }
 
+function parseMeasure(raw: string) {
+  const trimmed = raw.trim().replace(/\s/g, "");
+  if (!trimmed) return null;
+  const normalized = trimmed.replace(",", ".");
+  if (!/^\d+(\.\d+)?$/.test(normalized)) return Number.NaN;
+  return Number(normalized);
+}
+
 function ProductSpecs({ product, onSave }: { product: AdminProduct; onSave: (body: unknown) => Promise<AdminResult<unknown>> }) {
+  const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
   const fields: ["powerNominalW" | "powerPeakW" | "topSpeedKmh" | "widthCm" | "wheelbaseCm" | "weightKg" | "seatHeightMm" | "batteryV" | "batteryAh" | "chargeHours" | "rangeKmDeclared", string][] = [
     ["powerNominalW", "Potência nominal (W)"],
     ["powerPeakW", "Potência de pico (W)"],
@@ -330,21 +339,27 @@ function ProductSpecs({ product, onSave }: { product: AdminProduct; onSave: (bod
         const data = new FormData(event.currentTarget);
         const specs: Record<string, number | string | boolean | null> = {};
         for (const [name] of fields) {
-          const raw = String(data.get(name) ?? "");
-          specs[name] = raw === "" ? null : Number(raw);
+          const value = parseMeasure(String(data.get(name) ?? ""));
+          if (Number.isNaN(value)) {
+            setMessage({ ok: false, text: "Use um número, com ponto ou vírgula." });
+            return;
+          }
+          specs[name] = value;
         }
         specs.batteryChem = String(data.get("batteryChem") ?? "") || null;
         specs.batteryRemovable = data.get("batteryRemovable") === "on";
         specs.hasSpeedLimiter = data.get("hasSpeedLimiter") === "on";
         specs.hasBell = data.get("hasBell") === "on";
         specs.hasLights = data.get("hasLights") === "on";
-        void onSave(specs);
+        void onSave(specs).then((result) => {
+          setMessage(result.ok ? { ok: true, text: "Ficha salva." } : { ok: false, text: adminError(result, "A API não concluiu.") });
+        });
       }}
     >
       {fields.map(([name, label]) => (
         <label key={name} className="grid gap-1 text-sm">
           {label}
-          <Input name={name} type="number" min={0} defaultValue={product.specs[name] ?? ""} className={field} />
+          <Input name={name} type="text" inputMode="decimal" defaultValue={product.specs[name] ?? ""} className={field} />
         </label>
       ))}
       <Input name="batteryChem" defaultValue={product.specs.batteryChem ?? ""} placeholder="Química da bateria" className={field} aria-label="Química da bateria" />
@@ -352,7 +367,12 @@ function ProductSpecs({ product, onSave }: { product: AdminProduct; onSave: (bod
       <label className="flex items-center gap-2 text-sm"><input name="hasSpeedLimiter" type="checkbox" defaultChecked={product.specs.hasSpeedLimiter === true} /> Limitador de velocidade</label>
       <label className="flex items-center gap-2 text-sm"><input name="hasBell" type="checkbox" defaultChecked={product.specs.hasBell === true} /> Campainha</label>
       <label className="flex items-center gap-2 text-sm"><input name="hasLights" type="checkbox" defaultChecked={product.specs.hasLights === true} /> Luzes</label>
-      <p className="text-xs text-muted-foreground md:col-span-2">O selo não se marca aqui. A API calcula pelos quatro limites nominais. A potência de pico não entra nessa conta.</p>
+      <p className="text-xs text-muted-foreground md:col-span-2">O selo não se marca aqui. A API calcula pelos quatro limites nominais. A potência de pico não entra nessa conta. Medida aceita 32.5 ou 32,5.</p>
+      {message ? (
+        <p role="status" className={message.ok ? "text-sm text-paper md:col-span-2" : "text-sm text-signal md:col-span-2"}>
+          {message.text}
+        </p>
+      ) : null}
       <Button type="submit" className="h-11 rounded-full md:col-span-2">Salvar ficha</Button>
     </form>
   );
@@ -644,60 +664,157 @@ function AccessoryDesk({
   );
 }
 
-function BannerDesk({ token, banners, onSave }: { token?: string; banners: AdminBanner[]; onSave: (body: unknown) => Promise<AdminResult<unknown>> }) {
-  const [imageUrl, setImageUrl] = useState("");
+function BannerDesk({
+  token,
+  banners,
+  onSend,
+}: {
+  token?: string;
+  banners: AdminBanner[];
+  onSend: (path: string, method: string, body?: unknown) => Promise<AdminResult<unknown>>;
+}) {
+  const [editing, setEditing] = useState<string | null>(null);
   const [error, setError] = useState("");
+
+  async function run(path: string, method: string, body?: unknown) {
+    setError("");
+    const result = await onSend(path, method, body);
+    if (!result.ok) setError(adminError(result, "A API não concluiu."));
+    return result;
+  }
+
   return (
     <section className="grid gap-3">
       <h2 className="text-2xl font-light">Carrossel</h2>
+      <p className="text-sm text-muted-foreground">Um slide novo pode levar até 60 segundos para aparecer na home.</p>
+      {error ? <p className="text-sm text-signal">{error}</p> : null}
       <ul className="grid gap-2 text-sm">
         {banners.map((item) => (
-          <li key={item.id} className="rounded-2xl border border-white/10 px-4 py-3">
-            {item.title} · {item.active ? "ativo" : "oculto"} · ordem {item.position}
+          <li key={item.id} className="grid gap-3 rounded-2xl border border-white/10 px-4 py-3">
+            <p>
+              {item.title} · {item.active ? "ativo" : "oculto"} · ordem {item.position}
+            </p>
+            {editing === item.id ? (
+              <BannerForm
+                key={item.id}
+                token={token}
+                initial={item}
+                submitLabel="Salvar slide"
+                onCancel={() => setEditing(null)}
+                onSubmit={async (body) => {
+                  const result = await run(`/v1/admin/banners/${item.id}`, "PATCH", body);
+                  if (result.ok) setEditing(null);
+                  return result;
+                }}
+              />
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                <Button type="button" variant="outline" className="h-9 rounded-full" onClick={() => { setError(""); setEditing(item.id); }}>
+                  Editar
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-9 rounded-full"
+                  onClick={() => void run(`/v1/admin/banners/${item.id}`, "PATCH", { active: !item.active })}
+                >
+                  {item.active ? "Ocultar" : "Mostrar"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-9 rounded-full"
+                  onClick={() => {
+                    if (!window.confirm(`Excluir o slide "${item.title}"?`)) return;
+                    setEditing((current) => (current === item.id ? null : current));
+                    void run(`/v1/admin/banners/${item.id}`, "DELETE");
+                  }}
+                >
+                  Excluir
+                </Button>
+              </div>
+            )}
           </li>
         ))}
       </ul>
-      <form
-        className="grid gap-3 md:grid-cols-2"
-        onSubmit={(event) => {
-          event.preventDefault();
-          const data = new FormData(event.currentTarget);
-          const typed = String(data.get("imageUrl") ?? "");
-          void onSave({
-            title: String(data.get("title")),
-            subtitle: String(data.get("subtitle") ?? ""),
-            href: String(data.get("href")),
-            position: Number(data.get("position")),
-            active: data.get("active") === "on",
-            imageUrl: imageUrl || typed || null,
-          });
-        }}
-      >
-        <Input name="title" required placeholder="Título" className={field} aria-label="Título do banner" />
-        <Input name="subtitle" placeholder="Subtítulo" className={field} aria-label="Linha do banner" />
-        <Input name="href" required placeholder="/motos ou https://" className={field} aria-label="Link do slide" />
-        <Input name="position" type="number" min={0} defaultValue={banners.length} className={field} aria-label="Ordem do slide" />
-        <Input name="imageUrl" placeholder="URL da imagem, se já existir" className={`${field} md:col-span-2`} aria-label="URL da imagem" />
-        <input
-          type="file"
-          accept="image/jpeg,image/png,image/webp"
-          aria-label="Foto do slide"
-          onChange={(event) => {
-            const file = event.target.files?.[0];
-            event.target.value = "";
-            if (!file) return;
-            setError("");
-            void uploadAdminImage(file, token)
-              .then(setImageUrl)
-              .catch((cause: unknown) => setError(cause instanceof Error ? cause.message : "Não foi possível enviar."));
-          }}
-        />
-        {imageUrl ? <p className="text-sm text-muted-foreground md:col-span-2">Foto pronta para o slide.</p> : null}
-        {error ? <p className="text-sm text-signal md:col-span-2">{error}</p> : null}
-        <label className="flex items-center gap-2 text-sm"><input name="active" type="checkbox" defaultChecked /> Ativo</label>
-        <Button type="submit" className="h-11 rounded-full md:col-span-2">Incluir slide</Button>
-      </form>
+      <BannerForm token={token} submitLabel="Incluir slide" position={banners.length} onSubmit={(body) => run("/v1/admin/banners", "POST", body)} />
     </section>
+  );
+}
+
+function BannerForm({
+  token,
+  initial,
+  submitLabel,
+  position = 0,
+  onSubmit,
+  onCancel,
+}: {
+  token?: string;
+  initial?: AdminBanner;
+  submitLabel: string;
+  position?: number;
+  onSubmit: (body: { title: string; subtitle: string; href: string; position: number; active: boolean; imageUrl: string | null }) => Promise<AdminResult<unknown>>;
+  onCancel?: () => void;
+}) {
+  const [imageUrl, setImageUrl] = useState(initial?.imageUrl ?? "");
+  const [uploadError, setUploadError] = useState("");
+  return (
+    <form
+      className="grid gap-3 md:grid-cols-2"
+      onSubmit={(event) => {
+        event.preventDefault();
+        const form = event.currentTarget;
+        const data = new FormData(form);
+        const typed = String(data.get("imageUrl") ?? "");
+        void onSubmit({
+          title: String(data.get("title")),
+          subtitle: String(data.get("subtitle") ?? ""),
+          href: String(data.get("href")),
+          position: Number(data.get("position")),
+          active: data.get("active") === "on",
+          imageUrl: imageUrl || typed || null,
+        }).then((result) => {
+          if (result.ok && !initial) {
+            form.reset();
+            setImageUrl("");
+          }
+        });
+      }}
+    >
+      <Input name="title" required defaultValue={initial?.title ?? ""} placeholder="Título" className={field} aria-label="Título do banner" />
+      <Input name="subtitle" defaultValue={initial?.subtitle ?? ""} placeholder="Subtítulo" className={field} aria-label="Linha do banner" />
+      <Input name="href" required defaultValue={initial?.href ?? ""} placeholder="/motos ou https://" className={field} aria-label="Link do slide" />
+      <Input name="position" type="number" min={0} defaultValue={initial?.position ?? position} className={field} aria-label="Ordem do slide" />
+      <Input name="imageUrl" defaultValue={initial?.imageUrl ?? ""} placeholder="URL da imagem, se já existir" className={`${field} md:col-span-2`} aria-label="URL da imagem" />
+      <input
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        aria-label="Foto do slide"
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          event.target.value = "";
+          if (!file) return;
+          setUploadError("");
+          void uploadAdminImage(file, token)
+            .then(setImageUrl)
+            .catch((cause: unknown) => setUploadError(cause instanceof Error ? cause.message : "Não foi possível enviar."));
+        }}
+      />
+      {imageUrl ? <p className="text-sm text-muted-foreground md:col-span-2">Foto pronta para o slide.</p> : null}
+      {uploadError ? <p className="text-sm text-signal md:col-span-2">{uploadError}</p> : null}
+      <label className="flex items-center gap-2 text-sm">
+        <input name="active" type="checkbox" defaultChecked={initial?.active ?? true} /> Ativo
+      </label>
+      <div className="flex flex-wrap gap-2 md:col-span-2">
+        <Button type="submit" className="h-11 rounded-full">{submitLabel}</Button>
+        {onCancel ? (
+          <Button type="button" variant="ghost" className="h-11 rounded-full" onClick={onCancel}>
+            Cancelar
+          </Button>
+        ) : null}
+      </div>
+    </form>
   );
 }
 

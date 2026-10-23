@@ -12,6 +12,11 @@ export async function adminFetch<T>(path: string, init: RequestInit = {}, token?
 
 export function adminError(result: AdminResult<unknown>, fallback: string) {
   if (result.status === 404) return "Essa rota ainda não está na API.";
+  const issues = (result.body as { issues?: { message?: string }[] }).issues;
+  const detail = Array.isArray(issues)
+    ? [...new Set(issues.map((issue) => issue.message).filter((message): message is string => Boolean(message)))].join(" ")
+    : "";
+  if (detail) return detail;
   return result.body.message ?? fallback;
 }
 
