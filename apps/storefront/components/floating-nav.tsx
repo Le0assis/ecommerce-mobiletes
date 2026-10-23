@@ -3,6 +3,7 @@
 import { buttonVariants } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useShop } from "@/components/shop-provider";
+import { whatsappGreeting, whatsappHref } from "@/lib/whatsapp";
 import { cn } from "cn";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -11,7 +12,6 @@ const links = [
   { href: "/motos", label: "Motos" },
   { href: "/comparar", label: "Comparar" },
   { href: "/me-ajude-a-escolher", label: "Quiz" },
-  { href: "/lojas", label: "Lojas" },
 ];
 
 export function FloatingNav() {
@@ -57,7 +57,9 @@ export function FloatingNav() {
                     {link.label}
                   </Link>
                 ))}
-                <Link href="/test-ride">Test ride</Link>
+                <a href={whatsappHref(whatsappGreeting)} target="_blank" rel="noreferrer">
+                  WhatsApp
+                </a>
                 <Link href="/financiamento">21× e Pix</Link>
                 <Link href="/conta">Conta</Link>
                 <Link href="/desejos">Desejos</Link>

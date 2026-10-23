@@ -12,11 +12,11 @@ export default function AboutPage() {
     <PageShell
       eyebrow="A marca"
       title="Sobre."
-      lede="A LUME desenha motos e mobiletes elétricas para quem anda no Brasil: preço em real, carga em casa e uma loja onde a moto pode ser vista antes do sinal."
+      lede="A LUME desenha motos e mobiletes elétricas para quem anda no Brasil: preço em real, carga em casa e conversa no WhatsApp enquanto não há loja física."
     >
       <div className="grid gap-6 text-sm leading-relaxed text-muted-foreground">
         <p>
-          A linha vai da mobilete S, para a volta curta, até a Apex, a flagship de 180 km/h. No meio ficam a City, a Via e a Serra. Cada uma tem cor, acessório e um preço que se recalcula no mesmo gesto.
+          A linha vai da mobilete S, para a volta curta, até a Apex, a flagship de 180 km/h. No meio ficam a City, a Via e a Serra. Cada uma tem cor e um preço que se recalcula no mesmo gesto.
         </p>
         <p>
           Esta vitrine é de demonstração. Os endereços de loja, os relatos e os números de produto são de referência. O nome jurídico do operador e o CNPJ entram antes de qualquer venda real.

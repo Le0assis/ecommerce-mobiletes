@@ -1,7 +1,7 @@
 /**
  * Escritas da vitrine.
  *
- * Tudo que muda pedido, test ride ou review passa por aqui e chega na API
+ * Tudo que muda pedido ou review passa por aqui e chega na API
  * em `/api/commerce` (rewrite para o Hono). A API recalcula preço, frete e
  * parcela. Se o review não alcançar a API, o relato fica só neste navegador,
  * marcado como pendente, para a página não fingir que publicou.
@@ -105,21 +105,6 @@ export async function verifySandboxCode(email: string, code: string): Promise<{ 
 
 export async function accountOrders(token: string): Promise<{ email: string; orders: PlacedOrder[] }> {
   return commerce("/v1/account/orders", { headers: { authorization: `Bearer ${token}` } });
-}
-
-export async function bookTestRide(input: {
-  productId: string;
-  dealerId: string;
-  name: string;
-  email: string;
-  phone: string;
-  preferredDate: string;
-}): Promise<{ id: string }> {
-  const body = await commerce<{ booking: { id: string } }>("/v1/test-rides", {
-    method: "POST",
-    body: JSON.stringify(input),
-  });
-  return body.booking;
 }
 
 export async function submitReview(input: {

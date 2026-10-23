@@ -18,8 +18,8 @@ docker-compose.yml       Postgres 54329, Redis 63799, Meilisearch 7709
 | `app/motos/[slug]/page.tsx` | PDP, JSON-LD, `generateStaticParams` |
 | `app/comparar/page.tsx` | Comparador |
 | `app/me-ajude-a-escolher/page.tsx` | Quiz |
-| `app/test-ride/page.tsx` | Agendamento |
-| `app/lojas/page.tsx` | Lojas |
+| `app/test-ride/page.tsx` | Conversa no WhatsApp |
+| `lib/whatsapp.ts` | Número e link `wa.me` |
 | `app/carrinho/page.tsx` | Carrinho |
 | `app/checkout/page.tsx` | Pagamento |
 | `app/pedido/[code]/page.tsx` | Acompanhamento |

@@ -1,5 +1,4 @@
 import { CategorySearch } from "@/components/category-search";
-import { DealerStories } from "@/components/dealer-stories";
 import { Hero } from "@/components/hero";
 import { ProductCard } from "@/components/product-card";
 import { TrustRow } from "@/components/trust-row";
@@ -69,15 +68,15 @@ export default function HomePage() {
       </section>
       <section className="border-y border-white/10 bg-[#101013] px-5 py-20">
         <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:items-end">
-          <h2 className="display text-5xl md:text-7xl">A energia mora na tomada. A decisão, na loja.</h2>
+          <h2 className="display text-5xl md:text-7xl">A energia mora na tomada.</h2>
           <div className="grid gap-6 text-sm text-muted-foreground">
             <p>
-              A referência de troca de bateria serve para lembrar o óbvio: a moto é o começo. No Brasil, o sistema é carga em casa durante a noite, recarga rápida no caminho e uma loja que recebe a moto de volta.
+              A moto carrega em casa durante a noite e, quando o modelo oferece, numa recarga rápida no caminho. Dúvida sobre o modelo, no WhatsApp.
             </p>
             <ul className="grid gap-3 text-paper">
               <li>0–100% na garagem, no tempo de cada modelo.</li>
               <li>Recarga rápida onde o modelo oferece.</li>
-              <li>Test ride antes do sinal. Sem fila de aplicativo.</li>
+              <li>Conversa no WhatsApp, enquanto não há loja física.</li>
             </ul>
           </div>
         </div>
@@ -152,17 +151,6 @@ export default function HomePage() {
               ))}
             </ul>
           </div>
-        </div>
-      </section>
-      <section className="mx-auto max-w-6xl px-5 pb-24">
-        <div className="flex items-end justify-between gap-4">
-          <h2 className="display text-5xl md:text-7xl">Lojas</h2>
-          <Link href="/lojas" className="text-sm underline-offset-4 hover:underline">
-            Ver todas
-          </Link>
-        </div>
-        <div className="mt-8">
-          <DealerStories />
         </div>
       </section>
     </>

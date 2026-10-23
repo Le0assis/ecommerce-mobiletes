@@ -12,7 +12,7 @@ export default function ContactPage() {
     <PageShell
       eyebrow="Fale"
       title="Contato."
-      lede="Compras, test ride, assistência e imprensa. O formulário ainda não entrega e-mail: guarda o texto neste navegador."
+      lede="Compras, assistência e imprensa. O formulário ainda não entrega e-mail: guarda o texto neste navegador. Para falar de um modelo agora, use o WhatsApp."
     >
       <ContactForm />
     </PageShell>

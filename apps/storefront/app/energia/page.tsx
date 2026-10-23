@@ -27,7 +27,7 @@ export default function EnergyPage() {
         ))}
       </div>
       <p className="mt-8 text-sm text-muted-foreground">
-        A autonomia publicada é de referência. A calculadora de cada modelo mostra o que muda com velocidade, peso e modo.{" "}
+        A autonomia publicada é o número do modelo, só como dado da ficha. A comparação com gasolina continua em cada página.{" "}
         <Link className="text-paper underline" href="/motos/apex">
           Abrir a Apex
         </Link>

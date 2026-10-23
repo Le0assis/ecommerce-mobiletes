@@ -2,7 +2,7 @@
  * Leitura da vitrine.
  *
  * O catálogo canônico hoje é `@lume/domain`: a página abre mesmo com a API
- * desligada, e o configurador recalcula cor, acessório, Pix e parcela sem
+ * desligada, e o configurador recalcula cor, bateria, Pix e parcela sem
  * esperar a rede. Quando o Postgres passar a ser a fonte, troque as funções
  * deste arquivo por fetch em `/api/commerce` e mantenha a assinatura.
  * Não duplique a fórmula de preço em outro lugar.
@@ -47,9 +47,9 @@ export {
   type RideMode,
 } from "@lume/domain";
 
-export type CatalogOrder = "destaque" | "preco" | "preco-desc" | "autonomia" | "velocidade";
+export type CatalogOrder = "destaque" | "preco" | "preco-desc" | "velocidade";
 
-const orders: CatalogOrder[] = ["destaque", "preco", "preco-desc", "autonomia", "velocidade"];
+const orders: CatalogOrder[] = ["destaque", "preco", "preco-desc", "velocidade"];
 
 export function isCatalogOrder(value: string | undefined): value is CatalogOrder {
   return orders.some((item) => item === value);
@@ -59,7 +59,6 @@ export function sortProducts(list: Motorcycle[], order: string | undefined): Mot
   const next = [...list];
   if (order === "preco") next.sort((a, b) => a.basePriceCents - b.basePriceCents);
   if (order === "preco-desc") next.sort((a, b) => b.basePriceCents - a.basePriceCents);
-  if (order === "autonomia") next.sort((a, b) => b.rangeKm - a.rangeKm);
   if (order === "velocidade") next.sort((a, b) => b.topSpeedKmh - a.topSpeedKmh);
   return next;
 }

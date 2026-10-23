@@ -14,7 +14,7 @@ Estender: novo capítulo entra como `<section>` na home. Banner editável é v1 
 
 `app/motos/page.tsx` e `components/category-search.tsx`.
 
-`filterShowroom` aplica categoria, marca, cidade e texto. Cidade filtra onde há test ride, não o frete. A busca ignora acento e encontra o nome da marca. `sortProducts` em `lib/catalog.ts` ordena por preço, autonomia ou velocidade. Os parâmetros são `ordem` e `marca`. VOLTIS, BRUMA e SENDA são marcas de demonstração.
+`filterShowroom` na vitrine aplica categoria, marca e texto. O filtro Cidade da loja saiu junto com a aba Lojas. A busca ignora acento e encontra o nome da marca. `sortProducts` em `lib/catalog.ts` ordena por preço ou velocidade. Não há mais ordem “Maior autonomia”. Os parâmetros são `ordem` e `marca`. A barra usa três colunas (`gap-x-6 gap-y-5`), rótulo pequeno sem tracking largo, e a busca fica numa linha própria com o botão. VOLTIS, BRUMA e SENDA são marcas de demonstração.
 
 Estado vazio oferece limpar o filtro. Cor sem estoque não entra no preço do card: o card usa a primeira cor com estoque.
 
@@ -24,17 +24,19 @@ Estender: um filtro novo nasce em `ShowroomQuery` e no formulário. Não filtre 
 
 `app/motos/[slug]/page.tsx` e `components/configurator.tsx`.
 
-Cor, bateria e acessório chamam `configurePrice`. Sem `batteryId`, vale o primeiro pacote, de delta zero. O total ao vivo está em `data-testid="live-price"`. A cor Cobre da Apex é `color-cobre`. Reservar é `reserve` e só existe uma vez: a barra móvel chama a mesma função sem o testid, para o Playwright não achar dois botões.
+Cor e bateria chamam `configurePrice`. A seção de acessórios saiu do configurador: a reserva manda `accessoryIds` vazio. O cadastro volta depois, pelo admin. Sem `batteryId`, vale o primeiro pacote, de delta zero. O total ao vivo está em `data-testid="live-price"`. A cor Cobre da Apex é `color-cobre`. Reservar é `reserve` e só existe uma vez: a barra móvel chama a mesma função sem o testid, para o Playwright não achar dois botões.
 
 O 360° (`components/bike-viewer.tsx`) só monta no clique. `html[data-configurator=ready]` marca a hidratação. Com `prefers-reduced-motion`, o modelo não gira sozinho.
 
-Autonomia: a vitrine ainda chama `estimateRange` no domínio. `POST /v1/range` não existe mais na API. A seção do simulador sai do configurador na etapa da vitrine; o código anterior fica em `backup/lume-versao-completa`. Parcelas de 1, 6, 12 e 21: `InstallmentTable` com `compact`. A parcela de 21 continua escrita por extenso.
+A ficha é uma tabela de duas colunas (Item / Valor) na coluna da galeria, ao lado do card de preço. No celular ela fica depois do preço. Potência nominal lê `powerNominalW`. Sem esse campo, a célula diz “não informado”: `powerKw` é pico e não entra nessa linha. Largura e entre-eixos usam `widthCm` e `wheelbaseCm` quando existem. A autonomia é só o número publicado. O simulador saiu da página. `POST /v1/range` também saiu da API. `estimateRange` continua no domínio, no backup `backup/lume-versao-completa` para a versão anterior. A comparação com gasolina (`SavingsCalculator`) fica.
+
+Parcelas de 1, 6, 12 e 21: `InstallmentTable` com `compact`. A parcela de 21 continua escrita por extenso. O botão de conversa usa `whatsappHref` em `lib/whatsapp.ts`.
 
 Reviews publicados vêm de `reviewsFor`. O formulário posta em `/v1/reviews`. Se a API não responder, `submitReview` guarda o texto em `lume-reviews-pending` e a página mostra “pendente · só neste navegador”. Não publique relato sem moderação. Não use nome de pessoa.
 
 Modelos próximos: `relatedMotorcycles`. JSON-LD de Product/Offer em BRL usa o preço de tabela, não o configurado.
 
-Estender: campo novo de ficha é uma linha em `Spec` lendo a propriedade do modelo. Acessório novo entra em `accessories` e em `accessoryIds` do modelo.
+Estender: campo novo de ficha é uma linha em `SpecTable`. Não recoloque o simulador de autonomia nem a lista de acessórios no configurador.
 
 ## Comparar
 
@@ -52,17 +54,15 @@ Estender: pergunta nova é um passo no array e um campo em `QuizAnswers`, com te
 
 O carrossel da home lê `GET /v1/banners`: foto, título, subtítulo, link e ordem. Só entra slide ativo.
 
-## Test ride
+## WhatsApp no lugar do test ride
 
-`components/test-ride-form.tsx` → `bookTestRide` → `POST /v1/test-rides`.
+`/test-ride` não agenda mais. A página, a faixa fixa, o menu, o rodapé e o card de preço abrem `wa.me` por `whatsappHref` (`lib/whatsapp.ts`), o mesmo número de `NEXT_PUBLIC_WHATSAPP` do botão flutuante. Não há formulário nem `POST /v1/test-rides` a partir da vitrine. A rota antiga `/lojas` redireciona para `/contato`.
 
-A loja precisa ter o slug em `testRideSlugs`. A confirmação humana é v1. O protocolo mostrado são os oito primeiros caracteres do id.
+O agendamento de serviço (`components/service-form.tsx`) ainda escolhe uma loja de demonstração porque `POST /v1/service-bookings` exige `dealerId`. Isso não é a aba Lojas.
 
 ## Lojas
 
-`app/lojas/page.tsx`, `components/locator-map.tsx`, `components/dealer-stories.tsx`.
-
-A projeção usa latitude e longitude num desenho do Brasil. A legenda diz que não é um mapa de tiles. O filtro por cidade usa a lista do domínio. `GET /v1/dealers` saiu da API pública; a lista autenticada ficou em `GET /v1/admin/dealers`. A aba Lojas sai da vitrine nesta etapa.
+A aba, a página, o mapa, os stories e o filtro Cidade da loja saíram. Não reponha link para `/lojas`: a rota redireciona para `/contato`. `GET /v1/dealers` saiu da API pública; a lista autenticada ficou em `GET /v1/admin/dealers`. O dado de dealers continua no domínio para o serviço.
 
 ## Carrinho
 
@@ -100,4 +100,4 @@ Depois do sucesso, `rememberOrder` grava o código e `clear` esvazia o carrinho.
 
 ## Barra de test ride e menu
 
-`components/sticky-test-ride.tsx` some em `/checkout`, `/test-ride`, `/admin` e `/motos/[slug]`. `components/floating-nav.tsx` mantém um único Reservar vermelho no desktop. Institucional fica no rodapé e no menu móvel.
+`components/sticky-test-ride.tsx` é a faixa de WhatsApp. Some em `/checkout`, `/test-ride`, `/admin` e `/motos/[slug]`. `components/floating-nav.tsx` mantém um único Reservar vermelho no desktop. O menu é Motos, Comparar e Quiz. Institucional fica no rodapé e no menu móvel.

@@ -12,11 +12,11 @@ Erro de domínio volta como JSON `{ error, message }` e o status adequado. A men
 | --- | --- | --- |
 | GET | `/v1/products` | `{ products }` do catálogo. Sem lista de lojas. Cada item traz `autopropelido`. |
 | GET | `/v1/products/:slug` | `{ product }` ou 404. O produto traz `autopropelido`. |
-
-`autopropelido` é calculado no domínio (`autopropelidoBadge`), nunca gravado à mão. Limites da CONTRAN 996/2023: potência nominal até 1.000 W, velocidade até 32 km/h, largura até 70 cm, entre-eixos até 130 cm. Falta qualquer um e `eligible` fica `false`, `label` fica `null` e `missing` lista o campo. `powerKw` é pico e não preenche a nominal. `registrationClass` do catálogo antigo não liga o selo. O aviso fixo é `notice`: "verifique as regras da sua cidade".
 | GET | `/v1/reviews?produto=` | semente mais relatos pendentes do processo |
 | GET | `/v1/banners` | carrossel: só ativos, ordenados por `position`. Campos `imageUrl`, `subtitle`, `href`, `title`. |
 | GET | `/v1/orders/:code` | `{ order }` ou 404. Código em maiúsculas |
+
+`autopropelido` é calculado no domínio (`autopropelidoBadge`), nunca gravado à mão. Limites da CONTRAN 996/2023: potência nominal até 1.000 W, velocidade até 32 km/h, largura até 70 cm, entre-eixos até 130 cm. Falta qualquer um e `eligible` fica `false`, `label` fica `null` e `missing` lista o campo. `powerKw` é pico e não preenche a nominal. `registrationClass` do catálogo antigo não liga o selo. O aviso fixo é `notice`: "verifique as regras da sua cidade".
 
 ## Cálculo
 
@@ -33,7 +33,7 @@ Todos POST com JSON.
 
 ## Mutação
 
-`POST /v1/test-rides` — `productId`, `dealerId`, `name`, `email`, `phone`, `preferredDate` (`YYYY-MM-DD`). 400 se o modelo não está na loja.
+`POST /v1/test-rides` — a vitrine não chama mais esta rota. O agendamento virou botão de WhatsApp. A rota ainda existe na API até o backend tirá-la.
 
 `POST /v1/reviews` — `productId`, `city`, `rating` 1–5, `title`, `body`. Resposta marca `pending: true` e não entra na semente publicada.
 

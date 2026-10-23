@@ -23,6 +23,9 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  async redirects() {
+    return [{ source: "/lojas", destination: "/contato", permanent: false }];
+  },
 };
 
 export default nextConfig;

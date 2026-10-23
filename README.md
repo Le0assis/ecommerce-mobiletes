@@ -329,10 +329,10 @@ pnpm dev:web
 
 ### O que abrir no navegador
 
-- `/` a home: tipografia grande, 21x sem juros, selo do Pix, busca por categoria e cidade, test ride fixo embaixo.
+- `/` a home: tipografia grande, 21x sem juros, selo do Pix, busca por categoria e marca, faixa de WhatsApp embaixo.
 - `/motos/apex` o configurador. Troque a cor Cobre e o preço muda. “Ver em 360°” gira um modelo simples.
 - `/me-ajude-a-escolher` o quiz.
-- `/lojas` as lojas em círculos, no estilo de stories.
+- `/test-ride` abre o WhatsApp. `/lojas` redireciona para `/contato`.
 - `/checkout` Pix, boleto ou cartão. O código do Pix começa com `LUME-MOCK-PIX`. Não pague.
 
 A primeira compilação da home pode levar uns segundos. Atualize a página se o navegador abrir antes do Next terminar.

@@ -8,7 +8,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/motos",
     "/comparar",
     "/me-ajude-a-escolher",
-    "/lojas",
     "/test-ride",
     "/financiamento",
     "/sobre",

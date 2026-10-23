@@ -9,9 +9,7 @@ import { useShop } from "@/components/shop-provider";
 import { track } from "@/lib/analytics";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
-  accessoriesFor,
   configurePrice,
-  estimateRange,
   formatBRL,
   installmentByCount,
   packsFor,
@@ -19,14 +17,12 @@ import {
   registrationNote,
   relatedMotorcycles,
   reviewsFor,
-  type Accessory,
   type Motorcycle,
-  type RideMode,
 } from "@/lib/catalog";
+import { whatsappHref } from "@/lib/whatsapp";
 import { cn } from "cn";
 import dynamic from "next/dynamic";
 import Image from "next/image";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
@@ -34,6 +30,11 @@ const BikeViewer = dynamic(() => import("@/components/bike-viewer").then((mod) =
   ssr: false,
   loading: () => <p className="grid h-full place-items-center text-sm text-muted-foreground">Abrindo o 360°…</p>,
 });
+
+function formatMeasure(value: number | null | undefined, suffix: string) {
+  if (typeof value !== "number" || !Number.isFinite(value)) return "não informado";
+  return `${new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 }).format(value)} ${suffix}`;
+}
 
 export function Configurator({ product }: { product: Motorcycle }) {
   const router = useRouter();
@@ -47,54 +48,38 @@ export function Configurator({ product }: { product: Motorcycle }) {
     };
   }, []);
 
-  const options = accessoriesFor(product);
   const packs = packsFor(product);
   const firstColor = product.colors.find((color) => color.stock > 0) ?? product.colors[0];
   const [colorId, setColorId] = useState(firstColor?.id ?? "");
   const [batteryId, setBatteryId] = useState(packs[0]?.id ?? "serie");
-  const [picked, setPicked] = useState<string[]>([]);
   const [spin, setSpin] = useState(false);
-  const [mode, setMode] = useState<RideMode>("cidade");
-  const [speed, setSpeed] = useState(product.optimalSpeedKmh);
-  const [weight, setWeight] = useState(0);
   const quoteResult = useMemo(() => {
     try {
-      return { quote: configurePrice({ productId: product.id, colorId, accessoryIds: picked, batteryId }), error: "" };
+      return { quote: configurePrice({ productId: product.id, colorId, accessoryIds: [], batteryId }), error: "" };
     } catch (cause) {
       return { quote: null, error: cause instanceof Error ? cause.message : "Não foi possível calcular." };
     }
-  }, [product.id, colorId, picked, batteryId]);
+  }, [product.id, colorId, batteryId]);
   const quote = quoteResult.quote;
   const error = quoteResult.error;
-  const range = estimateRange({
-    baseRangeKm: quote?.battery.rangeKm ?? product.rangeKm,
-    speedKmh: speed,
-    extraWeightKg: weight,
-    mode,
-    optimalSpeedKmh: product.optimalSpeedKmh,
-  });
   const plan = quote ? installmentByCount(quote.subtotalCents, 21) : null;
   const color = product.colors.find((item) => item.id === colorId);
   const reviews = reviewsFor(product.slug);
   const related = relatedMotorcycles(product);
   const wished = shop.wished(product.slug);
 
-  function toggle(accessory: Accessory) {
-    setPicked((current) => (current.includes(accessory.id) ? current.filter((id) => id !== accessory.id) : [...current, accessory.id]));
-  }
-
   function reserve() {
     if (!quote) return;
     track("reservar", { product: product.slug, color: colorId });
-    shop.addLine({ productId: product.id, colorId, accessoryIds: picked, batteryId });
+    shop.addLine({ productId: product.id, colorId, accessoryIds: [], batteryId });
     router.push("/checkout");
   }
 
   return (
     <div className="pb-28 md:pb-0">
-      <div className="mx-auto grid max-w-6xl gap-10 px-5 pt-28 pb-16 lg:grid-cols-[1.15fr_0.85fr]">
-        <div>
-          <div className="relative min-h-[24rem] overflow-hidden rounded-[2rem] border border-white/10 bg-[#101013]">
+      <div className="mx-auto grid max-w-6xl gap-10 px-5 pt-28 pb-16 lg:grid-cols-[1.15fr_0.85fr] lg:items-start">
+        <div className="contents lg:block lg:space-y-6">
+          <div className="relative order-1 min-h-[24rem] overflow-hidden rounded-[2rem] border border-white/10 bg-[#101013]">
             {spin && color ? (
               <div className="h-[28rem]">
                 <BikeViewer color={color.hex} />
@@ -106,43 +91,26 @@ export function Configurator({ product }: { product: Motorcycle }) {
               {spin ? "Ver ilustração" : "Ver em 360°"}
             </Button>
           </div>
-          <dl className="nums mt-6 grid grid-cols-3 gap-4 text-sm">
-            <div>
-              <dt className="text-muted-foreground">Potência</dt>
-              <dd>{product.powerKw} kW</dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground">Bateria</dt>
-              <dd>{product.batteryKwh} kWh</dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground">Carga em casa</dt>
-              <dd>{product.chargeHours} h</dd>
-            </div>
-          </dl>
-          <p className="mt-4 max-w-xl text-sm text-muted-foreground">{product.description}</p>
-          <p className="mt-3 text-xs text-muted-foreground">{product.licenseNote}</p>
-          <aside className="mt-4 max-w-xl rounded-2xl border border-white/10 p-4">
-            <p className="text-xs tracking-[0.16em] text-muted-foreground uppercase">Habilitação e emplacamento</p>
-            <p className="mt-2 text-paper">{registrationLabel[product.registrationClass]}</p>
-            <p className="mt-2 text-sm text-muted-foreground">{registrationNote[product.registrationClass]}</p>
-          </aside>
-        </div>
-        <div>
-          <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
-          {product.brand} · {product.tagline}
-        </p>
-          <h1 className="display mt-3 text-7xl">{product.name.replace("LUME ", "")}</h1>
-          <div className="nums mt-6 grid grid-cols-2 gap-4">
-            <p>
-              <span className="display block text-6xl">{product.topSpeedKmh}</span>
-              <span className="text-sm text-muted-foreground">km/h</span>
-            </p>
-            <p>
-              <span className="display block text-6xl">{range.rangeKm}</span>
-              <span className="text-sm text-muted-foreground">km nesta condição</span>
-            </p>
+          <div className="order-3 lg:order-none lg:mt-6">
+            <SpecTable product={product} />
+            <p className="mt-4 max-w-xl text-sm text-muted-foreground">{product.description}</p>
+            <p className="mt-3 text-xs text-muted-foreground">{product.licenseNote}</p>
+            <aside className="mt-4 max-w-xl rounded-2xl border border-white/10 p-4">
+              <p className="text-xs tracking-[0.16em] text-muted-foreground uppercase">Habilitação e emplacamento</p>
+              <p className="mt-2 text-paper">{registrationLabel[product.registrationClass]}</p>
+              <p className="mt-2 text-sm text-muted-foreground">{registrationNote[product.registrationClass]}</p>
+            </aside>
           </div>
+        </div>
+        <div className="order-2 lg:order-none">
+          <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
+            {product.brand} · {product.tagline}
+          </p>
+          <h1 className="display mt-3 text-7xl">{product.name.replace("LUME ", "")}</h1>
+          <p className="nums mt-6">
+            <span className="display block text-6xl">{product.topSpeedKmh}</span>
+            <span className="text-sm text-muted-foreground">km/h de velocidade máxima</span>
+          </p>
           <fieldset className="mt-8">
             <legend className="text-xs tracking-[0.16em] text-muted-foreground uppercase">Cor</legend>
             <div className="mt-3 flex flex-wrap gap-3">
@@ -187,46 +155,7 @@ export function Configurator({ product }: { product: Motorcycle }) {
               </div>
             </fieldset>
           ) : null}
-          <fieldset className="mt-6">
-            <legend className="text-xs tracking-[0.16em] text-muted-foreground uppercase">Acessórios</legend>
-            <div className="mt-3 grid gap-2">
-              {options.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  aria-pressed={picked.includes(item.id)}
-                  onClick={() => toggle(item)}
-                  className="flex items-center justify-between rounded-2xl border border-white/10 px-4 py-3 text-left text-sm aria-pressed:border-signal"
-                >
-                  <span>
-                    {item.name}
-                    <span className="mt-1 block text-muted-foreground">{item.description}</span>
-                  </span>
-                  <span className="nums shrink-0 pl-4">{formatBRL(item.priceCents)}</span>
-                </button>
-              ))}
-            </div>
-          </fieldset>
-          <fieldset className="mt-6 rounded-[1.5rem] border border-white/10 p-4">
-            <legend className="px-2 text-xs tracking-[0.16em] text-muted-foreground uppercase">Autonomia</legend>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {(["eco", "cidade", "esporte"] as RideMode[]).map((item) => (
-                <Button key={item} type="button" variant={mode === item ? "default" : "outline"} className="rounded-full capitalize" onClick={() => setMode(item)}>
-                  {item}
-                </Button>
-              ))}
-            </div>
-            <label className="mt-4 block text-sm">
-              Velocidade média: <span className="nums">{speed} km/h</span>
-              <input className="mt-2 w-full accent-[#ff2d2d]" type="range" min={20} max={product.topSpeedKmh} value={speed} onChange={(event) => setSpeed(Number(event.target.value))} />
-            </label>
-            <label className="mt-3 block text-sm">
-              Peso extra: <span className="nums">{weight} kg</span>
-              <input className="mt-2 w-full accent-[#ff2d2d]" type="range" min={0} max={40} value={weight} onChange={(event) => setWeight(Number(event.target.value))} />
-            </label>
-          <p className="mt-3 text-sm text-muted-foreground">{range.note}</p>
-        </fieldset>
-        <SavingsCalculator batteryKwh={quote?.battery.kwh ?? product.batteryKwh} rangeKm={quote?.battery.rangeKm ?? product.rangeKm} />
+          <SavingsCalculator batteryKwh={quote?.battery.kwh ?? product.batteryKwh} rangeKm={quote?.battery.rangeKm ?? product.rangeKm} />
           {quote && plan ? (
             <div className="mt-6 rounded-[1.8rem] border border-white/10 bg-[#141418] p-5">
               <p className="nums text-4xl font-light" data-testid="live-price">
@@ -259,9 +188,14 @@ export function Configurator({ product }: { product: Motorcycle }) {
                 <Button variant="outline" className="h-12 rounded-full border-white/20 px-6" onClick={() => shop.toggleWish(product.slug)}>
                   {wished ? "Na lista" : "Lista de desejos"}
                 </Button>
-                <Link href={`/test-ride?modelo=${product.slug}`} className={cn(buttonVariants({ variant: "outline" }), "h-12 rounded-full border-white/20 px-6")}>
-                  Test ride
-                </Link>
+                <a
+                  href={whatsappHref(`Olá, quero falar sobre a ${product.name}.`)}
+                  className={cn(buttonVariants({ variant: "outline" }), "h-12 rounded-full border-white/20 px-6")}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  WhatsApp
+                </a>
               </div>
             </div>
           ) : (
@@ -269,16 +203,6 @@ export function Configurator({ product }: { product: Motorcycle }) {
           )}
         </div>
       </div>
-
-      <section className="mx-auto max-w-6xl px-5 pb-16">
-        <h2 className="display text-5xl md:text-7xl">Ficha.</h2>
-        <dl className="mt-8 grid gap-px overflow-hidden rounded-[1.5rem] border border-white/10 bg-white/10 sm:grid-cols-2 lg:grid-cols-4">
-          <Spec label="Torque" value={`${product.torqueNm} Nm`} />
-          <Spec label="Peso" value={`${product.weightKg} kg`} />
-          <Spec label="Banco" value={`${product.seatHeightMm} mm`} />
-          <Spec label="Carga rápida" value={product.fastChargeMin ? `${product.fastChargeMin} min` : "Não nesta versão"} />
-        </dl>
-      </section>
 
       <section className="mx-auto grid max-w-6xl gap-8 px-5 pb-16 lg:grid-cols-2">
         <div>
@@ -338,11 +262,44 @@ export function Configurator({ product }: { product: Motorcycle }) {
   );
 }
 
-function Spec({ label, value }: { label: string; value: string }) {
+function SpecTable({ product }: { product: Motorcycle }) {
+  const rows: [string, string][] = [
+    ["Potência nominal", formatMeasure(product.powerNominalW, "W")],
+    ["Velocidade máx.", `${product.topSpeedKmh} km/h`],
+    [
+      "Bateria",
+      `${product.batteryKwh.toLocaleString("pt-BR")} kWh. Tensão, Ah e se é removível: não informado`,
+    ],
+    ["Largura", formatMeasure(product.widthCm, "cm")],
+    ["Entre-eixos", formatMeasure(product.wheelbaseCm, "cm")],
+    ["Peso", `${product.weightKg} kg`],
+    ["Altura do banco", `${product.seatHeightMm} mm`],
+    ["Tempo de carga", `${product.chargeHours} h`],
+    ["Autonomia declarada", `${product.rangeKm} km`],
+  ];
+
   return (
-    <div className="bg-[#101013] px-4 py-4">
-      <dt className="text-xs tracking-[0.14em] text-muted-foreground uppercase">{label}</dt>
-      <dd className="nums mt-1 text-lg">{value}</dd>
+    <div className="mt-6 lg:mt-0">
+      <h2 className="text-sm text-paper">Ficha</h2>
+      <table className="mt-3 w-full border-collapse text-left text-sm">
+        <thead className="text-muted-foreground">
+          <tr className="border-b border-white/10">
+            <th className="py-2 pr-4 font-normal">Item</th>
+            <th className="py-2 font-normal">Valor</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map(([item, value]) => (
+            <tr key={item} className="border-b border-white/10">
+              <th className="py-3 pr-4 font-normal text-muted-foreground">{item}</th>
+              <td className="nums py-3 text-paper">{value}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p className="mt-3 text-xs text-muted-foreground">
+        A autonomia é o número publicado do modelo, só como dado. A potência nominal só entra quando o fabricante informa o valor em watts. A potência de pico não ocupa essa linha.
+      </p>
     </div>
   );
 }

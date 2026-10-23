@@ -8,7 +8,9 @@ Fundação: monorepo, domínio testado, API com checkout simulado, Compose, CI, 
 
 Vitrine em seis etapas empilhadas, sem merge: fundação multimarca, configurador com bateria e economia, checkout com cupom e sandbox, mapa, WhatsApp e troca, conteúdo (guias, legislação, FAQ, serviço) e operação (admin ampliado, SEO, medição local, aviso de cookie em duas escolhas, Playwright extra e [guia de deploy](deploy.md)).
 
-A loja que essas etapas somam: home, catálogo com marca, galeria, configurador, comparador, quiz, calculadora, carrinho, checkout, conta sandbox, pedidos, desejos, financiamento, test ride, lojas, troca, guias, legislação, FAQ, serviço e admin em memória. Camada `lib/catalog.ts` e `lib/shop-api.ts`.
+A loja que essas etapas somam: home, catálogo com marca, galeria, configurador, comparador, quiz, calculadora, carrinho, checkout, conta sandbox, pedidos, desejos, financiamento, WhatsApp, troca, guias, legislação, FAQ, serviço e admin em memória. Camada `lib/catalog.ts` e `lib/shop-api.ts`.
+
+Em `feat/lume-autopropelidos`, a vitrine tirou o filtro Cidade da loja, a aba Lojas, o simulador de autonomia, os acessórios do configurador e o formulário de test ride. A ficha do modelo é uma tabela ao lado do preço. A comparação com gasolina ficou.
 
 ## MVP-a — cobrar de verdade
 

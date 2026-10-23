@@ -25,7 +25,7 @@ export const metadata: Metadata = {
     template: "%s · LUME",
   },
   description:
-    "Motos e mobiletes elétricas para o Brasil. 21x sem juros no cartão, 5% no Pix, frete por CEP e test ride nas lojas.",
+    "Motos e mobiletes elétricas para o Brasil. 21x sem juros no cartão, 5% no Pix, frete por CEP e conversa no WhatsApp.",
   openGraph: {
     locale: "pt_BR",
     siteName: "LUME",
@@ -56,8 +56,6 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <SiteFooter />
           <Suspense fallback={null}>
             <StickyTestRide />
-          </Suspense>
-          <Suspense fallback={null}>
             <WhatsAppButton />
           </Suspense>
           <CookieNotice />
