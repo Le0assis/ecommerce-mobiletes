@@ -43,6 +43,7 @@ export type CatalogProduct = {
   basePriceCents: number;
   status: ProductStatus;
   isSample: boolean;
+  isEnabled: boolean;
   createdAt: string;
   updatedAt: string;
   specs: SampleSpec;
@@ -99,6 +100,7 @@ export type ProductDraft = {
   basePriceCents: number;
   status?: ProductStatus;
   isSample?: boolean;
+  isEnabled?: boolean;
   specs?: Partial<SampleSpec>;
 };
 
@@ -180,6 +182,7 @@ export function createCatalog(options: { now?: () => Date; bannerOverrides?: Map
       basePriceCents: item.basePriceCents,
       status: "ativo",
       isSample: true,
+      isEnabled: true,
       createdAt: moment,
       updatedAt: moment,
       specs: { ...item.specs },
@@ -214,6 +217,10 @@ export function createCatalog(options: { now?: () => Date; bannerOverrides?: Map
     return product;
   }
 
+  function listedPublicly(item: CatalogProduct) {
+    return item.status === "ativo" && item.isEnabled;
+  }
+
   function present(product: CatalogProduct) {
     const ownDamages = [...damages.values()].filter((item) => item.productId === product.id);
     const autopropelido = autopropelidoBadge(product.specs);
@@ -236,7 +243,7 @@ export function createCatalog(options: { now?: () => Date; bannerOverrides?: Map
       return product ? present(product) : null;
     },
     publicBySlug(slug: string) {
-      const product = [...products.values()].find((item) => item.slug === slug && item.status === "ativo");
+      const product = [...products.values()].find((item) => item.slug === slug && listedPublicly(item));
       if (!product) return null;
       const view = present(product);
       return {
@@ -249,7 +256,7 @@ export function createCatalog(options: { now?: () => Date; bannerOverrides?: Map
       const needle = fold(input.q?.trim() ?? "");
       const brand = fold(input.brand?.trim() ?? "");
       return [...products.values()]
-        .filter((item) => item.status === "ativo")
+        .filter((item) => listedPublicly(item))
         .filter((item) => (input.category ? item.category === input.category : true))
         .filter((item) => (brand ? fold(item.brand) === brand : true))
         .filter((item) => (needle ? fold(`${item.name} ${item.brand} ${item.tagline}`).includes(needle) : true))
@@ -273,6 +280,7 @@ export function createCatalog(options: { now?: () => Date; bannerOverrides?: Map
         basePriceCents: draft.basePriceCents,
         status: draft.status ?? "rascunho",
         isSample: draft.isSample ?? true,
+        isEnabled: draft.isEnabled ?? true,
         createdAt: moment,
         updatedAt: moment,
         specs: { ...emptySpecs(), ...draft.specs },

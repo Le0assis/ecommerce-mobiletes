@@ -306,6 +306,32 @@ describe("API de commerce", () => {
     expect(sportSlugs).not.toContain("pico");
   });
 
+  it("esconde da vitrine o produto ativo que está desabilitado", async () => {
+    const headers = { "content-type": "application/json", "x-admin-token": "dev-admin-token" };
+    const created = await app.request("/v1/admin/products", {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        slug: "desligado",
+        name: "Desligado",
+        brand: "LUME",
+        category: "scooter",
+        style: "retro",
+        tagline: "Fora da vitrine.",
+        description: "Ativo no editorial e desabilitado na listagem.",
+        basePriceCents: 100_000,
+        status: "ativo",
+        isEnabled: false,
+      }),
+    });
+    expect(created.status).toBe(200);
+    const list = await app.request("/v1/products");
+    const listed = await list.json();
+    expect(listed.products.some((item: { slug: string }) => item.slug === "desligado")).toBe(false);
+    const page = await app.request("/v1/products/desligado");
+    expect(page.status).toBe(404);
+  });
+
   it("entrega banners ativos e a recomendação do quiz", async () => {
     const banners = await app.request("/v1/banners");
     expect(banners.status).toBe(200);

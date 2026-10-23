@@ -37,6 +37,8 @@ export const products = pgTable(
     status: text("status").notNull().default("rascunho"),
     /** Ficha e preço de exemplo, até o fabricante confirmar. A vitrine mostra a faixa. */
     isSample: boolean("is_sample").notNull().default(false),
+    /** Independente do status editorial. A listagem pública só mostra o que está habilitado. */
+    isEnabled: boolean("is_enabled").notNull().default(true),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -46,6 +48,7 @@ export const products = pgTable(
     index("products_brand_idx").on(table.brand),
     index("products_style_idx").on(table.style),
     index("products_is_sample_idx").on(table.isSample),
+    index("products_is_enabled_idx").on(table.isEnabled),
     index("products_base_price_cents_idx").on(table.basePriceCents),
     index("products_created_at_idx").on(table.createdAt),
     check("products_base_price_cents_non_negative", sql`${table.basePriceCents} >= 0`),
@@ -83,19 +86,37 @@ export const productSpecs = pgTable(
   },
   (table) => [
     check(
-      "product_specs_measures_non_negative",
-      sql`${table.powerNominalW} is null or ${table.powerNominalW} >= 0`,
+      "product_specs_power_nominal_w_bounds",
+      sql`${table.powerNominalW} is null or (${table.powerNominalW} >= 0 and ${table.powerNominalW} <= 20000)`,
     ),
-    check("product_specs_peak_non_negative", sql`${table.powerPeakW} is null or ${table.powerPeakW} >= 0`),
-    check("product_specs_speed_non_negative", sql`${table.topSpeedKmh} is null or ${table.topSpeedKmh} >= 0`),
-    check("product_specs_width_non_negative", sql`${table.widthCm} is null or ${table.widthCm} >= 0`),
-    check("product_specs_wheelbase_non_negative", sql`${table.wheelbaseCm} is null or ${table.wheelbaseCm} >= 0`),
-    check("product_specs_weight_non_negative", sql`${table.weightKg} is null or ${table.weightKg} >= 0`),
-    check("product_specs_seat_non_negative", sql`${table.seatHeightMm} is null or ${table.seatHeightMm} >= 0`),
-    check("product_specs_battery_v_non_negative", sql`${table.batteryV} is null or ${table.batteryV} >= 0`),
-    check("product_specs_battery_ah_non_negative", sql`${table.batteryAh} is null or ${table.batteryAh} >= 0`),
-    check("product_specs_charge_non_negative", sql`${table.chargeHours} is null or ${table.chargeHours} >= 0`),
-    check("product_specs_range_non_negative", sql`${table.rangeKmDeclared} is null or ${table.rangeKmDeclared} >= 0`),
+    check(
+      "product_specs_power_peak_w_bounds",
+      sql`${table.powerPeakW} is null or (${table.powerPeakW} >= 0 and ${table.powerPeakW} <= 20000)`,
+    ),
+    check(
+      "product_specs_top_speed_kmh_bounds",
+      sql`${table.topSpeedKmh} is null or (${table.topSpeedKmh} >= 0 and ${table.topSpeedKmh} <= 150)`,
+    ),
+    check("product_specs_width_cm_bounds", sql`${table.widthCm} is null or (${table.widthCm} >= 0 and ${table.widthCm} <= 300)`),
+    check(
+      "product_specs_wheelbase_cm_bounds",
+      sql`${table.wheelbaseCm} is null or (${table.wheelbaseCm} >= 0 and ${table.wheelbaseCm} <= 400)`,
+    ),
+    check("product_specs_weight_kg_bounds", sql`${table.weightKg} is null or (${table.weightKg} >= 0 and ${table.weightKg} <= 1000)`),
+    check(
+      "product_specs_seat_height_mm_bounds",
+      sql`${table.seatHeightMm} is null or (${table.seatHeightMm} >= 0 and ${table.seatHeightMm} <= 1500)`,
+    ),
+    check("product_specs_battery_v_bounds", sql`${table.batteryV} is null or (${table.batteryV} >= 0 and ${table.batteryV} <= 200)`),
+    check("product_specs_battery_ah_bounds", sql`${table.batteryAh} is null or (${table.batteryAh} >= 0 and ${table.batteryAh} <= 500)`),
+    check(
+      "product_specs_charge_hours_bounds",
+      sql`${table.chargeHours} is null or (${table.chargeHours} >= 0 and ${table.chargeHours} <= 48)`,
+    ),
+    check(
+      "product_specs_range_km_declared_bounds",
+      sql`${table.rangeKmDeclared} is null or (${table.rangeKmDeclared} >= 0 and ${table.rangeKmDeclared} <= 1000)`,
+    ),
   ],
 );
 

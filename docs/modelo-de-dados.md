@@ -79,4 +79,6 @@ Uma avaria é uma unidade: várias linhas no mesmo produto ou variante são vár
 
 Em `0001`, produto que já existia recebe `brand`, `style`, `tagline` e `description` vazios, e acessório que já existia recebe `slug` igual ao `id` e `kind` vazio. Essas colunas entram nullable, o backfill roda, e só então ficam `NOT NULL`. `stock`, `status`, `is_sample` e os timestamps já nasciam com default. `0002` só acrescenta `NOT NULL` com default (`subtitle`, `position`). `0003` não acrescenta coluna.
 
+`products.is_enabled` é `boolean NOT NULL DEFAULT true`, independente de `status`. A listagem pública (`status = ativo`) também exige `is_enabled`. A migration `0004_products_habilitacao_ficha` cria a coluna e o índice `products_is_enabled_idx` com `IF NOT EXISTS`, e troca os CHECKs de `product_specs` pelos tetos de `productSpecsBody` (`<= 20000` W, `150` km/h, `300` cm, `400` cm, `1000` kg, `1500` mm, `200` V, `500` Ah, `48` h, `1000` km), ainda aceitando `NULL` e `>= 0`. Cada CHECK faz `DROP CONSTRAINT IF EXISTS` antes de nascer de novo.
+
 O CRUD de `/v1/admin` desta etapa guarda produtos, variantes, fotos, acessórios, avarias e banners na memória do processo, com a mesma semente das 8 scooters. Não escreve no Postgres. O checkout continua no catálogo de `@lume/domain`.

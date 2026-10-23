@@ -178,6 +178,7 @@ export const adminProductBody = z.object({
   basePriceCents: z.number().int().nonnegative(),
   status: z.enum(["rascunho", "ativo", "arquivado"]).optional(),
   isSample: z.boolean().optional(),
+  isEnabled: z.boolean().optional(),
   specs: productSpecsBody.optional(),
   accessories: z
     .array(z.object({ accessoryId: z.string().min(1), recommended: z.boolean().default(false) }))
