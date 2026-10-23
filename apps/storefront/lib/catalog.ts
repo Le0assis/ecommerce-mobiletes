@@ -10,7 +10,10 @@
 import { motorcycles, type Motorcycle } from "@lume/domain";
 
 export {
+  AUTOPROPELIDO_NOTICE,
   accessoriesFor,
+  autopropelidoBadge,
+  specsForAutopropelido,
   amountForMethod,
   applyDiscount,
   banners,

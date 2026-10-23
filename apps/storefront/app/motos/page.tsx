@@ -1,6 +1,8 @@
 import { CategorySearch } from "@/components/category-search";
 import { ProductCard } from "@/components/product-card";
-import { filterShowroom, isCatalogOrder, sortProducts } from "@/lib/catalog";
+import { catalogHasSample, SampleBanner } from "@/components/sample-banner";
+import { CityRulesNotice } from "@/components/self-propelled-seal";
+import { AUTOPROPELIDO_NOTICE, filterShowroom, isCatalogOrder, sortProducts } from "@/lib/catalog";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -32,6 +34,10 @@ async function Catalog({ searchParams }: PageProps<"/motos">) {
       <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Catálogo</p>
       <h1 className="display mt-3 text-6xl md:text-8xl">A grade.</h1>
       <p className="mt-4 max-w-xl text-muted-foreground">LUME e três marcas parceiras de demonstração. Nenhuma delas é um fabricante real.</p>
+      <SampleBanner show={catalogHasSample(products)} />
+      <div className="mt-3">
+        <CityRulesNotice text={AUTOPROPELIDO_NOTICE} />
+      </div>
       <div className="mt-8">
         <CategorySearch category={category} q={q} order={order} brand={brand} />
       </div>

@@ -30,6 +30,8 @@ O 360° (`components/bike-viewer.tsx`) só monta no clique. `html[data-configura
 
 A ficha é uma tabela de duas colunas (Item / Valor) na coluna da galeria, ao lado do card de preço. No celular ela fica depois do preço. Potência nominal lê `powerNominalW`. Sem esse campo, a célula diz “não informado”: `powerKw` é pico e não entra nessa linha. Largura e entre-eixos usam `widthCm` e `wheelbaseCm` quando existem. A autonomia é só o número publicado. O simulador saiu da página. `POST /v1/range` também saiu da API. `estimateRange` continua no domínio, no backup `backup/lume-versao-completa` para a versão anterior. A comparação com gasolina (`SavingsCalculator`) fica.
 
+O selo “Autopropelido, sem CNH” usa `autopropelidoBadge` do domínio. Só aparece com os quatro limites da CONTRAN 996/2023. Não use `registrationClass` para ligá-lo. O aviso “verifique as regras da sua cidade” aponta para `/legislacao` e acompanha o selo; na home e no catálogo o aviso aparece mesmo sem selo. `isSample: true` mostra a faixa “Dado de exemplo”. O catálogo que a vitrine lê hoje ainda é o de `@lume/domain`, então a faixa fica oculta até um modelo vir com esse campo. O seed de exemplo está no Postgres e ainda não alimenta `GET /v1/products`.
+
 Parcelas de 1, 6, 12 e 21: `InstallmentTable` com `compact`. A parcela de 21 continua escrita por extenso. O botão de conversa usa `whatsappHref` em `lib/whatsapp.ts`.
 
 Reviews publicados vêm de `reviewsFor`. O formulário posta em `/v1/reviews`. Se a API não responder, `submitReview` guarda o texto em `lume-reviews-pending` e a página mostra “pendente · só neste navegador”. Não publique relato sem moderação. Não use nome de pessoa.

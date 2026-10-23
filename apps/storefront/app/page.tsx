@@ -1,5 +1,8 @@
 import { CategorySearch } from "@/components/category-search";
 import { Hero } from "@/components/hero";
+import { catalogHasSample, SampleBanner } from "@/components/sample-banner";
+import { CityRulesNotice } from "@/components/self-propelled-seal";
+import { AUTOPROPELIDO_NOTICE } from "@/lib/catalog";
 import { ProductCard } from "@/components/product-card";
 import { TrustRow } from "@/components/trust-row";
 import { buttonVariants } from "@/components/ui/button";
@@ -15,6 +18,7 @@ export default function HomePage() {
 
   return (
     <>
+      <SampleBanner show={catalogHasSample()} clearNav />
       <Hero
         name={apex.name}
         speed={apex.topSpeedKmh}
@@ -24,6 +28,9 @@ export default function HomePage() {
       />
       <div className="relative z-10 mx-auto -mt-8 max-w-6xl px-5">
         <CategorySearch />
+        <div className="mt-4 px-2">
+          <CityRulesNotice text={AUTOPROPELIDO_NOTICE} />
+        </div>
       </div>
       <TrustRow />
       <section className="relative mt-16 overflow-hidden border-y border-white/10 bg-[#08080a]">

@@ -1,4 +1,6 @@
 import { BikeSvg } from "@/components/bike-svg";
+import { productIsSample } from "@/components/sample-banner";
+import { SelfPropelledSeal } from "@/components/self-propelled-seal";
 import { WishToggle } from "@/components/wish-toggle";
 import { buttonVariants } from "@/components/ui/button";
 import { categoryLabel, configurePrice, formatBRL, installmentByCount, type Motorcycle } from "@/lib/catalog";
@@ -22,6 +24,8 @@ export function ProductCard({ product }: { product: Motorcycle }) {
       <Link href={`/motos/${product.slug}`} className="mt-3 block">
         <BikeSvg variant={product.category} color={color.hex} title={product.name} className="h-48 w-full" />
         <h3 className="display mt-2 text-5xl">{product.name.replace("LUME ", "")}</h3>
+        <SelfPropelledSeal product={product} />
+        {productIsSample(product) ? <p className="mt-2 text-xs text-muted-foreground">Dado de exemplo</p> : null}
         <p className="mt-2 text-sm text-muted-foreground">{product.tagline}</p>
       </Link>
       <dl className="nums mt-5 grid grid-cols-2 gap-3 text-sm">

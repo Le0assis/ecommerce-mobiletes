@@ -19,6 +19,8 @@ import {
   reviewsFor,
   type Motorcycle,
 } from "@/lib/catalog";
+import { productIsSample, SampleBanner } from "@/components/sample-banner";
+import { SelfPropelledSeal } from "@/components/self-propelled-seal";
 import { whatsappHref } from "@/lib/whatsapp";
 import { cn } from "cn";
 import dynamic from "next/dynamic";
@@ -77,7 +79,8 @@ export function Configurator({ product }: { product: Motorcycle }) {
 
   return (
     <div className="pb-28 md:pb-0">
-      <div className="mx-auto grid max-w-6xl gap-10 px-5 pt-28 pb-16 lg:grid-cols-[1.15fr_0.85fr] lg:items-start">
+      <SampleBanner show={productIsSample(product)} clearNav />
+      <div className={`mx-auto grid max-w-6xl gap-10 px-5 pb-16 lg:grid-cols-[1.15fr_0.85fr] lg:items-start ${productIsSample(product) ? "pt-8" : "pt-28"}`}>
         <div className="contents lg:block lg:space-y-6">
           <div className="relative order-1 min-h-[24rem] overflow-hidden rounded-[2rem] border border-white/10 bg-[#101013]">
             {spin && color ? (
@@ -107,6 +110,7 @@ export function Configurator({ product }: { product: Motorcycle }) {
             {product.brand} · {product.tagline}
           </p>
           <h1 className="display mt-3 text-7xl">{product.name.replace("LUME ", "")}</h1>
+          <SelfPropelledSeal product={product} notice />
           <p className="nums mt-6">
             <span className="display block text-6xl">{product.topSpeedKmh}</span>
             <span className="text-sm text-muted-foreground">km/h de velocidade máxima</span>
