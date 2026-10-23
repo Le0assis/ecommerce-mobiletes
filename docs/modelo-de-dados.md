@@ -50,7 +50,7 @@ A tabela `fiscal_documents` existe com status `nao_emitida`. Não há emissão.
 
 ## Postgres do catálogo autopropelido
 
-Migration `apps/commerce/drizzle/0001_autopropelidos_catalog.sql`. Dinheiro continua em centavos inteiros. A vitrine hoje chama `autopropelidoBadge` no catálogo de código. No Postgres, os mesmos quatro campos ficam em `product_specs`: potência nominal até 1.000 W, 32 km/h, largura até 70 cm e entre-eixos até 130 cm. Sem um deles, o selo fica oculto.
+Migration `apps/commerce/drizzle/0001_autopropelidos_catalog.sql`. Dinheiro continua em centavos inteiros. A vitrine hoje chama `autopropelidoBadge` no catálogo de código. No Postgres, os mesmos quatro campos ficam em `product_specs`: potência nominal até 1.000 W, 32 km/h, largura até 70 cm e entre-eixos até 130 cm. Sem um deles, o selo fica oculto. Os `CHECK` da tabela só exigem medida `>= 0` ou `null`. O teto do `PATCH` (20000 W, 150 km/h, 300 cm, 400 cm, 1000 kg, 1500 mm, 200 V, 500 Ah, 48 h, 1000 km) está em `productSpecsBody`, não nesses checks.
 
 | Tabela | Papel |
 | --- | --- |

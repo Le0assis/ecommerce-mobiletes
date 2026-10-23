@@ -104,7 +104,7 @@ Depois do sucesso, `rememberOrder` grava o código e `clear` esvazia o carrinho.
 
 O cadastro novo lê `GET /v1/admin/products`, `/accessories`, `/damages` e `/banners`. A lista traz ativo, rascunho ou arquivado, exemplo ou confirmado, e o estoque somado das variantes. Criar é `POST /v1/admin/products`. Duplicar é `POST /v1/admin/products/:id/duplicate`. Arquivar é `DELETE` e não apaga a linha.
 
-- Abas: Dados, Ficha, Fotos, Variantes, Acessórios e Avarias. A ficha manda `powerNominalW`. Não copia pico para a nominal. O selo não tem checkbox. Categoria só scooter, mobilete ou citycoco. Salvar a ficha confirma com “Ficha salva.” Medida aceita decimal com ponto ou vírgula (`32.5` e `32,5`).
+- Abas: Dados, Ficha, Fotos, Variantes, Acessórios e Avarias. A ficha manda `powerNominalW`. Não copia pico para a nominal. O selo não tem checkbox. Categoria só scooter, mobilete ou citycoco. Salvar a ficha confirma com “Ficha salva.” Medida aceita decimal com ponto ou vírgula (`32.5` e `32,5`). Negativo avisa “O valor não pode ser negativo”. Acima do teto, a mensagem do campo vem de `SPEC_LIMITS` em `productSpecsBody`.
 - Fotos: JPG, PNG ou WebP, até 5 MB, pelo cliente do Blob em `POST /v1/admin/uploads`. O token de escrita não entra no browser. Sem `BLOB_READ_WRITE_TOKEN` o envio avisa e para. A ordem é `PATCH /v1/admin/products/:id/images` com `{ images: [{ id, position, isCover }] }`. A primeira é a capa.
 - Variante: `POST /v1/admin/products/:id/variants`.
 - Acessório: `POST /v1/admin/accessories`. A compatibilidade grava `{ accessories: [{ accessoryId, recommended }] }` no produto.

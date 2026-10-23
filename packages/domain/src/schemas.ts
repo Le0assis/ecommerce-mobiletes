@@ -123,23 +123,45 @@ export const authVerifyBody = z.object({
   code: z.string().trim().min(4).max(40),
 });
 
-/** Medida da ficha. Aceita decimal (32.5). Vazio chega como null. */
-const nullableMeasure = z.number().nonnegative().nullable();
+/** Texto do 400 quando a medida da ficha é negativa. */
+export const NEGATIVE_MEASURE_MESSAGE = "O valor não pode ser negativo";
+
+/** Tetos da ficha. Zero entra. Vazio chega como null. Decimal entra (32.5). */
+export const SPEC_LIMITS = {
+  powerNominalW: { max: 20_000, maxMessage: "A potência nominal vai até 20000 W." },
+  powerPeakW: { max: 20_000, maxMessage: "A potência de pico vai até 20000 W." },
+  topSpeedKmh: { max: 150, maxMessage: "A velocidade vai até 150 km/h." },
+  widthCm: { max: 300, maxMessage: "A largura vai até 300 cm." },
+  wheelbaseCm: { max: 400, maxMessage: "O entre-eixos vai até 400 cm." },
+  weightKg: { max: 1_000, maxMessage: "O peso vai até 1000 kg." },
+  seatHeightMm: { max: 1_500, maxMessage: "A altura do banco vai até 1500 mm." },
+  batteryV: { max: 200, maxMessage: "A bateria vai até 200 V." },
+  batteryAh: { max: 500, maxMessage: "A bateria vai até 500 Ah." },
+  chargeHours: { max: 48, maxMessage: "A carga vai até 48 h." },
+  rangeKmDeclared: { max: 1_000, maxMessage: "A autonomia declarada vai até 1000 km." },
+} as const;
+
+export type SpecField = keyof typeof SPEC_LIMITS;
+
+function boundedMeasure(field: SpecField) {
+  const limit = SPEC_LIMITS[field];
+  return z.number().min(0, NEGATIVE_MEASURE_MESSAGE).max(limit.max, limit.maxMessage).nullable();
+}
 
 export const productSpecsBody = z.object({
-  powerNominalW: nullableMeasure.optional(),
-  powerPeakW: nullableMeasure.optional(),
-  topSpeedKmh: nullableMeasure.optional(),
-  widthCm: nullableMeasure.optional(),
-  wheelbaseCm: nullableMeasure.optional(),
-  weightKg: nullableMeasure.optional(),
-  seatHeightMm: nullableMeasure.optional(),
-  batteryV: nullableMeasure.optional(),
-  batteryAh: nullableMeasure.optional(),
+  powerNominalW: boundedMeasure("powerNominalW").optional(),
+  powerPeakW: boundedMeasure("powerPeakW").optional(),
+  topSpeedKmh: boundedMeasure("topSpeedKmh").optional(),
+  widthCm: boundedMeasure("widthCm").optional(),
+  wheelbaseCm: boundedMeasure("wheelbaseCm").optional(),
+  weightKg: boundedMeasure("weightKg").optional(),
+  seatHeightMm: boundedMeasure("seatHeightMm").optional(),
+  batteryV: boundedMeasure("batteryV").optional(),
+  batteryAh: boundedMeasure("batteryAh").optional(),
   batteryChem: z.string().trim().max(40).nullable().optional(),
   batteryRemovable: z.boolean().nullable().optional(),
-  chargeHours: nullableMeasure.optional(),
-  rangeKmDeclared: nullableMeasure.optional(),
+  chargeHours: boundedMeasure("chargeHours").optional(),
+  rangeKmDeclared: boundedMeasure("rangeKmDeclared").optional(),
   hasSpeedLimiter: z.boolean().nullable().optional(),
   hasBell: z.boolean().nullable().optional(),
   hasLights: z.boolean().nullable().optional(),

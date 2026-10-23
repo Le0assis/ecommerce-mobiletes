@@ -1,6 +1,7 @@
 "use client";
 
 import { BikeSvg } from "@/components/bike-svg";
+import { CatalogPhoto } from "@/components/catalog-photo";
 import type { Category, StoreImage } from "@/lib/catalog";
 import { useState } from "react";
 
@@ -32,7 +33,7 @@ export function ProductGallery({
     return (
       <div>
         <div className="relative grid h-[28rem] place-items-center overflow-hidden">
-          <img src={current.url} alt={current.alt || name} className="h-full w-full object-contain" />
+          <CatalogPhoto src={current.url} alt={current.alt || name} className="object-contain" sizes="(min-width: 1024px) 50vw, 100vw" />
           {photos.length > 1 ? (
             <div className="absolute bottom-4 left-4 flex gap-2" role="tablist" aria-label="Fotos">
               {photos.map((item, index) => (

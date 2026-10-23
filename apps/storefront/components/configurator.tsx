@@ -1,5 +1,6 @@
 "use client";
 
+import { CatalogPhoto } from "@/components/catalog-photo";
 import { ProductGallery } from "@/components/product-gallery";
 import { SavingsCalculator } from "@/components/savings-calculator";
 import { InstallmentTable } from "@/components/installment-table";
@@ -358,7 +359,9 @@ function DamageList({ product }: { product: StoreProduct }) {
             {damage.images.length > 0 ? (
               <div className="mt-3 flex gap-2 overflow-x-auto">
                 {damage.images.map((image) => (
-                  <img key={image.id} src={image.url} alt="" className="h-20 w-28 rounded-xl object-cover" />
+                  <span key={image.id} className="relative block h-20 w-28 shrink-0">
+                    <CatalogPhoto src={image.url} alt="" className="rounded-xl object-cover" sizes="112px" />
+                  </span>
                 ))}
               </div>
             ) : null}

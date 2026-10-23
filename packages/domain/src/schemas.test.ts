@@ -18,8 +18,18 @@ describe("URL pública", () => {
     }
   });
 
-  it("aceita decimal na ficha e recusa medida negativa", () => {
+  it("aceita decimal na ficha e recusa medida negativa ou acima do teto", () => {
+    expect(adminProductPatchBody.safeParse({ specs: { topSpeedKmh: 150, widthCm: 70.5 } }).success).toBe(true);
     expect(adminProductPatchBody.safeParse({ specs: { topSpeedKmh: 32.5, widthCm: 70.5 } }).success).toBe(true);
-    expect(adminProductPatchBody.safeParse({ specs: { topSpeedKmh: -1 } }).success).toBe(false);
+    expect(adminProductPatchBody.safeParse({ specs: { powerNominalW: 20_000, powerPeakW: 20_000 } }).success).toBe(true);
+    const negative = adminProductPatchBody.safeParse({ specs: { topSpeedKmh: -1 } });
+    expect(negative.success).toBe(false);
+    if (!negative.success) expect(negative.error.issues[0]?.message).toBe("O valor não pode ser negativo");
+    const huge = adminProductPatchBody.safeParse({ specs: { topSpeedKmh: 99_999_999_999 } });
+    expect(huge.success).toBe(false);
+    if (!huge.success) expect(huge.error.issues[0]?.message).toBe("A velocidade vai até 150 km/h.");
+    expect(adminProductPatchBody.safeParse({ specs: { topSpeedKmh: 150.1 } }).success).toBe(false);
+    expect(adminProductPatchBody.safeParse({ specs: { weightKg: 1000 } }).success).toBe(true);
+    expect(adminProductPatchBody.safeParse({ specs: { weightKg: 1000.1 } }).success).toBe(false);
   });
 });

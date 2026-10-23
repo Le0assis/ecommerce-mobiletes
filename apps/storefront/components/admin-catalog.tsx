@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { adminError, adminFetch, uploadAdminImage, type AdminResult } from "@/lib/admin-api";
 import { formatBRL } from "@/lib/catalog";
+import { NEGATIVE_MEASURE_MESSAGE, SPEC_LIMITS, type SpecField } from "@lume/domain";
 import { useEffect, useMemo, useState } from "react";
 
 const categories = ["scooter", "mobilete", "citycoco"] as const;
@@ -312,13 +313,20 @@ function parseMeasure(raw: string) {
   const trimmed = raw.trim().replace(/\s/g, "");
   if (!trimmed) return null;
   const normalized = trimmed.replace(",", ".");
-  if (!/^\d+(\.\d+)?$/.test(normalized)) return Number.NaN;
+  if (!/^-?\d+(\.\d+)?$/.test(normalized)) return Number.NaN;
   return Number(normalized);
+}
+
+function measureMessage(field: SpecField, value: number) {
+  if (value < 0) return NEGATIVE_MEASURE_MESSAGE;
+  const limit = SPEC_LIMITS[field];
+  if (value > limit.max) return limit.maxMessage;
+  return null;
 }
 
 function ProductSpecs({ product, onSave }: { product: AdminProduct; onSave: (body: unknown) => Promise<AdminResult<unknown>> }) {
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
-  const fields: ["powerNominalW" | "powerPeakW" | "topSpeedKmh" | "widthCm" | "wheelbaseCm" | "weightKg" | "seatHeightMm" | "batteryV" | "batteryAh" | "chargeHours" | "rangeKmDeclared", string][] = [
+  const fields: [SpecField, string][] = [
     ["powerNominalW", "Potência nominal (W)"],
     ["powerPeakW", "Potência de pico (W)"],
     ["topSpeedKmh", "Velocidade máx. (km/h)"],
@@ -338,11 +346,18 @@ function ProductSpecs({ product, onSave }: { product: AdminProduct; onSave: (bod
         event.preventDefault();
         const data = new FormData(event.currentTarget);
         const specs: Record<string, number | string | boolean | null> = {};
-        for (const [name] of fields) {
+        for (const [name, label] of fields) {
           const value = parseMeasure(String(data.get(name) ?? ""));
           if (Number.isNaN(value)) {
-            setMessage({ ok: false, text: "Use um número, com ponto ou vírgula." });
+            setMessage({ ok: false, text: `${label}: use um número, com ponto ou vírgula.` });
             return;
+          }
+          if (value != null) {
+            const invalid = measureMessage(name, value);
+            if (invalid) {
+              setMessage({ ok: false, text: `${label}: ${invalid}` });
+              return;
+            }
           }
           specs[name] = value;
         }

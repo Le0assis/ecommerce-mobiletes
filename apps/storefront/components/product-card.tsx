@@ -1,4 +1,5 @@
 import { BikeSvg } from "@/components/bike-svg";
+import { CatalogPhoto } from "@/components/catalog-photo";
 import { productIsSample } from "@/components/sample-banner";
 import { SelfPropelledSeal } from "@/components/self-propelled-seal";
 import { WishToggle } from "@/components/wish-toggle";
@@ -24,7 +25,9 @@ export function ProductCard({ product }: { product: StoreProduct }) {
       </div>
       <Link href={`/motos/${product.slug}`} className="mt-3 block">
         {cover ? (
-          <img src={cover.url} alt={cover.alt || product.name} className="h-48 w-full object-contain" />
+          <span className="relative block h-48 w-full">
+            <CatalogPhoto src={cover.url} alt={cover.alt || product.name} className="object-contain" sizes="(min-width: 1024px) 33vw, 100vw" />
+          </span>
         ) : (
           <BikeSvg variant={illustrationCategory(product.category)} color={color?.hex ?? "#f4f4f2"} title={product.name} className="h-48 w-full" />
         )}
