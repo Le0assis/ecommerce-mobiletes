@@ -10,9 +10,8 @@ Erro de domínio volta como JSON `{ error, message }` e o status adequado. A men
 
 | Método | Caminho | Resposta |
 | --- | --- | --- |
-| GET | `/v1/products` | `{ products }` do catálogo |
+| GET | `/v1/products` | `{ products }` do catálogo. Sem lista de lojas. |
 | GET | `/v1/products/:slug` | `{ product }` ou 404 |
-| GET | `/v1/dealers?cidade=` | `{ dealers }` filtrados |
 | GET | `/v1/reviews?produto=` | semente mais relatos pendentes do processo |
 | GET | `/v1/orders/:code` | `{ order }` ou 404. Código em maiúsculas |
 
@@ -25,8 +24,9 @@ Todos POST com JSON.
 | `/v1/pricing/configure` | `productId`, `colorId`, `accessoryIds` | A vitrine calcula no domínio e não precisa desta rota para pintar |
 | `/v1/pricing/installments` | `amountCents`, `max?` | Planos de 1 até `max` |
 | `/v1/shipping/quote` | `cep`, `weightKg` | Cotação |
-| `/v1/range` | `productId`, `speedKmh`, `extraWeightKg`, `mode` | Autonomia |
 | `/v1/quiz` | respostas do quiz | `{ recommendations: [{ slug, name, score, reasons }] }` |
+
+`POST /v1/range` saiu da API pública. A estimativa `estimateRange` continua em `@lume/domain` enquanto a vitrine ainda desenha o simulador; a seção some na vitrine, e o código antigo fica em `backup/lume-versao-completa`.
 
 ## Mutação
 
@@ -45,6 +45,8 @@ A resposta traz `order` recalculado e a frase de que nenhum pagamento foi ao Mer
 ## Admin
 
 Cabeçalho `x-admin-token`. Fora de produção, se `ADMIN_TOKEN` não existir, o token é `dev-admin-token`.
+
+`GET /v1/admin/dealers?cidade=` é a única leitura de lojas. A rota pública `/v1/dealers` não existe mais. A vitrine ainda importa `dealers` de `@lume/domain` até a aba Lojas sair.
 
 `GET /v1/admin/overview` estoque efetivo por cor, variantes de bateria, banners, cupons, títulos de guia, contagem de pedidos, test rides, trocas e serviços, e as listas recentes (pedido sem e-mail, troca sem telefone). Serviço gravado em `POST /v1/service-bookings` entra nessa memória.
 

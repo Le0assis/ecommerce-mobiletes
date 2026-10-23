@@ -11,7 +11,6 @@ import {
   checkoutBody,
   configureBody,
   configurePrice,
-  estimateRange,
   filterShowroom,
   getDealer,
   getMotorcycle,
@@ -20,7 +19,6 @@ import {
   installmentByCount,
   installmentsBody,
   motorcycles,
-  rangeBody,
   reviews,
   reviewBody,
   quizBody,
@@ -165,7 +163,6 @@ export function createApp(deps: CommerceDeps = {}) {
     });
     return c.json({
       products: result.products.map(serializeProduct),
-      dealers: result.dealers,
     });
   });
 
@@ -177,12 +174,6 @@ export function createApp(deps: CommerceDeps = {}) {
       accessories: accessories.filter((item) => product.accessoryIds.includes(item.id)),
       reviews: [...reviews, ...extraReviews].filter((item) => item.productSlug === product.slug),
     });
-  });
-
-  app.get("/v1/dealers", (c) => {
-    const city = c.req.query("cidade");
-    const result = filterShowroom({ city });
-    return c.json({ dealers: result.dealers });
   });
 
   app.get("/v1/reviews", (c) => {
@@ -200,20 +191,6 @@ export function createApp(deps: CommerceDeps = {}) {
   );
 
   app.post("/v1/shipping/quote", async (c) => read(c, shippingBody, (input) => quoteShipping(input.cep, input.weightKg)));
-
-  app.post("/v1/range", async (c) =>
-    read(c, rangeBody, (input) => {
-      const product = getMotorcycle(input.productId);
-      if (!product) throw new DomainError("produto_inexistente", "Modelo não encontrado.");
-      return estimateRange({
-        baseRangeKm: product.rangeKm,
-        speedKmh: input.speedKmh,
-        extraWeightKg: input.extraWeightKg,
-        mode: input.mode,
-        optimalSpeedKmh: product.optimalSpeedKmh,
-      });
-    }),
-  );
 
   app.post("/v1/quiz", async (c) =>
     read(c, quizBody, (input) => ({
@@ -417,6 +394,12 @@ export function createApp(deps: CommerceDeps = {}) {
     if (!email) return c.json({ error: "nao_autorizado", message: "Entre de novo com o código de sandbox." }, 401);
     const mine = [...orders.values()].filter((order) => order.customer.email.toLowerCase() === email);
     return c.json({ email, orders: mine });
+  });
+
+  app.get("/v1/admin/dealers", (c) => {
+    if (!authorized(c)) return c.json({ error: "nao_autorizado", message: "Token de admin inválido." }, 401);
+    const result = filterShowroom({ city: c.req.query("cidade") ?? undefined });
+    return c.json({ dealers: result.dealers });
   });
 
   app.get("/v1/admin/overview", (c) => {

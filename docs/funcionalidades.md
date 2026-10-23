@@ -28,7 +28,7 @@ Cor, bateria e acessório chamam `configurePrice`. Sem `batteryId`, vale o prime
 
 O 360° (`components/bike-viewer.tsx`) só monta no clique. `html[data-configurator=ready]` marca a hidratação. Com `prefers-reduced-motion`, o modelo não gira sozinho.
 
-Autonomia: `estimateRange`. O texto deixa claro que é estimativa. Parcelas de 1, 6, 12 e 21: `InstallmentTable` com `compact`. A parcela de 21 continua escrita por extenso.
+Autonomia: a vitrine ainda chama `estimateRange` no domínio. `POST /v1/range` não existe mais na API. A seção do simulador sai do configurador na etapa da vitrine; o código anterior fica em `backup/lume-versao-completa`. Parcelas de 1, 6, 12 e 21: `InstallmentTable` com `compact`. A parcela de 21 continua escrita por extenso.
 
 Reviews publicados vêm de `reviewsFor`. O formulário posta em `/v1/reviews`. Se a API não responder, `submitReview` guarda o texto em `lume-reviews-pending` e a página mostra “pendente · só neste navegador”. Não publique relato sem moderação. Não use nome de pessoa.
 
@@ -58,7 +58,7 @@ A loja precisa ter o slug em `testRideSlugs`. A confirmação humana é v1. O pr
 
 `app/lojas/page.tsx`, `components/locator-map.tsx`, `components/dealer-stories.tsx`.
 
-A projeção usa latitude e longitude num desenho do Brasil. A legenda diz que não é um mapa de tiles. O filtro por cidade usa a lista.
+A projeção usa latitude e longitude num desenho do Brasil. A legenda diz que não é um mapa de tiles. O filtro por cidade usa a lista do domínio. `GET /v1/dealers` saiu da API pública; a lista autenticada ficou em `GET /v1/admin/dealers`. A aba Lojas sai da vitrine nesta etapa.
 
 ## Carrinho
 

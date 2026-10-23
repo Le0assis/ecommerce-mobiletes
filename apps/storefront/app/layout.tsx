@@ -57,7 +57,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <Suspense fallback={null}>
             <StickyTestRide />
           </Suspense>
-          <WhatsAppButton />
+          <Suspense fallback={null}>
+            <WhatsAppButton />
+          </Suspense>
           <CookieNotice />
         </ShopProvider>
       </body>

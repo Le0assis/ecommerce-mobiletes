@@ -150,6 +150,33 @@ describe("API de commerce", () => {
     expect(listed.recentService.some((item: { productId: string }) => item.productId === "apex")).toBe(true);
   });
 
+  it("não publica lojas nem o simulador de autonomia", async () => {
+    const dealers = await app.request("/v1/dealers");
+    const dealersCity = await app.request("/v1/dealers?cidade=Sao%20Paulo");
+    const range = await app.request("/v1/range", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ productId: "apex", speedKmh: 40, extraWeightKg: 0, mode: "cidade" }),
+    });
+    expect(dealers.status).toBe(404);
+    expect(dealersCity.status).toBe(404);
+    expect(range.status).toBe(404);
+
+    const products = await app.request("/v1/products?categoria=mobilete&cidade=Sao%20Paulo");
+    const listed = await products.json();
+    expect(listed.dealers).toBeUndefined();
+    expect(listed.products.map((item: { slug: string }) => item.slug)).toContain("s");
+
+    const hidden = await app.request("/v1/admin/dealers");
+    expect(hidden.status).toBe(401);
+    const admin = await app.request("/v1/admin/dealers?cidade=Sao%20Paulo", {
+      headers: { "x-admin-token": "dev-admin-token" },
+    });
+    const body = await admin.json();
+    expect(admin.status).toBe(200);
+    expect(body.dealers.map((item: { id: string }) => item.id)).toEqual(["sp-vila-madalena"]);
+  });
+
   it("protege o admin", async () => {
     const denied = await app.request("/v1/admin/overview");
     expect(denied.status).toBe(401);
