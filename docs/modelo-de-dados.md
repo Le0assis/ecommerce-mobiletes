@@ -75,6 +75,8 @@ Migration `0003_catalogo_integridade`. Preço, delta, estoque, desconto de avari
 
 Apagar o produto apaga ficha, variantes, fotos, cores legadas, vínculos e avarias. Apagar a variante zera `variant_id` na foto e na avaria, e o registro continua no produto. Apagar a avaria apaga as fotos dela. Apagar o acessório apaga só o vínculo.
 
-Uma avaria é uma unidade: várias linhas no mesmo produto ou variante são várias unidades. `public` nasce falso. `resolved_at` nulo significa avaria aberta. O índice `damages_public_open_idx` cobre as abertas que podem aparecer no site. O banco não confere se a variante pertence ao mesmo produto; isso fica para o CRUD. Colunas obrigatórias (`NOT NULL`) já nascem nas migrations `0001` e `0002`. `image_url`, medidas desconhecidas da ficha, `battery_label`, `variant_id` e `resolved_at` continuam nulos.
+Uma avaria é uma unidade: várias linhas no mesmo produto ou variante são várias unidades. `public` nasce falso. `resolved_at` nulo significa avaria aberta. O índice `damages_public_open_idx` cobre as abertas que podem aparecer no site. O banco não confere se a variante pertence ao mesmo produto; isso fica para o CRUD. `image_url`, medidas desconhecidas da ficha, `battery_label`, `variant_id` e `resolved_at` continuam nulos.
+
+Em `0001`, produto que já existia recebe `brand`, `style`, `tagline` e `description` vazios, e acessório que já existia recebe `slug` igual ao `id` e `kind` vazio. Essas colunas entram nullable, o backfill roda, e só então ficam `NOT NULL`. `stock`, `status`, `is_sample` e os timestamps já nasciam com default. `0002` só acrescenta `NOT NULL` com default (`subtitle`, `position`). `0003` não acrescenta coluna.
 
 O CRUD de `/v1/admin` desta etapa guarda produtos, variantes, fotos, acessórios, avarias e banners na memória do processo, com a mesma semente das 8 scooters. Não escreve no Postgres. O checkout continua no catálogo de `@lume/domain`.

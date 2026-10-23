@@ -66,14 +66,26 @@ CREATE TABLE "product_variants" (
 	"active" boolean DEFAULT true NOT NULL
 );
 --> statement-breakpoint
-ALTER TABLE "accessories" ADD COLUMN "slug" text NOT NULL;--> statement-breakpoint
-ALTER TABLE "accessories" ADD COLUMN "kind" text NOT NULL;--> statement-breakpoint
+ALTER TABLE "accessories" ADD COLUMN "slug" text;--> statement-breakpoint
+UPDATE "accessories" SET "slug" = "id" WHERE "slug" IS NULL;--> statement-breakpoint
+ALTER TABLE "accessories" ALTER COLUMN "slug" SET NOT NULL;--> statement-breakpoint
+ALTER TABLE "accessories" ADD COLUMN "kind" text;--> statement-breakpoint
+UPDATE "accessories" SET "kind" = '' WHERE "kind" IS NULL;--> statement-breakpoint
+ALTER TABLE "accessories" ALTER COLUMN "kind" SET NOT NULL;--> statement-breakpoint
 ALTER TABLE "accessories" ADD COLUMN "stock" integer DEFAULT 0 NOT NULL;--> statement-breakpoint
 ALTER TABLE "accessories" ADD COLUMN "image_url" text;--> statement-breakpoint
-ALTER TABLE "products" ADD COLUMN "brand" text NOT NULL;--> statement-breakpoint
-ALTER TABLE "products" ADD COLUMN "style" text NOT NULL;--> statement-breakpoint
-ALTER TABLE "products" ADD COLUMN "tagline" text NOT NULL;--> statement-breakpoint
-ALTER TABLE "products" ADD COLUMN "description" text NOT NULL;--> statement-breakpoint
+ALTER TABLE "products" ADD COLUMN "brand" text;--> statement-breakpoint
+UPDATE "products" SET "brand" = '' WHERE "brand" IS NULL;--> statement-breakpoint
+ALTER TABLE "products" ALTER COLUMN "brand" SET NOT NULL;--> statement-breakpoint
+ALTER TABLE "products" ADD COLUMN "style" text;--> statement-breakpoint
+UPDATE "products" SET "style" = '' WHERE "style" IS NULL;--> statement-breakpoint
+ALTER TABLE "products" ALTER COLUMN "style" SET NOT NULL;--> statement-breakpoint
+ALTER TABLE "products" ADD COLUMN "tagline" text;--> statement-breakpoint
+UPDATE "products" SET "tagline" = '' WHERE "tagline" IS NULL;--> statement-breakpoint
+ALTER TABLE "products" ALTER COLUMN "tagline" SET NOT NULL;--> statement-breakpoint
+ALTER TABLE "products" ADD COLUMN "description" text;--> statement-breakpoint
+UPDATE "products" SET "description" = '' WHERE "description" IS NULL;--> statement-breakpoint
+ALTER TABLE "products" ALTER COLUMN "description" SET NOT NULL;--> statement-breakpoint
 ALTER TABLE "products" ADD COLUMN "status" text DEFAULT 'rascunho' NOT NULL;--> statement-breakpoint
 ALTER TABLE "products" ADD COLUMN "is_sample" boolean DEFAULT false NOT NULL;--> statement-breakpoint
 ALTER TABLE "products" ADD COLUMN "created_at" timestamp with time zone DEFAULT now() NOT NULL;--> statement-breakpoint
