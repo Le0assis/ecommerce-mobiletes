@@ -1,6 +1,6 @@
 # Modelo de dados
 
-O catálogo que a vitrine lê está em `packages/domain/src/catalog.ts`. O Postgres, quando ligado, espelha isso em `apps/commerce/src/db/schema.ts` e na migration `apps/commerce/drizzle/0000_bumpy_turbo.sql`. Os dois não estão sincronizados em tempo real.
+O catálogo que a vitrine lê está em `packages/domain/src/catalog.ts`. O Postgres em `apps/commerce/src/db/schema.ts` guarda pedidos e, desde a migration `0001_autopropelidos_catalog`, o catálogo de autopropelidos. A vitrine ainda não lê essas tabelas.
 
 ## Modelo (`Motorcycle`)
 
@@ -47,3 +47,22 @@ Review publicado não tem nome de pessoa, só cidade. Review novo nasce `pending
 ## Fiscal
 
 A tabela `fiscal_documents` existe com status `nao_emitida`. Não há emissão.
+
+## Postgres do catálogo autopropelido
+
+Migration `apps/commerce/drizzle/0001_autopropelidos_catalog.sql`. Dinheiro continua em centavos inteiros. A vitrine não calcula o selo: ele sai de `product_specs` quando potência nominal, velocidade máxima, largura e entre-eixos existem e cabem na CONTRAN 996/2023 (até 1.000 W, 32 km/h, 70 cm e 130 cm). Sem os quatro números, o selo fica oculto.
+
+| Tabela | Papel |
+| --- | --- |
+| `products` | `slug`, `brand`, `category` (`scooter`, `mobilete`, `citycoco`), `style`, `tagline`, `description`, `base_price_cents`, `status` (`rascunho`, `ativo`, `arquivado`), `is_sample`, `created_at`, `updated_at`. O peso mora em `product_specs`. `status` ocupa o lugar da antiga coluna `active`. |
+| `product_specs` | Uma ficha por produto. Medida desconhecida fica `null`, inclusive os booleanos de limitador, campainha e luz. |
+| `product_variants` | SKU, cor, rótulo de bateria, `price_delta_cents`, estoque e `active`. |
+| `product_images` | Foto com `url`, `alt`, `position`, `is_cover`. `variant_id` é opcional. |
+| `accessories` | Ganha `slug`, `kind`, `stock` e `image_url`. `kind` é texto aberto (`bau`, `cesta`, `cadeirinha`… ou o grupo já existente). |
+| `product_accessories` | Par produto–acessório e `recommended`. |
+| `damages` | Avaria por produto, com `variant_id` opcional, `severity`, `discount_cents`, `public` e `resolved_at`. |
+| `damage_images` | Foto da avaria, com `position`. |
+
+`product_colors` permanece da migration `0000`. O grão novo de cor e bateria é `product_variants`.
+
+O seed (`apps/commerce/src/db/seed.ts`) grava as 8 scooters de exemplo com `is_sample = true` e `status = ativo`. Rodar de novo atualiza essas linhas pela chave e não duplica. Estoque de exemplo é 0. Cor de exemplo é "A confirmar" (`#8a8a8a`): o plano não trouxe cor. Não há foto, nem avaria, nem vínculo em `product_accessories` — o plano não diz qual acessório cabe em qual modelo, e preço de acessório novo não se inventa. Os acessórios que já estavam no domínio continuam no seed, com `slug` igual ao `id`, `kind` igual ao grupo e estoque 0. Lojas e banners seguem o seed anterior.

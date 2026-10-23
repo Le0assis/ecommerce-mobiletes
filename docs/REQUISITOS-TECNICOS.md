@@ -272,6 +272,13 @@ erDiagram
   CUSTOMERS ||--o{ ADDRESSES : tem
   CUSTOMERS ||--o{ ORDERS : faz
   PRODUCTS ||--o{ PRODUCT_COLORS : pinta
+  PRODUCTS ||--o| PRODUCT_SPECS : ficha
+  PRODUCTS ||--o{ PRODUCT_VARIANTS : varia
+  PRODUCTS ||--o{ PRODUCT_IMAGES : ilustra
+  PRODUCTS ||--o{ PRODUCT_ACCESSORIES : combina
+  ACCESSORIES ||--o{ PRODUCT_ACCESSORIES : combina
+  PRODUCTS ||--o{ DAMAGES : avaria
+  DAMAGES ||--o{ DAMAGE_IMAGES : foto
   PRODUCTS ||--o{ ORDER_LINES : entra
   ORDERS ||--o| FISCAL_DOCUMENTS : "NF-e futura"
   DEALERS ||--o{ TEST_RIDE_BOOKINGS : recebe
@@ -281,7 +288,7 @@ erDiagram
 Tabelas em `apps/commerce/src/db/schema.ts` e no SQL `apps/commerce/drizzle/`:
 
 - `customers`, `addresses` — conta e CEP. CPF não está na coluna.
-- `products`, `product_colors`, `accessories` — espelho do catálogo.
+- `products`, `product_specs`, `product_variants`, `product_images`, `product_colors`, `accessories`, `product_accessories`, `damages`, `damage_images` — catálogo de autopropelidos. `product_colors` fica da migration inicial. O seed de exemplo marca `is_sample`. A vitrine ainda lê o catálogo do código.
 - `dealers` — loja.
 - `test_ride_bookings` — agendamento.
 - `orders` — cabeçalho, método, provedor, parcelas, totais e o payload da configuração em `jsonb`.

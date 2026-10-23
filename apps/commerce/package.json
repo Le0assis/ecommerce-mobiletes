@@ -8,6 +8,7 @@
     "start": "tsx src/index.ts",
     "lint": "eslint src",
     "typecheck": "tsc --noEmit",
+    "build": "tsc --noEmit",
     "test": "vitest run",
     "db:push": "drizzle-kit push",
     "db:generate": "drizzle-kit generate",

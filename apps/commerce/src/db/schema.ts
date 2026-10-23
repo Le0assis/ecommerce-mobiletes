@@ -1,4 +1,4 @@
-import { boolean, integer, jsonb, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import { boolean, integer, jsonb, pgTable, primaryKey, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 
 export const customers = pgTable("customers", {
   id: text("id").primaryKey(),
@@ -24,10 +24,44 @@ export const products = pgTable("products", {
   id: text("id").primaryKey(),
   slug: text("slug").notNull().unique(),
   name: text("name").notNull(),
+  brand: text("brand").notNull(),
   category: text("category").notNull(),
+  style: text("style").notNull(),
+  tagline: text("tagline").notNull(),
+  description: text("description").notNull(),
   basePriceCents: integer("base_price_cents").notNull(),
-  weightKg: integer("weight_kg").notNull(),
-  active: boolean("active").notNull().default(true),
+  /** rascunho, ativo ou arquivado. O produto sai de linha por arquivamento. */
+  status: text("status").notNull().default("rascunho"),
+  /** Ficha e preço de exemplo, até o fabricante confirmar. A vitrine mostra a faixa. */
+  isSample: boolean("is_sample").notNull().default(false),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/**
+ * Ficha do autopropelido. O selo não é coluna: só existe quando potência nominal,
+ * velocidade, largura e entre-eixos estão preenchidos e cabem na CONTRAN 996/2023.
+ */
+export const productSpecs = pgTable("product_specs", {
+  productId: text("product_id")
+    .primaryKey()
+    .references(() => products.id),
+  powerNominalW: integer("power_nominal_w"),
+  powerPeakW: integer("power_peak_w"),
+  topSpeedKmh: integer("top_speed_kmh"),
+  widthCm: integer("width_cm"),
+  wheelbaseCm: integer("wheelbase_cm"),
+  weightKg: integer("weight_kg"),
+  seatHeightMm: integer("seat_height_mm"),
+  batteryV: integer("battery_v"),
+  batteryAh: integer("battery_ah"),
+  batteryChem: text("battery_chem"),
+  batteryRemovable: boolean("battery_removable"),
+  chargeHours: integer("charge_hours"),
+  rangeKmDeclared: integer("range_km_declared"),
+  hasSpeedLimiter: boolean("has_speed_limiter"),
+  hasBell: boolean("has_bell"),
+  hasLights: boolean("has_lights"),
 });
 
 export const productColors = pgTable(
@@ -45,10 +79,79 @@ export const productColors = pgTable(
   (table) => [uniqueIndex("product_colors_pk").on(table.productId, table.colorId)],
 );
 
+export const productVariants = pgTable("product_variants", {
+  id: text("id").primaryKey(),
+  productId: text("product_id")
+    .notNull()
+    .references(() => products.id),
+  sku: text("sku").notNull(),
+  colorName: text("color_name").notNull(),
+  colorHex: text("color_hex").notNull(),
+  batteryLabel: text("battery_label"),
+  priceDeltaCents: integer("price_delta_cents").notNull().default(0),
+  stock: integer("stock").notNull().default(0),
+  active: boolean("active").notNull().default(true),
+});
+
+export const productImages = pgTable("product_images", {
+  id: text("id").primaryKey(),
+  productId: text("product_id")
+    .notNull()
+    .references(() => products.id),
+  variantId: text("variant_id").references(() => productVariants.id),
+  url: text("url").notNull(),
+  alt: text("alt").notNull().default(""),
+  position: integer("position").notNull().default(0),
+  isCover: boolean("is_cover").notNull().default(false),
+});
+
 export const accessories = pgTable("accessories", {
   id: text("id").primaryKey(),
+  slug: text("slug").notNull(),
   name: text("name").notNull(),
+  /** bau, cesta, cadeirinha, retrovisor, capacete, capa, suporte, gaiola, ou o grupo já cadastrado. */
+  kind: text("kind").notNull(),
   priceCents: integer("price_cents").notNull(),
+  stock: integer("stock").notNull().default(0),
+  imageUrl: text("image_url"),
+});
+
+export const productAccessories = pgTable(
+  "product_accessories",
+  {
+    productId: text("product_id")
+      .notNull()
+      .references(() => products.id),
+    accessoryId: text("accessory_id")
+      .notNull()
+      .references(() => accessories.id),
+    recommended: boolean("recommended").notNull().default(false),
+  },
+  (table) => [primaryKey({ columns: [table.productId, table.accessoryId] })],
+);
+
+export const damages = pgTable("damages", {
+  id: text("id").primaryKey(),
+  productId: text("product_id")
+    .notNull()
+    .references(() => products.id),
+  variantId: text("variant_id").references(() => productVariants.id),
+  description: text("description").notNull(),
+  /** leve, moderada ou grave. */
+  severity: text("severity").notNull(),
+  discountCents: integer("discount_cents").notNull().default(0),
+  isPublic: boolean("public").notNull().default(false),
+  resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const damageImages = pgTable("damage_images", {
+  id: text("id").primaryKey(),
+  damageId: text("damage_id")
+    .notNull()
+    .references(() => damages.id),
+  url: text("url").notNull(),
+  position: integer("position").notNull().default(0),
 });
 
 export const dealers = pgTable("dealers", {
