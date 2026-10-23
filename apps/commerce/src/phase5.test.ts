@@ -324,6 +324,47 @@ describe("fase 5: cadastro no Postgres", () => {
     });
   });
 
+  it("convive com a migration do DBA no nome is_enabled e nos tetos da ficha", async () => {
+    const side = await openTestDatabase();
+    try {
+      await applyMigrations(side.db, ["0005_product_specs_numeric.sql", "0004_products_habilitacao_ficha.sql"]);
+      await applyMigrations(side.db, ["0004_products_habilitacao_ficha.sql", "0005_product_specs_numeric.sql"]);
+      await seedCatalog(side.db);
+      const column = rowsOf(
+        await side.db.execute(sql`
+          select data_type, is_nullable, column_default
+          from information_schema.columns
+          where table_schema = 'public' and table_name = 'products' and column_name = 'is_enabled'
+        `),
+      );
+      expect(column).toHaveLength(1);
+      expect(column[0]?.data_type).toBe("boolean");
+      expect(column[0]?.is_nullable).toBe("NO");
+      expect(String(column[0]?.column_default)).toContain("true");
+
+      await side.db.execute(sql`
+        insert into products (id, slug, name, brand, category, style, tagline, description, base_price_cents, status)
+        values ('rascunho-ligado', 'rascunho-ligado', 'Rascunho ligado', 'Yadea', 'scooter', 'retro', 'Exemplo.', 'Dado de exemplo.', 0, 'rascunho')
+      `);
+      const draft = rowsOf(await side.db.execute(sql`select status, is_enabled from products where id = 'rascunho-ligado'`));
+      expect(draft[0]?.status).toBe("rascunho");
+      expect(draft[0]?.is_enabled).toBe(true);
+
+      const brands = rowsOf(
+        await side.db.execute(sql`
+          select brand
+          from products
+          where is_sample = true and brand in ('Yadea', 'Aima', 'MotoChefe', 'Shineray', 'MXF', 'Watts')
+          group by brand
+          order by brand
+        `),
+      ).map((row) => row.brand);
+      expect(brands).toEqual(["Aima", "MXF", "MotoChefe", "Shineray", "Watts", "Yadea"]);
+    } finally {
+      await side.close();
+    }
+  });
+
   it("não religa is_enabled quando a semente roda de novo", async () => {
     await app.request("/v1/admin/products/yadea-dt3", {
       method: "PATCH",
@@ -342,6 +383,14 @@ describe("fase 5: cadastro no Postgres", () => {
     });
   });
 });
+
+function rowsOf(result: unknown): Record<string, unknown>[] {
+  if (Array.isArray(result)) return result as Record<string, unknown>[];
+  if (result && typeof result === "object" && "rows" in result && Array.isArray(result.rows)) {
+    return result.rows as Record<string, unknown>[];
+  }
+  return [];
+}
 
 function sheet(slug: string, name: string, basePriceCents: number) {
   return {

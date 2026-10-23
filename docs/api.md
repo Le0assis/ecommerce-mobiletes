@@ -79,7 +79,7 @@ O cadastro de autopropelidos grava no Postgres quando `DATABASE_URL` conecta: pr
 
 `DELETE /v1/admin/products/:id` arquiva (`status: "arquivado"`). A linha, a ficha e as variantes continuam no banco. Apagar de verdade não está aprovado.
 
-A migration `0005_product_specs_numeric` converte as medidas de `product_specs` para `numeric(12,2)`. Pode rodar de novo: altera o tipo outra vez e recria os `CHECK` com os mesmos tetos. `32.5` volta na leitura. No arranque, a API aplica só `0004` e `0005` (idempotentes) em cima de um banco que já passou por `db:push`. O histórico `0000`–`0003` não roda de novo nesse arranque.
+A migration `0005_product_specs_numeric` converte as medidas de `product_specs` para `numeric(12,2)`. Também repete `products.is_enabled boolean NOT NULL DEFAULT true` com `ADD COLUMN IF NOT EXISTS` e só cria o CHECK do teto se o nome ainda não existe, para conviver com a migration do DBA. Pode rodar de novo. `32.5` volta na leitura. No arranque, a API aplica só `0004` e `0005` em cima de um banco que já passou por `db:push`. O histórico `0000`–`0003` não roda de novo nesse arranque.
 
 Rodar de novo o seed atualiza as oito scooters pela chave e apaga `foston-x15-max`. Não recoloca `is_enabled` numa linha que o admin já desligou. A Watts da semente é a W1, piso de demonstração R$ 4.300, sem bateria nem autonomia inventadas. Estoque de exemplo é 0: o checkout dessa cor responde `cor_sem_estoque` até o admin gravar estoque.
 
