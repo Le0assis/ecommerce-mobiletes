@@ -322,6 +322,10 @@ export function createApp(deps: CommerceDeps = {}) {
         throw new DomainError("parcelas_invalidas", "Pix e boleto são à vista.");
       }
       const quotes = input.lines.map((line) => {
+        const managed = catalog.getProduct(line.productId);
+        if (managed && (!managed.isEnabled || managed.status !== "ativo")) {
+          throw new DomainError("produto_desabilitado", "Esse modelo não está habilitado.");
+        }
         const quote = configurePrice(line);
         return { line, quote, lineCents: amountForMethod(input.method, quote) * line.qty };
       });

@@ -14,7 +14,7 @@ Estender: novo capítulo entra como `<section>` na home. Banner editável é v1 
 
 `app/motos/page.tsx` e `components/category-search.tsx`.
 
-A grade lê `GET /v1/products` e filtra no navegador por categoria, marca e texto. O filtro Cidade da loja saiu junto com a aba Lojas. A busca ignora acento e encontra o nome da marca. `sortProducts` em `lib/catalog.ts` ordena por preço ou velocidade. Não há mais ordem “Maior autonomia”. Os parâmetros são `ordem` e `marca`. A barra usa três colunas (`gap-x-6 gap-y-5`), rótulo pequeno sem tracking largo, e a busca fica numa linha própria com o botão. As marcas são as que a API devolve. Se a API não responde, a página mostra o erro e não abre o catálogo do código.
+A grade lê `GET /v1/products` e filtra no navegador por categoria, marca e texto. Só entra produto habilitado. `isEnabled: false` sai da lista, da busca e da página do modelo. O filtro Cidade da loja saiu junto com a aba Lojas. A busca ignora acento e encontra o nome da marca. `sortProducts` em `lib/catalog.ts` ordena por preço ou velocidade. Não há mais ordem “Maior autonomia”. Os parâmetros são `ordem` e `marca`. A barra usa três colunas (`gap-x-6 gap-y-5`), rótulo pequeno sem tracking largo, e a busca fica numa linha própria com o botão. As marcas são as que a API devolve. Se a API não responde, a página mostra o erro e não abre o catálogo do código.
 
 Estado vazio oferece limpar o filtro. Cor sem estoque não entra no preço do card: o card usa a primeira cor com estoque.
 
@@ -70,13 +70,13 @@ A aba, a página, o mapa, os stories e o filtro Cidade da loja saíram. Não rep
 
 `components/shop-provider.tsx` e `components/cart-view.tsx`.
 
-Quantidade máxima 2. Linha igual (mesmo modelo, cor e acessórios) soma. `clear` zera as linhas e preserva desejos e códigos de pedido. O preço é refeito com `configurePrice`. O badge do menu lê `lume-shop-v1` só depois do mount do próprio menu: o primeiro HTML sai sem contagem, para a hidratação casar quando o carrinho já tem itens. O menu suspende no pathname, então o número não pode entrar no render anterior. Carrinho antigo sem `orderCodes` continua válido.
+Quantidade máxima 2. Linha igual (mesmo modelo, cor e acessórios) soma. `clear` zera as linhas e preserva desejos e códigos de pedido. O preço é refeito com `priceProduct` em cima da lista habilitada. O badge do menu lê `lume-shop-v1` só depois do mount do próprio menu: o primeiro HTML sai sem contagem, para a hidratação casar quando o carrinho já tem itens. O menu suspende no pathname, então o número não pode entrar no render anterior. Carrinho antigo sem `orderCodes` continua válido. Se a lista carregou e uma linha não está nela, `retainLines` tira essa linha e a tela avisa “Tiramos do carrinho um modelo desabilitado.” A API fora do ar não mexe no carrinho.
 
 ## Checkout
 
 `components/checkout-form.tsx`.
 
-Métodos: Pix (−5%), boleto (−3%), cartão 1 a 21 vezes sem juros. A prévia usa `amountForMethod` e soma o frete. A parcela da prévia inclui o frete. O único serviço é `dedicado` (“Entrega da moto em casa”). O POST manda linhas, CEP, serviço, método e cliente. A API ignora qualquer total. Pix de demonstração começa com `LUME-MOCK-PIX`.
+Métodos: Pix (−5%), boleto (−3%), cartão 1 a 21 vezes sem juros. A prévia usa `amountForMethod` e soma o frete. A parcela da prévia inclui o frete. O único serviço é `dedicado` (“Entrega da moto em casa”). O POST manda linhas, CEP, serviço, método e cliente. A API ignora qualquer total. Pix de demonstração começa com `LUME-MOCK-PIX`. Linha desabilitada sai antes do envio, com o mesmo aviso do carrinho. O botão fica desligado enquanto essa linha ainda está no navegador.
 
 Depois do sucesso, `rememberOrder` grava o código e `clear` esvazia o carrinho. A navegação vai para `/pedido/[code]`.
 
@@ -102,7 +102,7 @@ Depois do sucesso, `rememberOrder` grava o código e `clear` esvazia o carrinho.
 
 `GET /v1/admin/overview` lista o catálogo de demonstração, pedido, cupom, guia, troca e serviço. `PATCH /v1/admin/stock` altera só a memória da API. Não muda a vitrine.
 
-O cadastro novo lê `GET /v1/admin/products`, `/accessories`, `/damages` e `/banners`. A lista traz ativo, rascunho ou arquivado, exemplo ou confirmado, e o estoque somado das variantes. Criar é `POST /v1/admin/products`. Duplicar é `POST /v1/admin/products/:id/duplicate`. Arquivar é `DELETE` e não apaga a linha.
+O cadastro novo lê `GET /v1/admin/products`, `/accessories`, `/damages` e `/banners`. A lista traz ativo, rascunho ou arquivado, exemplo ou confirmado, habilitado ou desabilitado, e o estoque somado das variantes. O botão Habilitar/Desabilitar manda `PATCH` com `{ isEnabled }`. O mesmo campo está no formulário de dados. Criar é `POST /v1/admin/products`. Duplicar é `POST /v1/admin/products/:id/duplicate`. Arquivar é `DELETE` e não apaga a linha. A tela avisa que esse cadastro ainda responde na memória da API.
 
 - Abas: Dados, Ficha, Fotos, Variantes, Acessórios e Avarias. A ficha manda `powerNominalW`. Não copia pico para a nominal. O selo não tem checkbox. Categoria só scooter, mobilete ou citycoco. Salvar a ficha confirma com “Ficha salva.” Medida aceita decimal com ponto ou vírgula (`32.5` e `32,5`). Negativo avisa “O valor não pode ser negativo”. Acima do teto, a mensagem do campo vem de `SPEC_LIMITS` em `productSpecsBody`.
 - Fotos: JPG, PNG ou WebP, até 5 MB, pelo cliente do Blob em `POST /v1/admin/uploads`. O token de escrita não entra no browser. Sem `BLOB_READ_WRITE_TOKEN` o envio avisa e para. A ordem é `PATCH /v1/admin/products/:id/images` com `{ images: [{ id, position, isCover }] }`. A primeira é a capa.

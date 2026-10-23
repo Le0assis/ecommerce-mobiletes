@@ -13,7 +13,8 @@ Regras que não se negociam ao implementar:
 - Campanha de lançamento: 21x sem juros. Não reescreva a Tabela Price. Para encurtar a carência, baixe `LAUNCH_INTEREST_FREE_UP_TO`.
 - Pix de demonstração começa com `LUME-MOCK-PIX`. Sem CPF. Sem nome de pessoa em review.
 - A vitrine lê o catálogo em `GET /v1/products`, por `apps/storefront/lib/catalog.ts`. Sem a API, a página mostra erro e não abre o catálogo do código. O checkout ainda precifica só `@lume/domain`. Estoque editado no admin muda o card dos produtos da memória; o catálogo de domínio continua com o estoque do código.
-- Marcas parceiras (VOLTIS, BRUMA, SENDA) são inventadas. Não copie nome, foto ou preço de Segway, NIU, Super Soco, Yadea ou de outra loja.
+- Marcas parceiras do catálogo de domínio (VOLTIS, BRUMA, SENDA) são inventadas. Não copie foto nem preço de loja para esse catálogo. A semente em `apps/commerce/src/db/sample-scooters.ts` usa Yadea, Aima, MotoChefe, Shineray, MXF e Watts, todas com `isSample: true` e números de exemplo. A Watts é a W1, piso de demonstração, sem bateria nem autonomia inventadas.
+- Só produto `ativo` e `isEnabled` entra na loja, na busca, no quiz, no carrinho e no checkout. Desabilitado no carrinho sai com aviso. O admin grava `isEnabled` na API. A coluna `is_enabled` já está na migration `0004`. O Postgres ainda não recebe criar, editar e excluir: o que falta está em `docs/api.md`.
 - `registrationClass` é texto de referência. Não transforme em aconselhamento de CNH.
 - Carrinho antigo em `lume-shop-v1` pode não ter `orderCodes`. O parse precisa continuar aceitando.
 - Não remova nem duplique `data-testid` de `live-price`, `color-cobre`, `reserve`, `hero-title`, `installment-price` e `pix-price`. Mantenha `html[data-configurator=ready]` na hidratação do configurador.

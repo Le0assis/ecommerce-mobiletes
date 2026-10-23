@@ -1,6 +1,6 @@
 "use client";
 
-import { useShop } from "@/components/shop-provider";
+import { DisabledCartNotice, useShop } from "@/components/shop-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,11 +24,13 @@ export function CheckoutForm({ products, catalogMessage }: { products: StoreProd
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
 
+  const blocked = shop.lines.some((line) => !products.some((item) => item.id === line.productId && item.isEnabled !== false));
   const preview = useMemo(() => {
-    if (shop.lines.length === 0) return null;
+    const lines = shop.lines.filter((line) => products.some((item) => item.id === line.productId && item.isEnabled !== false));
+    if (lines.length === 0) return null;
     try {
-      const quotes = shop.lines.map((line) => {
-        const product = products.find((item) => item.id === line.productId);
+      const quotes = lines.map((line) => {
+        const product = products.find((item) => item.id === line.productId && item.isEnabled !== false);
         if (!product) throw new Error("Um modelo do carrinho saiu do catálogo.");
         const priced = priceProduct(product, { colorId: line.colorId, batteryId: line.batteryId, accessoryIds: line.accessoryIds });
         if ("error" in priced) throw new Error(priced.error);
@@ -46,6 +48,10 @@ export function CheckoutForm({ products, catalogMessage }: { products: StoreProd
   const service = shipping?.services.find((item) => item.id === serviceId) ?? shipping?.services[0];
 
   async function onSubmit(formData: FormData) {
+    if (shop.lines.some((line) => !products.some((item) => item.id === line.productId && item.isEnabled !== false))) {
+      setError("Tem um modelo desabilitado no carrinho.");
+      return;
+    }
     setPending(true);
     setError("");
     try {
@@ -78,9 +84,12 @@ export function CheckoutForm({ products, catalogMessage }: { products: StoreProd
 
   if (shop.lines.length === 0) {
     return (
-      <p className="mt-8 text-muted-foreground">
-        O carrinho está vazio. <Link href="/motos" className="underline">Escolha uma moto</Link>.
-      </p>
+      <div className="mt-8">
+        <DisabledCartNotice products={products} active />
+        <p className="text-muted-foreground">
+          O carrinho está vazio. <Link href="/motos" className="underline">Escolha uma moto</Link>.
+        </p>
+      </div>
     );
   }
 
@@ -90,7 +99,9 @@ export function CheckoutForm({ products, catalogMessage }: { products: StoreProd
   const plan = totalCents > 0 ? installmentByCount(totalCents, method === "cartao" ? installments : 1) : null;
 
   return (
-    <form action={onSubmit} className="mt-8 grid gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:items-start">
+    <div className="mt-8">
+    <DisabledCartNotice products={products} active />
+    <form action={onSubmit} className="grid gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:items-start">
       <div className="grid gap-5">
       <div className="grid gap-3 rounded-[1.5rem] border border-white/10 p-4">
         <p className="text-xs tracking-[0.16em] text-muted-foreground uppercase">Como pagar</p>
@@ -148,7 +159,7 @@ export function CheckoutForm({ products, catalogMessage }: { products: StoreProd
         <Input id="phone" name="phone" required minLength={10} className="h-12 rounded-full px-4" />
       </div>
       {error ? <p className="text-sm text-signal">{error}</p> : null}
-      <Button type="submit" disabled={pending || !service} className="h-12 rounded-full">
+      <Button type="submit" disabled={pending || !service || blocked} className="h-12 rounded-full">
         {pending ? "Reservando…" : method === "pix" ? "Gerar Pix" : "Confirmar pedido"}
       </Button>
       </div>
@@ -188,6 +199,7 @@ export function CheckoutForm({ products, catalogMessage }: { products: StoreProd
         <p className="mt-4 text-xs text-muted-foreground">O servidor recalcula este total. O que está aqui é a prévia.</p>
       </aside>
     </form>
+    </div>
   );
 }
 

@@ -18,7 +18,7 @@ Erro de domínio volta como JSON `{ error, message }` e o status adequado. A men
 
 Cada produto, na lista e em `product`, tem a mesma forma:
 
-`id`, `slug`, `name`, `brand`, `category`, `style` (`retro` | `citycoco` | `esportivo` | `null`), `tagline`, `description`, `basePriceCents`, `isSample`, `rangeKm` (número declarado ou `null`), `topSpeedKmh`, `powerKw`, `powerNominalW`, `widthCm`, `wheelbaseCm`, `torqueNm`, `batteryKwh`, `weightKg`, `seatHeightMm`, `chargeHours`, `fastChargeMin`, `registrationClass`, `licenseNote`, `optimalSpeedKmh`, `colors` (`id`, `name`, `hex`, `priceDeltaCents`, `stock`), `batteries` (`id`, `name`, `kwh`, `rangeKm`, `priceDeltaCents`, `stock`), `accessoryIds`, `specs`, `variants`, `accessories`, `damages`, `images`, `autopropelido`.
+`id`, `slug`, `name`, `brand`, `category`, `style` (`retro` | `citycoco` | `esportivo` | `null`), `tagline`, `description`, `basePriceCents`, `isSample`, `isEnabled`, `rangeKm` (número declarado ou `null`), `topSpeedKmh`, `powerKw`, `powerNominalW`, `widthCm`, `wheelbaseCm`, `torqueNm`, `batteryKwh`, `weightKg`, `seatHeightMm`, `chargeHours`, `fastChargeMin`, `registrationClass`, `licenseNote`, `optimalSpeedKmh`, `colors` (`id`, `name`, `hex`, `priceDeltaCents`, `stock`), `batteries` (`id`, `name`, `kwh`, `rangeKm`, `priceDeltaCents`, `stock`), `accessoryIds`, `specs`, `variants`, `accessories`, `damages`, `images`, `autopropelido`.
 
 `specs`: `powerNominalW`, `powerPeakW`, `topSpeedKmh`, `widthCm`, `wheelbaseCm`, `weightKg`, `seatHeightMm`, `batteryV`, `batteryAh`, `batteryChem`, `batteryRemovable`, `chargeHours`, `rangeKmDeclared`, `hasSpeedLimiter`, `hasBell`, `hasLights`. Medida desconhecida é `null`. O `PATCH` da ficha aceita decimal entre 0 e o teto de `productSpecsBody` (`32.5` entra). Os tetos são 20000 W nominal, 20000 W de pico, 150 km/h, 300 cm de largura, 400 cm de entre-eixos, 1000 kg, 1500 mm de banco, 200 V, 500 Ah, 48 h e 1000 km de autonomia declarada. Negativo responde “O valor não pode ser negativo”. No catálogo de domínio, `rangeKm` e `specs.rangeKmDeclared` são o mesmo número. No cadastro em memória, `rangeKm` copia `rangeKmDeclared` e pode ser `null`. `batteryKwh` e `batteries` ficam vazios nesse cadastro: não se inventa kWh.
 
@@ -30,7 +30,7 @@ Cada produto, na lista e em `product`, tem a mesma forma:
 
 `images`: `id`, `variantId`, `url`, `alt`, `position`, `isCover`. Vazio no domínio.
 
-`autopropelido` é calculado (`autopropelidoBadge`), nunca gravado à mão. Limites da CONTRAN 996/2023: potência nominal até 1.000 W, velocidade até 32 km/h, largura até 70 cm, entre-eixos até 130 cm. Falta qualquer um e `eligible` fica `false`, `label` fica `null` e `missing` lista o campo. `powerKw` é pico e não preenche a nominal. `registrationClass` do catálogo antigo não liga o selo. O aviso fixo é `notice`: "verifique as regras da sua cidade". `isSample: true` marca as scooters de exemplo. Rascunho e arquivado não entram na rota pública.
+`autopropelido` é calculado (`autopropelidoBadge`), nunca gravado à mão. Limites da CONTRAN 996/2023: potência nominal até 1.000 W, velocidade até 32 km/h, largura até 70 cm, entre-eixos até 130 cm. Falta qualquer um e `eligible` fica `false`, `label` fica `null` e `missing` lista o campo. `powerKw` é pico e não preenche a nominal. `registrationClass` do catálogo antigo não liga o selo. O aviso fixo é `notice`: "verifique as regras da sua cidade". `isSample: true` marca as scooters de exemplo. `isEnabled: false` também fica de fora, mesmo com `status: ativo`. A busca (`q`, `categoria`, `marca`), o slug e o quiz usam a mesma lista. O catálogo de `@lume/domain` responde `isEnabled: true`: essas motos ainda não têm interruptor. Rascunho e arquivado não entram na rota pública.
 
 ## Cálculo
 
@@ -43,7 +43,7 @@ Todos POST com JSON.
 | `/v1/shipping/quote` | `cep`, `weightKg` | Cotação |
 | `/v1/quiz` | uso, km/dia, ladeiras, carga da bateria, quem vai junto, carga, orçamento, estilo e cor | `{ recommendations: [{ slug, name, score, reasons, accessories }] }` de 0 a 3 |
 
-`POST /v1/quiz` pontua o catálogo de `@lume/domain` junto com os produtos ativos da memória (amostra e os criados no admin). Rascunho e arquivado ficam de fora. O teto do orçamento é rígido: até 6 mil não devolve quem passa de R$ 6.000, e 6 a 10 mil não passa de R$ 10.000. Se ninguém cabe, a lista vem vazia e a vitrine mostra as mais próximas de `GET /v1/products` mais um WhatsApp, sem inventar preço. O estilo muda a ordem. Autonomia declarada ausente entra na conta como 0 km, sem virar número de fabricante na ficha: `rangeKm` na API continua `null`. A tela do quiz chama essa rota e busca o preço na lista de produtos.
+`POST /v1/quiz` pontua o catálogo de `@lume/domain` junto com os produtos ativos e habilitados da memória (amostra e os criados no admin). Rascunho, arquivado e desabilitado ficam de fora. O teto do orçamento é rígido: até 6 mil não devolve quem passa de R$ 6.000, e 6 a 10 mil não passa de R$ 10.000. Se ninguém cabe, a lista vem vazia e a vitrine mostra as mais próximas de `GET /v1/products` mais um WhatsApp, sem inventar preço. O estilo muda a ordem. Autonomia declarada ausente entra na conta como 0 km, sem virar número de fabricante na ficha: `rangeKm` na API continua `null`. A tela do quiz chama essa rota e busca o preço na lista de produtos.
 
 `POST /v1/range` saiu da API pública. A estimativa `estimateRange` continua em `@lume/domain`. O simulador saiu da vitrine; o código antigo fica em `backup/lume-versao-completa`.
 
@@ -53,7 +53,7 @@ Todos POST com JSON.
 
 `POST /v1/reviews` — `productId`, `city`, `rating` 1–5, `title`, `body`. Resposta marca `pending: true` e não entra na semente publicada.
 
-`POST /v1/checkout` — `lines[]` (`productId`, `colorId`, `accessoryIds`, `batteryId?`, `qty` 1–2, no máximo 5 linhas), `cep`, `shippingServiceId` (`dedicado`), `method` (`pix` | `boleto` | `cartao`), `installments` (1 se não for cartão), `couponCode?`, `customer` (`name`, `email`, `phone`). Não há retirada em loja.
+`POST /v1/checkout` — `lines[]` (`productId`, `colorId`, `accessoryIds`, `batteryId?`, `qty` 1–2, no máximo 5 linhas), `cep`, `shippingServiceId` (`dedicado`), `method` (`pix` | `boleto` | `cartao`), `installments` (1 se não for cartão), `couponCode?`, `customer` (`name`, `email`, `phone`). Não há retirada em loja. Linha cujo produto da memória está desabilitado ou fora de `ativo` responde 400 `{ error: "produto_desabilitado", message: "Esse modelo não está habilitado." }`. O preço da linha continua saindo só de `@lume/domain`.
 
 `POST /v1/orders/:code/sandbox` avança um passo do rastreio. A mensagem contém `LUME-SANDBOX`.
 
@@ -73,12 +73,24 @@ Fora de produção, `x-admin-token` ainda abre o admin (o valor de `ADMIN_TOKEN`
 
 `PATCH /v1/admin/stock` — `productId`, `colorId`, `stock`. Não altera `@lume/domain`.
 
-O catálogo de autopropelidos do admin vive na memória do processo, semeado com `sampleScooters`. O Postgres da migration `0001` continua sendo o seed do banco; esta fase não grava o CRUD nele. Checkout segue precificando `@lume/domain`.
+O catálogo de autopropelidos que a API atende hoje vive na memória do processo, semeado com `sampleScooters` (Yadea, Aima, MotoChefe, Shineray, MXF e Watts, todas com `isSample: true` e `isEnabled: true`). A vitrine não tem outro catálogo local: se a API cai, a página mostra erro. O `POST`, o `PATCH` e o `DELETE` de produto respondem nessa memória. Não há gravação no Postgres. `GET /health` com `persistence: "postgres-configurado"` só diz que `DATABASE_URL` existe; o cadastro do admin continua no processo. Checkout segue precificando `@lume/domain`.
+
+### O que o Backend precisa gravar
+
+A decisão da fase 5 é criar, editar e excluir produto no Postgres, sem sucesso só de memória. A coluna já existe. Falta o repositório:
+
+1. `products.is_enabled boolean not null default true` está na migration `0004_products_habilitacao_ficha`, com índice. O JSON da API chama o campo `isEnabled`. `status` continua `rascunho | ativo | arquivado`. Habilitado não substitui o status. O `PATCH` aceita `{ isEnabled }`.
+2. Repositório que leia e grave `products`, `product_specs`, `product_variants`, `product_images`, `product_accessories` e `damages` nas rotas que já existem: `POST /v1/admin/products`, `PATCH /v1/admin/products/:id` (ficha em `{ specs }`, vínculo em `{ accessories }`, e `{ isEnabled }`) e `DELETE /v1/admin/products/:id`. Hoje o `DELETE` arquiva (`status: "arquivado"`). A decisão pede excluir: apagar a linha e deixar o `ON DELETE CASCADE` levar ficha, variantes, fotos, cores legadas, vínculos e avarias. A tela ainda diz “Arquivar” porque a rota arquiva.
+3. Sem `DATABASE_URL`, ou com o banco fora, essas três rotas devem responder 503 e não confirmar o cadastro na memória. Pedido e test ride podem continuar no atalho atual de `persist.ts`. O catálogo não.
+4. `GET /v1/products`, `GET /v1/products/:slug` e `POST /v1/quiz` já filtram `status = ativo` e `isEnabled` na memória. A leitura do Postgres tem de repetir o mesmo filtro. A busca da loja usa essa lista.
+5. `POST /v1/checkout` e `POST /v1/pricing/configure` precisam precificar o produto do Postgres. Hoje os dois resolvem só `@lume/domain`, então uma scooter de exemplo habilitada falha no pagamento com `produto_inexistente`. Linha desabilitada já recebe `produto_desabilitado` quando o id está na memória.
+6. `product_specs` guarda inteiros. O `PATCH` aceita decimal (`32.5`). A migration `0004` só acrescentou o teto no `CHECK`. A coluna precisa de `numeric`, senão a ficha gravada perde a casa.
+7. Rodar de novo o seed atualiza as oito scooters pela chave e apaga `foston-x15-max`. Não recoloca `is_enabled` numa linha que o admin já desligou. A Watts da semente é a W1, piso de demonstração R$ 4.300, sem bateria nem autonomia inventadas.
 
 | Método | Caminho | Uso |
 | --- | --- | --- |
 | GET/POST | `/v1/admin/products` | Lista com `q` e cria. |
-| PATCH/DELETE | `/v1/admin/products/:id` | Edita. DELETE arquiva (`arquivado`), não apaga. |
+| PATCH/DELETE | `/v1/admin/products/:id` | Edita, inclusive `{ isEnabled }`. DELETE ainda arquiva (`arquivado`). O Postgres precisa passar a apagar a linha. |
 | POST | `/v1/admin/products/:id/duplicate` | Cópia em rascunho. |
 | POST/PATCH/DELETE | `/v1/admin/products/:id/variants` e `.../variants/:variantId` | Variantes. |
 | POST/PATCH/DELETE | `/v1/admin/products/:id/images` e `.../images/:imageId` | Foto, ordem e capa. |

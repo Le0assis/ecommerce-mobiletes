@@ -97,6 +97,7 @@ export type PublicProduct = {
   description: string;
   basePriceCents: number;
   isSample: boolean;
+  isEnabled: boolean;
   rangeKm: number | null;
   topSpeedKmh: number | null;
   powerKw: number | null;
@@ -183,6 +184,7 @@ export function publicDomainProduct(product: Motorcycle): PublicProduct {
     description: product.description,
     basePriceCents: product.basePriceCents,
     isSample: false,
+    isEnabled: true,
     rangeKm: product.rangeKm,
     topSpeedKmh: product.topSpeedKmh,
     powerKw: product.powerKw,
@@ -268,6 +270,7 @@ export function publicCatalogProduct(product: ManagedProduct, catalogAccessories
     description: product.description,
     basePriceCents: product.basePriceCents,
     isSample: product.isSample,
+    isEnabled: product.isEnabled,
     rangeKm: product.specs.rangeKmDeclared,
     topSpeedKmh: product.specs.topSpeedKmh,
     powerKw: product.specs.powerPeakW == null ? null : product.specs.powerPeakW / 1000,

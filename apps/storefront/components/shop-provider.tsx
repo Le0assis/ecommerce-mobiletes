@@ -24,6 +24,7 @@ type ShopContextValue = {
   addLine: (line: Omit<CartLine, "qty">) => void;
   setQty: (index: number, qty: number) => void;
   removeLine: (index: number) => void;
+  retainLines: (productIds: readonly string[]) => void;
   clear: () => void;
   rememberOrder: (code: string) => void;
   toggleWish: (slug: string) => void;
@@ -112,6 +113,11 @@ export function ShopProvider({ children }: { children: ReactNode }) {
           }),
         })),
       removeLine: (index) => commit((current) => ({ ...current, lines: current.lines.filter((_, itemIndex) => itemIndex !== index) })),
+      retainLines: (productIds) =>
+        commit((current) => ({
+          ...current,
+          lines: current.lines.filter((line) => productIds.includes(line.productId)),
+        })),
       clear: () => commit((current) => ({ ...current, lines: [] })),
       rememberOrder: (code) =>
         commit((current) => ({
@@ -136,4 +142,34 @@ export function useShop() {
   const value = useContext(ShopContext);
   if (!value) throw new Error("useShop precisa do ShopProvider.");
   return value;
+}
+
+export function DisabledCartNotice({
+  products,
+  active,
+}: {
+  products: { id: string; isEnabled?: boolean }[];
+  active: boolean;
+}) {
+  const shop = useShop();
+  const [notice, setNotice] = useState("");
+  useEffect(() => {
+    if (!active) return;
+    const allowed = products.filter((item) => item.isEnabled !== false).map((item) => item.id);
+    const dropped = shop.lines.filter((line) => !allowed.includes(line.productId)).length;
+    if (dropped === 0) return;
+    shop.retainLines(allowed);
+    const text =
+      dropped === 1
+        ? "Tiramos do carrinho um modelo desabilitado."
+        : `Tiramos do carrinho ${dropped} modelos desabilitados.`;
+    const mark = () => setNotice(text);
+    mark();
+  }, [active, products, shop]);
+  if (!notice) return null;
+  return (
+    <p className="mt-4 text-sm text-signal" role="status">
+      {notice}
+    </p>
+  );
 }

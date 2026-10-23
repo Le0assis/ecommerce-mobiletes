@@ -1,6 +1,6 @@
 "use client";
 
-import { useShop } from "@/components/shop-provider";
+import { DisabledCartNotice, useShop } from "@/components/shop-provider";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "cn";
 import { formatBRL, installmentByCount, priceProduct, type StoreProduct } from "@/lib/catalog";
@@ -14,8 +14,10 @@ export function CartView({ products, catalogMessage }: { products: StoreProduct[
     return <p className="mt-8 text-sm text-signal">{catalogMessage}</p>;
   }
 
+  const sellable = products.filter((item) => item.isEnabled !== false);
+
   const rows = shop.lines.map((line) => {
-    const product = products.find((item) => item.id === line.productId);
+    const product = sellable.find((item) => item.id === line.productId);
     if (!product) return { line, error: "Este modelo saiu do catálogo." };
     const priced = priceProduct(product, { colorId: line.colorId, batteryId: line.batteryId, accessoryIds: line.accessoryIds });
     if ("error" in priced) return { line, error: priced.error };
@@ -27,6 +29,7 @@ export function CartView({ products, catalogMessage }: { products: StoreProduct[
   if (rows.length === 0) {
     return (
       <div className="mt-8">
+        <DisabledCartNotice products={products} active />
         <p className="text-muted-foreground">Nenhuma moto reservada neste navegador.</p>
         <Link href="/motos" className="mt-4 inline-block underline">
           Ver a linha
@@ -46,6 +49,7 @@ export function CartView({ products, catalogMessage }: { products: StoreProduct[
 
   return (
     <div className="mt-8 grid gap-4">
+      <DisabledCartNotice products={products} active />
       {rows.map((row, index) => (
         <article key={`${row.line.productId}-${index}`} className="rounded-[1.5rem] border border-white/10 p-4">
           {"error" in row ? (

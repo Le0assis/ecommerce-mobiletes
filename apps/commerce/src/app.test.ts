@@ -381,4 +381,99 @@ describe("API de commerce", () => {
     expect(overview.products.find((item: { id: string }) => item.id === "lume-apex").batteries.map((item: { id: string }) => item.id)).toEqual(["serie", "longa"]);
     expect(Array.isArray(overview.recentOrders)).toBe(true);
   });
+
+  it("marca a semente como exemplo e esconde o produto desabilitado", async () => {
+    const listed = await (await app.request("/v1/products")).json();
+    const seedSlugs = [
+      "yadea-dt3",
+      "yadea-m6-h",
+      "yadea-gfx6",
+      "motochefe-jet",
+      "aima-liberty-a500",
+      "shineray-pt2xs",
+      "mxf-muv-e-road",
+      "watts-w1",
+    ];
+    const seeded = seedSlugs.map((slug) =>
+      listed.products.find((item: { slug: string; isSample: boolean; isEnabled: boolean; brand: string }) => item.slug === slug),
+    );
+    expect(seeded.every((item) => item?.isSample === true && item?.isEnabled === true)).toBe(true);
+    const brands = [...new Set(seeded.map((item) => item?.brand))].sort();
+    expect(brands).toEqual(["Aima", "MXF", "MotoChefe", "Shineray", "Watts", "Yadea"]);
+    expect(listed.products.some((item: { slug: string }) => item.slug === "foston-x15-max")).toBe(false);
+    expect(listed.products.find((item: { slug: string }) => item.slug === "apex").isEnabled).toBe(true);
+    expect(listed.products.find((item: { slug: string }) => item.slug === "watts-w1").rangeKm).toBeNull();
+
+    const headers = { "content-type": "application/json", "x-admin-token": "dev-admin-token" };
+    const created = await app.request("/v1/admin/products", {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        slug: "fora-da-loja",
+        name: "Fora da loja",
+        brand: "Watts",
+        category: "mobilete",
+        style: "retro",
+        tagline: "Teste do interruptor.",
+        description: "Produto de teste para o status habilitado.",
+        basePriceCents: 450_000,
+        status: "ativo",
+        isEnabled: true,
+        isSample: true,
+      }),
+    });
+    expect(created.status).toBe(200);
+    const id = (await created.json()).product.id as string;
+
+    const visible = await (await app.request("/v1/products?q=Fora")).json();
+    expect(visible.products.some((item: { slug: string }) => item.slug === "fora-da-loja")).toBe(true);
+
+    const off = await app.request(`/v1/admin/products/${id}`, {
+      method: "PATCH",
+      headers,
+      body: JSON.stringify({ isEnabled: false }),
+    });
+    expect(off.status).toBe(200);
+    expect((await off.json()).product.isEnabled).toBe(false);
+
+    const hiddenList = await (await app.request("/v1/products?q=Fora")).json();
+    expect(hiddenList.products.some((item: { slug: string }) => item.slug === "fora-da-loja")).toBe(false);
+    expect((await app.request("/v1/products/fora-da-loja")).status).toBe(404);
+
+    const admin = await (await app.request("/v1/admin/products?q=fora", { headers })).json();
+    expect(admin.products.some((item: { slug: string; isEnabled: boolean }) => item.slug === "fora-da-loja" && item.isEnabled === false)).toBe(true);
+
+    const quiz = await app.request("/v1/quiz", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        use: "passeio",
+        dailyKm: "ate20",
+        hills: false,
+        charging: "tomada",
+        carry: "sozinho",
+        cargo: "nenhum",
+        budget: "ate6",
+        style: "retro",
+        color: "indiferente",
+      }),
+    });
+    const slugs = (await quiz.json()).recommendations.map((item: { slug: string }) => item.slug);
+    expect(slugs).not.toContain("fora-da-loja");
+
+    const pay = await app.request("/v1/checkout", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        lines: [{ productId: id, colorId: "qualquer", accessoryIds: [], qty: 1 }],
+        cep: "01310-100",
+        shippingServiceId: "dedicado",
+        method: "pix",
+        installments: 1,
+        customer: { name: "Gustavo Teste", email: "gustavo@example.com", phone: "11999990000" },
+      }),
+    });
+    expect(pay.status).toBe(400);
+    expect((await pay.json()).error).toBe("produto_desabilitado");
+  });
 });

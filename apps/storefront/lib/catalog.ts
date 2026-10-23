@@ -121,6 +121,7 @@ export type StoreProduct = {
   description: string;
   basePriceCents: number;
   isSample: boolean;
+  isEnabled?: boolean;
   rangeKm: number | null;
   topSpeedKmh: number | null;
   powerKw: number | null;
@@ -238,6 +239,7 @@ function isProduct(value: unknown): value is StoreProduct {
     typeof item.basePriceCents === "number" &&
     Number.isInteger(item.basePriceCents) &&
     typeof item.isSample === "boolean" &&
+    (item.isEnabled === undefined || typeof item.isEnabled === "boolean") &&
     isNumberOrNull(item.rangeKm) &&
     Array.isArray(item.colors) &&
     Array.isArray(item.batteries) &&
@@ -274,9 +276,9 @@ export const loadProducts = cache(async (): Promise<CatalogLoad<StoreProduct[]>>
       return { ok: false, message: status === 200 ? malformed : unavailable };
     }
     const raw = (body as { products: unknown[] }).products;
-    const products = raw.filter(isProduct);
-    if (products.length !== raw.length) return { ok: false, message: malformed };
-    return { ok: true, data: products };
+    const parsed = raw.filter(isProduct);
+    if (parsed.length !== raw.length) return { ok: false, message: malformed };
+    return { ok: true, data: parsed.filter((item) => item.isEnabled !== false) };
   } catch {
     return { ok: false, message: unavailable };
   }

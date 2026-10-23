@@ -38,6 +38,7 @@ await db.transaction(async (tx) => {
         basePriceCents: product.basePriceCents,
         status: "ativo" as const,
         isSample: true,
+        isEnabled: true,
       })),
     )
     .onConflictDoUpdate({

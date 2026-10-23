@@ -31,5 +31,6 @@ describe("URL pública", () => {
     expect(adminProductPatchBody.safeParse({ specs: { topSpeedKmh: 150.1 } }).success).toBe(false);
     expect(adminProductPatchBody.safeParse({ specs: { weightKg: 1000 } }).success).toBe(true);
     expect(adminProductPatchBody.safeParse({ specs: { weightKg: 1000.1 } }).success).toBe(false);
+    expect(adminProductPatchBody.safeParse({ isEnabled: false }).success).toBe(true);
   });
 });

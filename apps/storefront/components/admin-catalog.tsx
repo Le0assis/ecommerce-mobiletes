@@ -60,6 +60,7 @@ export type AdminProduct = {
   basePriceCents: number;
   status: (typeof statuses)[number];
   isSample: boolean;
+  isEnabled?: boolean;
   specs: Specs;
   variants: Variant[];
   images: CatalogImage[];
@@ -170,7 +171,12 @@ export function AdminCatalog({ token, section }: { token?: string; section: "pro
         <>
           <section className="grid gap-4">
             <div className="flex flex-wrap items-end justify-between gap-3">
-              <h2 className="text-2xl font-light">Produtos</h2>
+              <div>
+                <h2 className="text-2xl font-light">Produtos</h2>
+                <p className="mt-1 max-w-xl text-sm text-muted-foreground">
+                  Habilitado entra na loja. Desabilitado sai da busca, do quiz, do carrinho e do checkout. Criar, editar e arquivar ainda ficam na memória da API: o Postgres não recebe este cadastro.
+                </p>
+              </div>
               <Button type="button" className="h-11 rounded-full" onClick={() => void send("/v1/admin/products", "POST", emptyProduct())}>
                 Criar
               </Button>
@@ -188,11 +194,11 @@ export function AdminCatalog({ token, section }: { token?: string; section: "pro
             {list.length === 0 ? <p className="text-sm text-muted-foreground">Nenhum produto neste filtro.</p> : null}
             <ul className="grid gap-2">
               {list.map((item) => (
-                <li key={item.id}>
+                <li key={item.id} className={`flex flex-wrap items-center gap-2 rounded-2xl border px-4 py-3 ${item.id === product?.id ? "border-signal" : "border-white/10"}`}>
                   <button
                     type="button"
                     onClick={() => setSelected(item.id)}
-                    className="flex w-full flex-wrap items-center justify-between gap-2 rounded-2xl border border-white/10 px-4 py-3 text-left text-sm aria-pressed:border-signal"
+                    className="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-2 text-left text-sm"
                     aria-pressed={item.id === product?.id}
                   >
                     <span>
@@ -202,8 +208,16 @@ export function AdminCatalog({ token, section }: { token?: string; section: "pro
                       </span>
                     </span>
                     <span className="text-muted-foreground">
-                      {item.status} · {item.isSample ? "exemplo" : "confirmado"}
+                      {item.status} · {item.isSample ? "exemplo" : "confirmado"} · {item.isEnabled === false ? "desabilitado" : "habilitado"}
                     </span>
+                  </button>
+                  <button
+                    type="button"
+                    className="rounded-full border border-white/15 px-3 py-1 text-sm"
+                    aria-pressed={item.isEnabled !== false}
+                    onClick={() => void send(`/v1/admin/products/${item.id}`, "PATCH", { isEnabled: item.isEnabled === false })}
+                  >
+                    {item.isEnabled === false ? "Habilitar" : "Desabilitar"}
                   </button>
                 </li>
               ))}
@@ -289,6 +303,7 @@ function ProductData({ product, onSave }: { product: AdminProduct; onSave: (body
           basePriceCents: Number(data.get("basePriceCents")),
           status: String(data.get("status")),
           isSample: data.get("isSample") === "on",
+          isEnabled: data.get("isEnabled") === "on",
         });
       }}
     >
@@ -302,6 +317,9 @@ function ProductData({ product, onSave }: { product: AdminProduct; onSave: (body
       <Input name="basePriceCents" type="number" min={0} defaultValue={product.basePriceCents} className={field} aria-label="Preço em centavos" required />
       <label className="flex items-center gap-2 text-sm md:col-span-2">
         <input name="isSample" type="checkbox" defaultChecked={product.isSample} /> Dado de exemplo
+      </label>
+      <label className="flex items-center gap-2 text-sm md:col-span-2">
+        <input name="isEnabled" type="checkbox" defaultChecked={product.isEnabled !== false} /> Habilitado na loja
       </label>
       <textarea name="description" defaultValue={product.description} rows={4} className="rounded-3xl border border-white/15 bg-transparent px-4 py-3 text-sm md:col-span-2" aria-label="Descrição" />
       <Button type="submit" className="h-11 rounded-full md:col-span-2">Salvar dados</Button>
@@ -862,5 +880,6 @@ function emptyProduct() {
     basePriceCents: 0,
     status: "rascunho",
     isSample: true,
+    isEnabled: true,
   };
 }
