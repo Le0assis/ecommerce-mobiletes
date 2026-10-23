@@ -30,7 +30,7 @@ O 360° (`components/bike-viewer.tsx`) só monta no clique. `html[data-configura
 
 A ficha é uma tabela de duas colunas (Item / Valor) na coluna da galeria, ao lado do card de preço. No celular ela fica depois do preço. Potência nominal lê `powerNominalW`. Sem esse campo, a célula diz “não informado”: `powerKw` é pico e não entra nessa linha. Largura e entre-eixos usam `widthCm` e `wheelbaseCm` quando existem. A autonomia é só o número publicado. O simulador saiu da página. `POST /v1/range` também saiu da API. `estimateRange` continua no domínio, no backup `backup/lume-versao-completa` para a versão anterior. A comparação com gasolina (`SavingsCalculator`) fica.
 
-O selo usa `product.autopropelido` da API (`eligible`, `label`, `notice`). A vitrine não recalcula o selo. Não use `registrationClass` para ligá-lo. O aviso aponta para `/legislacao` e acompanha o selo; na home e no catálogo o aviso aparece mesmo sem selo. `isSample: true` mostra a faixa “Dado de exemplo”. Campo ausente fica `null` e a ficha diz “não informado”. A autonomia continua no rótulo “Autonomia (declarada)”.
+O selo usa `product.autopropelido` da API (`eligible`, `label`, `notice`). A vitrine não recalcula o selo. Não use `registrationClass` para ligá-lo. O aviso aponta para `/legislacao`. Na home e no catálogo ele aparece mesmo sem selo, fora do link do card. No card elegível só entra o rótulo, para a âncora não ficar dentro de outra. Na página do modelo o aviso acompanha o selo. `isSample: true` mostra a faixa “Dado de exemplo”. Campo ausente fica `null` e a ficha diz “não informado”. A autonomia continua no rótulo “Autonomia (declarada)”.
 
 Parcelas de 1, 6, 12 e 21: `InstallmentTable` com `compact`. A parcela de 21 continua escrita por extenso. O botão de conversa usa `whatsappHref` em `lib/whatsapp.ts`.
 
@@ -70,7 +70,7 @@ A aba, a página, o mapa, os stories e o filtro Cidade da loja saíram. Não rep
 
 `components/shop-provider.tsx` e `components/cart-view.tsx`.
 
-Quantidade máxima 2. Linha igual (mesmo modelo, cor e acessórios) soma. `clear` zera as linhas e preserva desejos e códigos de pedido. O preço é refeito com `configurePrice`. O badge lê `lume-shop-v1` só depois do mount: o primeiro HTML sai sem contagem, para a hidratação casar quando o carrinho já tem itens. Carrinho antigo sem `orderCodes` continua válido.
+Quantidade máxima 2. Linha igual (mesmo modelo, cor e acessórios) soma. `clear` zera as linhas e preserva desejos e códigos de pedido. O preço é refeito com `configurePrice`. O badge do menu lê `lume-shop-v1` só depois do mount do próprio menu: o primeiro HTML sai sem contagem, para a hidratação casar quando o carrinho já tem itens. O menu suspende no pathname, então o número não pode entrar no render anterior. Carrinho antigo sem `orderCodes` continua válido.
 
 ## Checkout
 

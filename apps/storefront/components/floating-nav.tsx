@@ -7,6 +7,7 @@ import { whatsappGreeting, whatsappHref } from "@/lib/whatsapp";
 import { cn } from "cn";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 
 const links = [
   { href: "/motos", label: "Motos" },
@@ -17,6 +18,13 @@ const links = [
 export function FloatingNav() {
   const pathname = usePathname();
   const { count } = useShop();
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    // O pathname suspende este menu. A contagem entra só depois do mount.
+    const mark = () => setReady(true);
+    mark();
+  }, []);
+  const shown = ready ? count : 0;
 
   return (
     <header className="pointer-events-none fixed inset-x-0 top-0 z-40 px-3 pt-3 md:px-5 md:pt-5">
@@ -39,7 +47,7 @@ export function FloatingNav() {
         </nav>
         <div className="flex items-center gap-2">
           <Link href="/carrinho" className="px-2 text-sm text-paper/80 hover:text-paper">
-            Carrinho{count > 0 ? <span className="nums ml-1 text-paper">{count}</span> : null}
+            Carrinho{shown > 0 ? <span className="nums ml-1 text-paper">{shown}</span> : null}
           </Link>
           <Link href="/motos/apex" className={cn(buttonVariants({ size: "lg" }), "hidden h-10 rounded-full px-4 sm:inline-flex")}>
             Reservar

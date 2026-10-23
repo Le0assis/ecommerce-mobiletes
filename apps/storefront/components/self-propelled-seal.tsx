@@ -13,7 +13,7 @@ export function SelfPropelledSeal({ badge, notice = false }: { badge: StoreBadge
   return (
     <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
       <p className="rounded-full border border-white/20 px-3 py-1 text-sm text-paper">{badge.label}</p>
-      <CityRulesNotice text={badge.notice} />
+      {notice ? <CityRulesNotice text={badge.notice} /> : null}
     </div>
   );
 }
