@@ -18,7 +18,7 @@ A vitrine está completa como experiência, com dado e pagamento simulados:
 - Conta de sandbox, lista de desejos e lista de pedidos deste navegador.
 - Guias, legislação, FAQ, garantia e agendamento de serviço.
 - Páginas institucionais: sobre, energia, garantia, trocas, financiamento, contato, privacidade.
-- Admin em memória: estoque, variantes, pedidos, cupons, guias, trocas e serviços. A vitrine ainda lê o catálogo do código.
+- Admin com senha única e cookie httpOnly. Fora de produção o token de desenvolvimento ainda entra. Pedidos e o cadastro novo ficam na memória da API. A vitrine ainda lê o catálogo do código.
 
 ## O que esta versão não entrega
 

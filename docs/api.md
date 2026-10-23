@@ -51,7 +51,7 @@ A entrada é `POST /v1/admin/login` com `{ password }`. A senha não fica no có
 
 Fora de produção, `x-admin-token` ainda abre o admin (o valor de `ADMIN_TOKEN`, ou `dev-admin-token` se a variável não existir). Com `NODE_ENV=production` o cabeçalho não autentica.
 
-`GET /v1/admin/dealers?cidade=` é a única leitura de lojas. A rota pública `/v1/dealers` não existe mais. A vitrine ainda importa `dealers` de `@lume/domain` até a aba Lojas sair.
+`GET /v1/admin/dealers?cidade=` é a única leitura de lojas. A rota pública `/v1/dealers` não existe mais. A vitrine não lista lojas.
 
 `GET /v1/admin/overview` estoque efetivo por cor, variantes de bateria, banners, cupons, títulos de guia, contagem de pedidos, test rides, trocas e serviços, e as listas recentes (pedido sem e-mail, troca sem telefone). Serviço gravado em `POST /v1/service-bookings` entra nessa memória.
 
@@ -70,3 +70,5 @@ O catálogo de autopropelidos do admin vive na memória do processo, semeado com
 | GET/POST/PATCH/DELETE | `/v1/admin/damages` e `.../:id` | Avarias. No site só entram as públicas e não resolvidas. |
 | GET/POST/PATCH/DELETE | `/v1/admin/banners` e `.../:id` | Carrossel. |
 | POST | `/v1/admin/uploads` | Token de cliente do Vercel Blob. JPG, PNG ou WebP, até 5 MB. Exige `BLOB_READ_WRITE_TOKEN`. O token de escrita não vai na resposta. |
+
+A tela usa esses caminhos. A ficha vai no `PATCH` com `{ specs }` e a potência nominal em `powerNominalW`, sem derivar de `powerKw`. O vínculo é `{ accessories: [{ accessoryId, recommended }] }`. A ordem das fotos é `{ images: [{ id, position, isCover }] }`. A avaria manda `isPublic`. Preço e desconto são centavos. O selo não é campo do formulário.

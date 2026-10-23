@@ -98,7 +98,18 @@ Depois do sucesso, `rememberOrder` grava o código e `clear` esvazia o carrinho.
 
 ## Admin
 
-`components/admin-panel.tsx`. Token em `sessionStorage` (`lume-admin-token`). `GET /v1/admin/overview` lista produto, variante de bateria, estoque, pedido, cupom, guia, troca e serviço. `PATCH /v1/admin/stock` altera só a memória da API. Não muda a vitrine.
+`app/admin/page.tsx`, `components/admin-panel.tsx` e `components/admin-catalog.tsx`. A entrada é uma senha só: `POST /v1/admin/login` com `{ password }`. O cookie `lume_admin` é httpOnly. `POST /v1/admin/logout` apaga a sessão. Sem nome de usuário. Se o servidor ainda não tem `ADMIN_PASSWORD_HASH`, a tela mostra a mensagem da API e aceita o token antigo (`x-admin-token`, `lume-admin-token` no `sessionStorage`, desenvolvimento `dev-admin-token`). Em produção esse cabeçalho não autentica.
+
+`GET /v1/admin/overview` lista o catálogo de demonstração, pedido, cupom, guia, troca e serviço. `PATCH /v1/admin/stock` altera só a memória da API. Não muda a vitrine.
+
+O cadastro novo lê `GET /v1/admin/products`, `/accessories`, `/damages` e `/banners`. A lista traz ativo, rascunho ou arquivado, exemplo ou confirmado, e o estoque somado das variantes. Criar é `POST /v1/admin/products`. Duplicar é `POST /v1/admin/products/:id/duplicate`. Arquivar é `DELETE` e não apaga a linha.
+
+- Abas: Dados, Ficha, Fotos, Variantes, Acessórios e Avarias. A ficha manda `powerNominalW`. Não copia pico para a nominal. O selo não tem checkbox. Categoria só scooter, mobilete ou citycoco.
+- Fotos: JPG, PNG ou WebP, até 5 MB, pelo cliente do Blob em `POST /v1/admin/uploads`. O token de escrita não entra no browser. Sem `BLOB_READ_WRITE_TOKEN` o envio avisa e para. A ordem é `PATCH /v1/admin/products/:id/images` com `{ images: [{ id, position, isCover }] }`. A primeira é a capa.
+- Variante: `POST /v1/admin/products/:id/variants`.
+- Acessório: `POST /v1/admin/accessories`. A compatibilidade grava `{ accessories: [{ accessoryId, recommended }] }` no produto.
+- Avaria: `POST /v1/admin/damages` com `isPublic`, `discountCents` e `variantId` opcional. A API pública só devolve as avarias públicas e não resolvidas dos produtos desse cadastro. A página do modelo da vitrine ainda lê `@lume/domain`, então essa avaria não aparece no card.
+- Carrossel: `POST /v1/admin/banners`.
 
 ## Barra de test ride e menu
 

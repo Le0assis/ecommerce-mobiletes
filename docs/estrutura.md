@@ -28,7 +28,8 @@ docker-compose.yml       Postgres 54329, Redis 63799, Meilisearch 7709
 | `app/desejos/page.tsx` | Lista de desejos |
 | `app/financiamento/page.tsx` | Simulador |
 | `app/sobre`, `energia`, `garantia`, `trocas`, `contato`, `privacidade` | Institucional |
-| `app/admin/page.tsx` | Estoque, fora do índice |
+| `app/admin/page.tsx` | Senha, pedidos, produtos, acessórios e carrossel. Fora do índice |
+| `lib/admin-api.ts` | Chamadas do admin e upload por URL assinada |
 | `components/configurator.tsx` | O gesto de comprar um modelo |
 | `components/shop-provider.tsx` | Carrinho, desejos, códigos de pedido |
 | `lib/catalog.ts` | Leitura. Ponto de troca do catálogo |
