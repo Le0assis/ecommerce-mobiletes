@@ -3,8 +3,13 @@
  * Toda linha nasce com is_sample = true. Os números são plausíveis e de exemplo:
  * não são ficha confirmada pelo fabricante. Medida que não entrou no exemplo fica null
  * (o selo só aparece quando os quatro limites nominais existem). O preço é redondo,
- * em centavos. Cor não foi informada. rangeKmDeclared é a autonomia declarada de
- * exemplo; a vitrine continua no rótulo "Autonomia (declarada)".
+ * em centavos. Cor não foi informada, salvo a Watts W1. rangeKmDeclared é a autonomia
+ * declarada de exemplo; a vitrine continua no rótulo "Autonomia (declarada)".
+ *
+ * Peso em kg, inteiro, na ficha do produto. A variante não tem coluna de peso: o
+ * checkout soma weightKg do produto. quoteShipping cobra por kg e recusa peso <= 0
+ * ou acima de 400; o CHECK aceita até 1000. Os pesos abaixo são EXEMPLO, não ficha
+ * do fabricante.
  */
 
 export type SampleCategory = "scooter" | "mobilete" | "citycoco";
@@ -76,6 +81,13 @@ function spec(partial: Partial<SampleSpec>): SampleSpec {
   return { ...baseSpec, ...partial };
 }
 
+/** Texto explícito na descrição. Não é medição do fabricante. */
+const EXAMPLE_WEIGHT_NOTE = "peso de exemplo, a confirmar";
+
+function describe(text: string): string {
+  return `${text} ${EXAMPLE_WEIGHT_NOTE}.`;
+}
+
 const placeholderColor = {
   colorName: "A confirmar",
   colorHex: "#8a8a8a",
@@ -92,8 +104,9 @@ export const sampleScooters: SampleScooter[] = [
     category: "scooter",
     style: "esportivo",
     tagline: "1.000 W, bateria removível, 55 km declarados.",
-    description:
+    description: describe(
       "Dado de exemplo, não confirmado com o fabricante. Potência nominal 1.000 W, bateria 48V 24Ah removível, autonomia declarada 55 km, 32 km/h. Faixa de preço de referência R$ 9.900–11.990; o preço base é o piso. Largura e entre-eixos não informados.",
+    ),
     basePriceCents: 990_000,
     specs: spec({
       powerNominalW: 1000,
@@ -101,6 +114,7 @@ export const sampleScooters: SampleScooter[] = [
       batteryAh: 24,
       batteryRemovable: true,
       rangeKmDeclared: 55,
+      weightKg: 74,
     }),
     variant: {
       id: "yadea-dt3-padrao",
@@ -117,13 +131,15 @@ export const sampleScooters: SampleScooter[] = [
     category: "scooter",
     style: "esportivo",
     tagline: "60V 30Ah, 71 km declarados.",
-    description:
+    description: describe(
       "Dado de exemplo, não confirmado com o fabricante. Bateria 60V 30Ah, autonomia declarada 71 km, 32 km/h. Preço de referência R$ 10.900. Potência nominal, largura e entre-eixos não informados.",
+    ),
     basePriceCents: 1_090_000,
     specs: spec({
       batteryV: 60,
       batteryAh: 30,
       rangeKmDeclared: 71,
+      weightKg: 86,
     }),
     variant: {
       id: "yadea-m6-h-padrao",
@@ -140,14 +156,16 @@ export const sampleScooters: SampleScooter[] = [
     category: "scooter",
     style: "esportivo",
     tagline: "Bateria LFP 60V 30Ah, 68 km declarados.",
-    description:
+    description: describe(
       "Dado de exemplo, não confirmado com o fabricante. Bateria LFP 60V 30Ah, autonomia declarada 68 km, 32 km/h. Preço de referência R$ 12.900. Potência nominal, largura e entre-eixos não informados.",
+    ),
     basePriceCents: 1_290_000,
     specs: spec({
       batteryV: 60,
       batteryAh: 30,
       batteryChem: "LFP",
       rangeKmDeclared: 68,
+      weightKg: 98,
     }),
     variant: {
       id: "yadea-gfx6-padrao",
@@ -164,12 +182,14 @@ export const sampleScooters: SampleScooter[] = [
     category: "citycoco",
     style: "citycoco",
     tagline: "60V 20Ah, autonomia de referência 40–45 km.",
-    description:
+    description: describe(
       "Dado de exemplo, não confirmado com o fabricante. Bateria 60V 20Ah, 32 km/h. A autonomia informada é uma faixa de 40 a 45 km, então o número declarado fica vazio. Faixa de preço de referência R$ 9.990–12.150; o preço base é o piso. Potência nominal, largura e entre-eixos não informados.",
+    ),
     basePriceCents: 999_000,
     specs: spec({
       batteryV: 60,
       batteryAh: 20,
+      weightKg: 118,
     }),
     variant: {
       id: "motochefe-jet-padrao",
@@ -186,13 +206,15 @@ export const sampleScooters: SampleScooter[] = [
     category: "scooter",
     style: "retro",
     tagline: "64V 30Ah, 80 km declarados.",
-    description:
+    description: describe(
       "Dado de exemplo, não confirmado com o fabricante. Bateria 64V 30Ah, autonomia declarada 80 km, 32 km/h. Preço de referência R$ 11.990. Potência nominal, largura e entre-eixos não informados.",
+    ),
     basePriceCents: 1_199_000,
     specs: spec({
       batteryV: 64,
       batteryAh: 30,
       rangeKmDeclared: 80,
+      weightKg: 91,
     }),
     variant: {
       id: "aima-liberty-a500-padrao",
@@ -209,10 +231,11 @@ export const sampleScooters: SampleScooter[] = [
     category: "mobilete",
     style: "retro",
     tagline: "Autonomia de referência 25–30 km.",
-    description:
+    description: describe(
       "Dado de exemplo, não confirmado com o fabricante. 32 km/h. A autonomia informada é uma faixa de 25 a 30 km, então o número declarado fica vazio. Bateria não informada. Preço de referência R$ 8.000. Potência nominal, largura e entre-eixos não informados.",
+    ),
     basePriceCents: 800_000,
-    specs: spec({}),
+    specs: spec({ weightKg: 57 }),
     variant: {
       id: "shineray-pt2xs-padrao",
       sku: "SHINERAY-PT2XS",
@@ -228,13 +251,15 @@ export const sampleScooters: SampleScooter[] = [
     category: "scooter",
     style: "esportivo",
     tagline: "48V 12Ah, 35 km declarados.",
-    description:
+    description: describe(
       "Dado de exemplo, não confirmado com o fabricante. Bateria 48V 12Ah, autonomia declarada 35 km, 32 km/h. Preço de referência R$ 8.990. Potência nominal, largura e entre-eixos não informados.",
+    ),
     basePriceCents: 899_000,
     specs: spec({
       batteryV: 48,
       batteryAh: 12,
       rangeKmDeclared: 35,
+      weightKg: 63,
     }),
     variant: {
       id: "mxf-muv-e-road-padrao",
@@ -251,15 +276,20 @@ export const sampleScooters: SampleScooter[] = [
     category: "mobilete",
     style: "retro",
     tagline: "Piso de demonstração, ficha ainda sem bateria.",
-    description:
+    description: describe(
       "Dado de exemplo, não confirmado com o fabricante. 32 km/h é o teto de exemplo do catálogo, não uma medição da Watts. Bateria e autonomia não informadas. O preço R$ 4.300 é o piso de demonstração desta vitrine, não a tabela do fabricante. Potência nominal, largura e entre-eixos não informados.",
+    ),
     basePriceCents: 430_000,
-    specs: spec({}),
+    specs: spec({ weightKg: 51 }),
     variant: {
       id: "watts-w1-padrao",
       sku: "WATTS-W1",
       batteryLabel: null,
       ...placeholderColor,
+      // cor de exemplo, a confirmar com Léo
+      colorName: "Preto (EXEMPLO)",
+      colorHex: "#111111",
+      stock: 5,
     },
   },
 ];

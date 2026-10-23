@@ -227,13 +227,16 @@ describe("fase 5: cadastro no Postgres", () => {
   });
 
   it("precifica a scooter da semente no checkout e recusa desabilitada", async () => {
-    const missing = await app.request("/v1/pricing/configure", {
+    const seededQuote = await app.request("/v1/pricing/configure", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ productId: "watts-w1", colorId: "watts-w1-padrao", accessoryIds: [] }),
     });
-    expect(missing.status).toBe(400);
-    expect((await missing.json()).error).toBe("cor_sem_estoque");
+    expect(seededQuote.status).toBe(200);
+    const seededPrice = await seededQuote.json();
+    expect(seededPrice.product.weightKg).toBe(51);
+    expect(seededPrice.color.name).toBe("Preto (EXEMPLO)");
+    expect(seededPrice.color.stock).toBe(5);
 
     const stock = await app.request("/v1/admin/products/watts-w1/variants/watts-w1-padrao", {
       method: "PATCH",

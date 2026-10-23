@@ -51,6 +51,7 @@ export async function seedCatalog(db: Database) {
         },
       });
 
+    // weight_kg é kg de EXEMPLO (não ficha do fabricante). O upsert regrava o peso e a cor.
     await tx
       .insert(productSpecs)
       .values(sampleScooters.map((product) => ({ productId: product.id, ...product.specs })))

@@ -280,6 +280,22 @@ describe("API de commerce", () => {
     const openRange = await jet.json();
     expect(openRange.product.rangeKm).toBeNull();
     expect(openRange.product.specs.rangeKmDeclared).toBeNull();
+
+    const samples = listed.products.filter((item: { isSample: boolean }) => item.isSample);
+    expect(samples).toHaveLength(8);
+    expect(
+      samples.every(
+        (item: { weightKg: number; description: string }) =>
+          item.weightKg > 0 && item.weightKg <= 400 && item.description.includes("peso de exemplo, a confirmar"),
+      ),
+    ).toBe(true);
+
+    const watts = await app.request("/v1/products/watts-w1");
+    const wattsBody = await watts.json();
+    expect(wattsBody.product.weightKg).toBe(51);
+    expect(wattsBody.product.variants[0].colorName).toBe("Preto (EXEMPLO)");
+    expect(wattsBody.product.variants[0].stock).toBe(5);
+    expect(wattsBody.product.colors[0].stock).toBe(5);
   });
 
   it("o quiz usa o catálogo ativo, respeita o teto e muda com o estilo", async () => {
