@@ -9,7 +9,6 @@ import {
   applyDiscount,
   couponDiscount,
   coupons,
-  banners,
   checkoutBody,
   configureBody,
   configurePrice,
@@ -37,7 +36,11 @@ import {
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import type { Context } from "hono";
+import { getCookie } from "hono/cookie";
+import { ADMIN_COOKIE, mountCatalogRoutes } from "./catalog-routes";
+import { createCatalog } from "./catalog-store";
 import { adminToken } from "./env";
+import type { UploadRequest } from "./uploads";
 
 type OrderRecord = {
   code: string;
@@ -81,6 +84,7 @@ export type CommerceDeps = {
   extraReviews?: ReviewRecord[];
   stock?: Map<string, number>;
   banners?: Map<string, boolean>;
+  blobSigner?: (input: UploadRequest) => Promise<{ clientToken: string; pathname: string }>;
 };
 
 const hits = new Map<string, { count: number; reset: number }>();
@@ -114,8 +118,18 @@ export function createApp(deps: CommerceDeps = {}) {
   const bookings = deps.bookings ?? [];
   const extraReviews = deps.extraReviews ?? [];
   const stock = deps.stock ?? new Map<string, number>();
-  const bannerState = deps.banners ?? new Map(banners.map((item) => [item.id, item.active]));
   const now = deps.now ?? (() => new Date());
+  const catalog = createCatalog({ now, bannerOverrides: deps.banners });
+  const adminSessions = new Map<string, { createdAt: number }>();
+
+  function authorized(c: Context) {
+    const cookie = getCookie(c, ADMIN_COOKIE);
+    if (cookie && adminSessions.has(cookie)) return true;
+    if (process.env.NODE_ENV === "production") return false;
+    const expected = adminToken();
+    if (!expected) return false;
+    return c.req.header("x-admin-token") === expected;
+  }
 
   const app = new Hono();
 
@@ -164,11 +178,27 @@ export function createApp(deps: CommerceDeps = {}) {
       brand: c.req.query("marca") ?? undefined,
     });
     return c.json({
-      products: result.products.map(serializeProduct),
+      products: [
+        ...result.products.map(serializeProduct),
+        ...catalog.publicList({
+          q: c.req.query("q"),
+          category: c.req.query("categoria") ?? undefined,
+          brand: c.req.query("marca") ?? undefined,
+          city: c.req.query("cidade") ?? undefined,
+        }),
+      ],
     });
   });
 
   app.get("/v1/products/:slug", (c) => {
+    const managed = catalog.publicBySlug(c.req.param("slug"));
+    if (managed) {
+      const linked = new Set(managed.accessories.map((item) => item.accessoryId));
+      return c.json({
+        product: managed,
+        accessories: catalog.listAccessories().filter((item) => linked.has(item.id)),
+      });
+    }
     const product = getMotorcycle(c.req.param("slug"));
     if (!product) return c.json({ error: "produto_inexistente", message: "Modelo não encontrado." }, 404);
     return c.json({
@@ -195,18 +225,8 @@ export function createApp(deps: CommerceDeps = {}) {
   app.post("/v1/shipping/quote", async (c) => read(c, shippingBody, (input) => quoteShipping(input.cep, input.weightKg)));
 
   app.get("/v1/banners", (c) => {
-    const list = banners
-      .map((item, index) => ({
-        id: item.id,
-        slot: item.slot,
-        eyebrow: item.eyebrow,
-        title: item.title,
-        subtitle: item.subtitle ?? "",
-        href: item.href,
-        imageUrl: item.imageUrl ?? null,
-        position: item.position ?? index,
-        active: bannerState.get(item.id) ?? item.active,
-      }))
+    const list = catalog
+      .listBanners()
       .filter((item) => item.active)
       .sort((a, b) => a.position - b.position || a.id.localeCompare(b.id));
     return c.json({ banners: list });
@@ -440,7 +460,7 @@ export function createApp(deps: CommerceDeps = {}) {
           stock: stock.get(`${product.id}:${color.id}`) ?? color.stock,
         })),
       })),
-      banners: banners.map((item) => ({ ...item, active: bannerState.get(item.id) ?? item.active })),
+      banners: catalog.listBanners(),
       orders: orders.size,
       bookings: bookings.length,
       tradeIns: tradeIns.length,
@@ -483,6 +503,14 @@ export function createApp(deps: CommerceDeps = {}) {
     });
   });
 
+  mountCatalogRoutes(app, {
+    catalog,
+    sessions: adminSessions,
+    authorized,
+    rateLimit,
+    blobSigner: deps.blobSigner,
+  });
+
   app.onError((error, c) => {
     console.error(JSON.stringify({ msg: "erro", message: error instanceof Error ? error.message : "unknown" }));
     const mapped = problem(error);
@@ -490,12 +518,6 @@ export function createApp(deps: CommerceDeps = {}) {
   });
 
   return app;
-}
-
-function authorized(c: Context) {
-  const expected = adminToken();
-  if (!expected) return false;
-  return c.req.header("x-admin-token") === expected;
 }
 
 const trackSteps = ["aguardando_pagamento", "pago", "em_preparo", "em_transporte", "entregue"] as const;

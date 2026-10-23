@@ -53,3 +53,7 @@ A Resolução CONTRAN 996/2023 pede potência nominal até 1.000 W, 32 km/h, 70 
 ## ADR 13 — Pontuação do quiz
 
 O plano não fixou os pontos. `recommendMotorcycles` soma orçamento (até 6 mil, 6 a 10 mil, acima de 10 mil), autonomia declarada contra faixas de 20, 40, 70 e 90 km, uso, ladeira, bateria removível, quem vai junto, carga, estilo e cor. Bateria sem ficha não ganha o ponto de removível nem é eliminada. Garupa, quando `carries` não veio, só é presumida fora de mobilete. Criança e pet não são presumidos. Voltam no máximo três com pontuação positiva; se ninguém passar de zero, volta o menos distante. Acessórios sugeridos dependem da resposta, não de um cadastro novo.
+
+## ADR 14 — Sessão de admin e catálogo em memória
+
+Uma senha só. O hash scrypt fica em `ADMIN_PASSWORD_HASH`. O cookie `lume_admin` é httpOnly e SameSite=Lax. `Secure` liga em produção: no http local o navegador descartaria o cookie. Fora de produção o cabeçalho `x-admin-token` continua válido para a tela antiga e para os testes. Em produção ele não autentica. O upload pede `BLOB_READ_WRITE_TOKEN` e devolve só o token de cliente, limitado a JPG, PNG e WebP de 5 MB. O CRUD do admin não grava no Postgres nesta etapa: o processo semeia as scooters de exemplo e atende a API sem banco, no mesmo modelo dos pedidos. O checkout não precifica esse catálogo.

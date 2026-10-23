@@ -20,5 +20,5 @@ Regras que não se negociam ao implementar:
 - O servidor de desenvolvimento escuta em `http://127.0.0.1:43123`. Não suba o Next em `localhost`: a página deixa de hidratar.
 - `lume-cookies` aceita `ok`, `essential` e `analytics`. Só `analytics` liga `track`, e só com `NEXT_PUBLIC_ANALYTICS=console`. Sem script de terceiro.
 - Serviço e troca ficam na memória da API e aparecem em `GET /v1/admin/overview`. Estoque do admin continua fora da vitrine.
-- Publicar segue [docs/deploy.md](docs/deploy.md). Em produção, sem `ADMIN_TOKEN`, o admin recusa.
+- Publicar segue [docs/deploy.md](docs/deploy.md). Em produção o admin exige `ADMIN_PASSWORD_HASH` e o cookie `lume_admin`. `ADMIN_TOKEN` não autentica com `NODE_ENV=production`.
 - Se a mudança alterar comportamento que o próximo agente precisaria saber, atualize o arquivo correspondente em `docs/`.

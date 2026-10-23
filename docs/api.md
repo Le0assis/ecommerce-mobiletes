@@ -47,10 +47,26 @@ A resposta traz `order` recalculado e a frase de que nenhum pagamento foi ao Mer
 
 ## Admin
 
-Cabeçalho `x-admin-token`. Fora de produção, se `ADMIN_TOKEN` não existir, o token é `dev-admin-token`.
+A entrada é `POST /v1/admin/login` com `{ password }`. A senha não fica no código: `ADMIN_PASSWORD_HASH` é `scrypt$<sal hex>$<hash hex>`, gerado por `hashAdminPassword` em `apps/commerce/src/auth.ts`. O cookie `lume_admin` é `httpOnly`, `SameSite=Lax` e, em produção, `Secure`. `POST /v1/admin/logout` apaga a sessão. O login aceita 8 tentativas por minuto por IP.
+
+Fora de produção, `x-admin-token` ainda abre o admin (o valor de `ADMIN_TOKEN`, ou `dev-admin-token` se a variável não existir). Com `NODE_ENV=production` o cabeçalho não autentica.
 
 `GET /v1/admin/dealers?cidade=` é a única leitura de lojas. A rota pública `/v1/dealers` não existe mais. A vitrine ainda importa `dealers` de `@lume/domain` até a aba Lojas sair.
 
 `GET /v1/admin/overview` estoque efetivo por cor, variantes de bateria, banners, cupons, títulos de guia, contagem de pedidos, test rides, trocas e serviços, e as listas recentes (pedido sem e-mail, troca sem telefone). Serviço gravado em `POST /v1/service-bookings` entra nessa memória.
 
 `PATCH /v1/admin/stock` — `productId`, `colorId`, `stock`. Não altera `@lume/domain`.
+
+O catálogo de autopropelidos do admin vive na memória do processo, semeado com `sampleScooters`. O Postgres da migration `0001` continua sendo o seed do banco; esta fase não grava o CRUD nele. Checkout segue precificando `@lume/domain`.
+
+| Método | Caminho | Uso |
+| --- | --- | --- |
+| GET/POST | `/v1/admin/products` | Lista com `q` e cria. |
+| PATCH/DELETE | `/v1/admin/products/:id` | Edita. DELETE arquiva (`arquivado`), não apaga. |
+| POST | `/v1/admin/products/:id/duplicate` | Cópia em rascunho. |
+| POST/PATCH/DELETE | `/v1/admin/products/:id/variants` e `.../variants/:variantId` | Variantes. |
+| POST/PATCH/DELETE | `/v1/admin/products/:id/images` e `.../images/:imageId` | Foto, ordem e capa. |
+| GET/POST/PATCH/DELETE | `/v1/admin/accessories` e `.../:id` | Acessórios. |
+| GET/POST/PATCH/DELETE | `/v1/admin/damages` e `.../:id` | Avarias. No site só entram as públicas e não resolvidas. |
+| GET/POST/PATCH/DELETE | `/v1/admin/banners` e `.../:id` | Carrossel. |
+| POST | `/v1/admin/uploads` | Token de cliente do Vercel Blob. JPG, PNG ou WebP, até 5 MB. Exige `BLOB_READ_WRITE_TOKEN`. O token de escrita não vai na resposta. |

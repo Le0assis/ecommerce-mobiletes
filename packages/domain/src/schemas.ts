@@ -104,6 +104,163 @@ export const authVerifyBody = z.object({
   code: z.string().trim().min(4).max(40),
 });
 
+const nullableInt = z.number().int().nonnegative().nullable();
+
+export const productSpecsBody = z.object({
+  powerNominalW: nullableInt.optional(),
+  powerPeakW: nullableInt.optional(),
+  topSpeedKmh: nullableInt.optional(),
+  widthCm: nullableInt.optional(),
+  wheelbaseCm: nullableInt.optional(),
+  weightKg: nullableInt.optional(),
+  seatHeightMm: nullableInt.optional(),
+  batteryV: nullableInt.optional(),
+  batteryAh: nullableInt.optional(),
+  batteryChem: z.string().trim().max(40).nullable().optional(),
+  batteryRemovable: z.boolean().nullable().optional(),
+  chargeHours: nullableInt.optional(),
+  rangeKmDeclared: nullableInt.optional(),
+  hasSpeedLimiter: z.boolean().nullable().optional(),
+  hasBell: z.boolean().nullable().optional(),
+  hasLights: z.boolean().nullable().optional(),
+});
+
+export const adminProductBody = z.object({
+  slug: z.string().trim().min(1).max(80).regex(/^[a-z0-9-]+$/),
+  name: z.string().trim().min(1).max(80),
+  brand: z.string().trim().min(1).max(40),
+  category: z.enum(["scooter", "mobilete", "citycoco"]),
+  style: z.enum(["retro", "citycoco", "esportivo"]),
+  tagline: z.string().trim().min(1).max(160),
+  description: z.string().trim().min(1).max(4000),
+  basePriceCents: z.number().int().nonnegative(),
+  status: z.enum(["rascunho", "ativo", "arquivado"]).optional(),
+  isSample: z.boolean().optional(),
+  specs: productSpecsBody.optional(),
+  accessories: z
+    .array(z.object({ accessoryId: z.string().min(1), recommended: z.boolean().default(false) }))
+    .max(40)
+    .optional(),
+});
+
+export const adminProductPatchBody = adminProductBody.partial();
+
+export const adminVariantBody = z.object({
+  sku: z.string().trim().min(1).max(40),
+  colorName: z.string().trim().min(1).max(40),
+  colorHex: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+  batteryLabel: z.string().trim().max(80).nullable().optional(),
+  priceDeltaCents: z.number().int().nonnegative().default(0),
+  stock: z.number().int().nonnegative().default(0),
+  active: z.boolean().default(true),
+});
+
+export const adminVariantPatchBody = z.object({
+  sku: z.string().trim().min(1).max(40).optional(),
+  colorName: z.string().trim().min(1).max(40).optional(),
+  colorHex: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+  batteryLabel: z.string().trim().max(80).nullable().optional(),
+  priceDeltaCents: z.number().int().nonnegative().optional(),
+  stock: z.number().int().nonnegative().optional(),
+  active: z.boolean().optional(),
+});
+
+export const adminImageBody = z.object({
+  url: z.string().trim().url().max(500),
+  alt: z.string().trim().max(160).default(""),
+  variantId: z.string().min(1).nullable().optional(),
+  position: z.number().int().nonnegative().optional(),
+  isCover: z.boolean().optional(),
+});
+
+export const adminImageOrderBody = z.object({
+  images: z
+    .array(
+      z.object({
+        id: z.string().min(1),
+        position: z.number().int().nonnegative(),
+        isCover: z.boolean().optional(),
+      }),
+    )
+    .min(1),
+});
+
+export const adminAccessoryBody = z.object({
+  slug: z.string().trim().min(1).max(80).regex(/^[a-z0-9-]+$/),
+  name: z.string().trim().min(1).max(80),
+  kind: z.string().trim().min(1).max(40),
+  priceCents: z.number().int().nonnegative(),
+  stock: z.number().int().nonnegative().default(0),
+  imageUrl: z.string().trim().url().max(500).nullable().optional(),
+});
+
+export const adminAccessoryPatchBody = z.object({
+  slug: z.string().trim().min(1).max(80).regex(/^[a-z0-9-]+$/).optional(),
+  name: z.string().trim().min(1).max(80).optional(),
+  kind: z.string().trim().min(1).max(40).optional(),
+  priceCents: z.number().int().nonnegative().optional(),
+  stock: z.number().int().nonnegative().optional(),
+  imageUrl: z.string().trim().url().max(500).nullable().optional(),
+});
+
+export const adminDamageBody = z.object({
+  productId: z.string().min(1),
+  variantId: z.string().min(1).nullable().optional(),
+  description: z.string().trim().min(3).max(500),
+  severity: z.enum(["leve", "moderada", "grave"]),
+  discountCents: z.number().int().nonnegative().default(0),
+  isPublic: z.boolean().default(false),
+  resolvedAt: z.string().datetime().nullable().optional(),
+  images: z
+    .array(z.object({ url: z.string().trim().url().max(500), position: z.number().int().nonnegative().optional() }))
+    .max(8)
+    .optional(),
+});
+
+export const adminDamagePatchBody = z.object({
+  variantId: z.string().min(1).nullable().optional(),
+  description: z.string().trim().min(3).max(500).optional(),
+  severity: z.enum(["leve", "moderada", "grave"]).optional(),
+  discountCents: z.number().int().nonnegative().optional(),
+  isPublic: z.boolean().optional(),
+  resolvedAt: z.string().datetime().nullable().optional(),
+  images: z
+    .array(z.object({ url: z.string().trim().url().max(500), position: z.number().int().nonnegative().optional() }))
+    .max(8)
+    .optional(),
+});
+
+export const adminBannerBody = z.object({
+  slot: z.string().trim().min(1).max(40).default("home-carrossel"),
+  eyebrow: z.string().trim().max(40).default(""),
+  title: z.string().trim().min(1).max(120),
+  subtitle: z.string().trim().max(160).default(""),
+  href: z.string().trim().min(1).max(300),
+  imageUrl: z.string().trim().url().max(500).nullable().optional(),
+  position: z.number().int().nonnegative().optional(),
+  active: z.boolean().default(true),
+});
+
+export const adminBannerPatchBody = z.object({
+  slot: z.string().trim().min(1).max(40).optional(),
+  eyebrow: z.string().trim().max(40).optional(),
+  title: z.string().trim().min(1).max(120).optional(),
+  subtitle: z.string().trim().max(160).optional(),
+  href: z.string().trim().min(1).max(300).optional(),
+  imageUrl: z.string().trim().url().max(500).nullable().optional(),
+  position: z.number().int().nonnegative().optional(),
+  active: z.boolean().optional(),
+});
+
+export const adminLoginBody = z.object({
+  password: z.string().min(1).max(200),
+});
+
+export const adminUploadBody = z.object({
+  filename: z.string().trim().min(1).max(120),
+  contentType: z.string().trim().min(1).max(80),
+});
+
 export const stockPatchBody = z.object({
   productId: z.string().min(1),
   colorId: z.string().min(1),

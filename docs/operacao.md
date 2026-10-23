@@ -33,6 +33,6 @@ O typecheck da vitrine roda `next typegen` antes do `tsc`, porque `PageProps` e 
 
 O passo a passo está em [deploy.md](deploy.md). O CI (`.github/workflows/ci.yml`) faz lint, typecheck, teste, build da vitrine e, noutro job, Playwright contra `next start`.
 
-Vitrine na Vercel ou OpenNext. API e Postgres em sa-east-1. `STOREFRONT_ORIGIN` trava o CORS. `ADMIN_TOKEN` é obrigatório com `NODE_ENV=production`. Segredo fora do git. Não publique com o token `dev-admin-token`.
+Vitrine na Vercel ou OpenNext. API e Postgres em sa-east-1. `STOREFRONT_ORIGIN` trava o CORS. Em produção o admin entra com `ADMIN_PASSWORD_HASH` (scrypt) e cookie httpOnly. `BLOB_READ_WRITE_TOKEN` assina o upload de foto. Segredo fora do git. `ADMIN_TOKEN` não autentica quando `NODE_ENV=production`.
 
 Build local da vitrine: `pnpm --filter @lume/storefront build`. Páginas dinâmicas que leem `params` precisam do `Suspense` já usado em `/motos/[slug]` e `/pedido/[code]`.

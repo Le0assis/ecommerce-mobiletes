@@ -35,13 +35,13 @@ const statusLabel: Record<string, string> = {
 };
 
 export function AdminPanel() {
-  const [token, setToken] = useState("dev-admin-token");
+  const [password, setPassword] = useState("");
   const [data, setData] = useState<Overview | null>(null);
   const [error, setError] = useState("");
 
-  async function load(nextToken = token) {
+  async function load() {
     setError("");
-    const response = await fetch("/api/commerce/v1/admin/overview", { headers: { "x-admin-token": nextToken } });
+    const response = await fetch("/api/commerce/v1/admin/overview", { credentials: "include" });
     const body = (await response.json()) as Overview & { message?: string };
     if (!response.ok) {
       setData(null);
@@ -52,13 +52,11 @@ export function AdminPanel() {
   }
 
   useEffect(() => {
-    const stored = sessionStorage.getItem("lume-admin-token") || "dev-admin-token";
     let cancelled = false;
-    fetch("/api/commerce/v1/admin/overview", { headers: { "x-admin-token": stored } })
+    fetch("/api/commerce/v1/admin/overview", { credentials: "include" })
       .then(async (response) => {
         const body = (await response.json()) as Overview & { message?: string };
         if (cancelled) return;
-        setToken(stored);
         if (!response.ok) {
           setData(null);
           setError(body.message ?? "Não autorizado.");
@@ -79,16 +77,46 @@ export function AdminPanel() {
     <div className="mt-8 grid gap-8">
       <form
         className="flex flex-wrap gap-3"
-        onSubmit={(event) => {
+        onSubmit={async (event) => {
           event.preventDefault();
-          sessionStorage.setItem("lume-admin-token", token);
-          void load(token);
+          setError("");
+          const response = await fetch("/api/commerce/v1/admin/login", {
+            method: "POST",
+            credentials: "include",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ password }),
+          });
+          const body = (await response.json()) as { message?: string };
+          if (!response.ok) {
+            setError(body.message ?? "Não autorizado.");
+            return;
+          }
+          await load();
         }}
       >
-        <Input value={token} onChange={(event) => setToken(event.target.value)} className="h-12 max-w-sm rounded-full px-4" aria-label="Token de admin" />
+        <Input
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          type="password"
+          className="h-12 max-w-sm rounded-full px-4"
+          aria-label="Senha de admin"
+        />
         <Button type="submit" className="h-12 rounded-full">
           Entrar
         </Button>
+        {data ? (
+          <Button
+            type="button"
+            variant="outline"
+            className="h-12 rounded-full"
+            onClick={async () => {
+              await fetch("/api/commerce/v1/admin/logout", { method: "POST", credentials: "include" });
+              setData(null);
+            }}
+          >
+            Sair
+          </Button>
+        ) : null}
       </form>
       {error ? <p className="text-sm text-signal">{error}</p> : null}
       {data ? (
@@ -195,10 +223,11 @@ export function AdminPanel() {
                             const stock = Number(new FormData(event.currentTarget).get("stock"));
                             await fetch("/api/commerce/v1/admin/stock", {
                               method: "PATCH",
-                              headers: { "content-type": "application/json", "x-admin-token": token },
+                              credentials: "include",
+                              headers: { "content-type": "application/json" },
                               body: JSON.stringify({ productId: product.id, colorId: color.id, stock }),
                             });
-                            await load(token);
+                            await load();
                           }}
                         >
                           <Input name="stock" type="number" min={0} defaultValue={color.stock} key={color.stock} className="h-10 w-24 rounded-full px-3" aria-label={`Estoque de ${product.name} ${color.name}`} />

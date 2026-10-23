@@ -29,7 +29,9 @@ API:
 | `NODE_ENV` | `production` |
 | `PORT` | A porta que o processo escuta. |
 | `DATABASE_URL` | Postgres da região, com senha fora do repositório. |
-| `ADMIN_TOKEN` | Obrigatório. Sem ele, `adminToken()` devolve nulo e `/v1/admin/overview` responde 401. Não use `dev-admin-token`. |
+| `ADMIN_PASSWORD_HASH` | Obrigatório para o login. Hash scrypt no formato `scrypt$<sal hex>$<hash hex>`. Gere com `hashAdminPassword` em `apps/commerce/src/auth.ts`. Não commite a senha nem o hash de produção. |
+| `BLOB_READ_WRITE_TOKEN` | Token de escrita do Vercel Blob, store da LUME. Só no servidor. O admin recebe um token de cliente, com JPG/PNG/WebP e teto de 5 MB. |
+| `ADMIN_TOKEN` | Só vale fora de produção, no cabeçalho `x-admin-token`. Em produção o admin exige o cookie da senha. Não use `dev-admin-token` no ambiente público. |
 | `STOREFRONT_ORIGIN` | A origem exata da vitrine, com esquema e sem caminho. O CORS recusa o resto. |
 
 Pix de demonstração continua prefixado com `LUME-MOCK-PIX`. Não troque esse prefixo por um BR Code enquanto não houver credencial de homologação e webhook.

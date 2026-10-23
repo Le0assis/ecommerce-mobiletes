@@ -17,6 +17,7 @@
   "dependencies": {
     "@hono/node-server": "^1.19.6",
     "@lume/domain": "workspace:*",
+    "@vercel/blob": "1.1.1",
     "drizzle-orm": "^0.45.1",
     "hono": "^4.10.7",
     "ioredis": "^5.8.2",

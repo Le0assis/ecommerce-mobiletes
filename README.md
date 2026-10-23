@@ -218,7 +218,9 @@ O que cada linha significa:
 | `REDIS_URL` | `redis://127.0.0.1:63799` | Redis, reservado para carrinho e limite de taxa. A API sobe sem ele. |
 | `MEILI_HOST` | `http://127.0.0.1:7709` | Meilisearch, reservado para a busca. Sem ele, a busca usa o catálogo em memória. |
 | `MEILI_MASTER_KEY` | `lume-dev-master-key` | Senha do Meilisearch de desenvolvimento. Tem de ser a mesma do `docker-compose.yml`. |
-| `ADMIN_TOKEN` | `troque-este-token` | Senha da área `/admin`. Em desenvolvimento, se esta linha não existir, a API aceita `dev-admin-token`. Em produção a API recusa o admin se o token não estiver definido. |
+| `ADMIN_PASSWORD_HASH` | `scrypt$...$...` | Hash scrypt da senha única de admin. A senha não entra no git. Sem este valor, `POST /v1/admin/login` responde 503. |
+| `BLOB_READ_WRITE_TOKEN` | token do Blob | Token de escrita do Vercel Blob. Só no servidor. Sem ele, o upload de foto responde 503. |
+| `ADMIN_TOKEN` | `troque-este-token` | Cabeçalho `x-admin-token` fora de produção. Em desenvolvimento, se esta linha não existir, a API aceita `dev-admin-token`. Em produção o cabeçalho não autentica. |
 | `STOREFRONT_ORIGIN` | `http://127.0.0.1:43123` | Endereço exato da vitrine. A API só libera chamadas de browser vindas dele. Se você abrir o site por outro endereço, o checkout no browser pode falhar. |
 
 Se for rodar **sem Docker**, não deixe o `DATABASE_URL` apontando para um Postgres desligado. Apague ou comente (coloque `#` no começo) as linhas `DATABASE_URL`, `REDIS_URL`, `MEILI_HOST` e `MEILI_MASTER_KEY`. A API sobe do mesmo jeito e avisa que está em memória.
@@ -398,7 +400,7 @@ Repita para `8787` se a API não sobe.
 
 **Pedido some depois de reiniciar.** Sem Postgres, o pedido está na memória. Com Postgres desligado e `DATABASE_URL` preenchido, o log da API mostra `postgres_indisponivel` ou `pedido_nao_gravado` e o pedido também fica só na memória.
 
-**Admin responde “Token de admin inválido”.** Na tela `/admin`, use `dev-admin-token` quando `NODE_ENV` não é `production` e `ADMIN_TOKEN` não foi definido. Se você definiu `ADMIN_TOKEN` no `.env`, use esse valor.
+**Admin responde “Senha inválida” ou pede `ADMIN_PASSWORD_HASH`.** A tela `/admin` envia a senha para `POST /v1/admin/login`. O valor no ambiente é o hash scrypt, não a senha. Fora de produção, um cliente que mande `x-admin-token` ainda entra com `dev-admin-token` quando `ADMIN_TOKEN` não foi definido.
 
 **CEP `00000-000` ou com menos de 8 dígitos.** A cotação recusa. Use um CEP real de formato, por exemplo `01310-100`.
 
@@ -501,7 +503,7 @@ O passo a passo de hospedagem, variáveis e o que continua simulado está em [do
 
 1. Rode `pnpm lint`, `pnpm typecheck` e `pnpm test` na raiz. Os três precisam terminar sem erro.
 2. Rode `pnpm --filter @lume/storefront build`.
-3. Na API, defina `NODE_ENV=production` e um `ADMIN_TOKEN` que não seja `dev-admin-token`. Sem esse token o admin recusa todo mundo, e é assim que deve ser.
+3. Na API, defina `NODE_ENV=production` e `ADMIN_PASSWORD_HASH`. Sem o hash o login responde 503. O cabeçalho `x-admin-token` não autentica em produção.
 4. Aponte `STOREFRONT_ORIGIN` para o endereço exato da vitrine e `COMMERCE_API_URL` para a API.
 5. Deixe `NEXT_PUBLIC_ANALYTICS` vazio. Pix de demonstração continua começando com `LUME-MOCK-PIX`.
 

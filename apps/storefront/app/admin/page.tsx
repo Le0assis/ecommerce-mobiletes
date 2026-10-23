@@ -8,7 +8,7 @@ export default function AdminPage() {
     <main id="conteudo" className="mx-auto max-w-5xl px-5 pt-28 pb-20">
       <h1 className="display text-6xl">Admin.</h1>
       <p className="mt-4 max-w-2xl text-sm text-muted-foreground">
-        Esqueleto do CMS operacional: estoque por cor e leitura de banners. Em desenvolvimento o token é <span className="text-paper">dev-admin-token</span>. Em produção a API exige <span className="text-paper">ADMIN_TOKEN</span> e esta tela ganha login de verdade.
+        Visão operacional. A entrada é a senha cujo hash scrypt está em ADMIN_PASSWORD_HASH. O cookie de sessão é httpOnly. Fora de produção a API ainda aceita o cabeçalho x-admin-token.
       </p>
       <AdminPanel />
     </main>
