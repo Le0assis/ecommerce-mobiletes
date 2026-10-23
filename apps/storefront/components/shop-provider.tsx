@@ -161,8 +161,8 @@ export function DisabledCartNotice({
     shop.retainLines(allowed);
     const text =
       dropped === 1
-        ? "Tiramos do carrinho um modelo desabilitado."
-        : `Tiramos do carrinho ${dropped} modelos desabilitados.`;
+        ? "Esse modelo não está habilitado. Tiramos do carrinho um modelo desabilitado."
+        : `Esses modelos não estão habilitados. Tiramos do carrinho ${dropped} modelos desabilitados.`;
     const mark = () => setNotice(text);
     mark();
   }, [active, products, shop]);

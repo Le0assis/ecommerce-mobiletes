@@ -70,13 +70,13 @@ A aba, a página, o mapa, os stories e o filtro Cidade da loja saíram. Não rep
 
 `components/shop-provider.tsx` e `components/cart-view.tsx`.
 
-Quantidade máxima 2. Linha igual (mesmo modelo, cor e acessórios) soma. `clear` zera as linhas e preserva desejos e códigos de pedido. O preço é refeito com `priceProduct` em cima da lista habilitada. O badge do menu lê `lume-shop-v1` só depois do mount do próprio menu: o primeiro HTML sai sem contagem, para a hidratação casar quando o carrinho já tem itens. O menu suspende no pathname, então o número não pode entrar no render anterior. Carrinho antigo sem `orderCodes` continua válido. Se a lista carregou e uma linha não está nela, `retainLines` tira essa linha e a tela avisa “Tiramos do carrinho um modelo desabilitado.” A API fora do ar não mexe no carrinho.
+Quantidade máxima 2. Linha igual (mesmo modelo, cor e acessórios) soma. `clear` zera as linhas e preserva desejos e códigos de pedido. O preço é refeito com `priceProduct` em cima da lista habilitada. O badge do menu lê `lume-shop-v1` só depois do mount do próprio menu: o primeiro HTML sai sem contagem, para a hidratação casar quando o carrinho já tem itens. O menu suspende no pathname, então o número não pode entrar no render anterior. Carrinho antigo sem `orderCodes` continua válido. Se a lista carregou e uma linha não está nela, `retainLines` tira essa linha e a tela avisa “Esse modelo não está habilitado. Tiramos do carrinho um modelo desabilitado.” A API fora do ar não mexe no carrinho.
 
 ## Checkout
 
 `components/checkout-form.tsx`.
 
-Métodos: Pix (−5%), boleto (−3%), cartão 1 a 21 vezes sem juros. A prévia usa `amountForMethod` e soma o frete. A parcela da prévia inclui o frete. O único serviço é `dedicado` (“Entrega da moto em casa”). O POST manda linhas, CEP, serviço, método e cliente. A API ignora qualquer total. Pix de demonstração começa com `LUME-MOCK-PIX`. Linha desabilitada sai antes do envio, com o mesmo aviso do carrinho. O botão fica desligado enquanto essa linha ainda está no navegador.
+Métodos: Pix (−5%), boleto (−3%), cartão 1 a 21 vezes sem juros. A prévia usa `amountForMethod` e soma o frete. A parcela da prévia inclui o frete. O único serviço é `dedicado` (“Entrega da moto em casa”). O POST manda linhas, CEP, serviço, método e cliente. A API ignora qualquer total. Pix de demonstração começa com `LUME-MOCK-PIX`. Linha desabilitada sai antes do envio, com o mesmo aviso do carrinho. O botão fica desligado enquanto essa linha ainda está no navegador. Se o POST ainda assim responde `produto_desabilitado`, a tela mostra “Esse modelo não está habilitado.” Cor sem estoque mostra a frase da API (`cor_sem_estoque`), no modelo e na prévia. Peso ausente ou zero mostra “Peso fora da faixa de transporte. A ficha precisa de um peso maior que zero.” Sem Postgres, o admin mostra “O cadastro precisa do Postgres.”
 
 Depois do sucesso, `rememberOrder` grava o código e `clear` esvazia o carrinho. A navegação vai para `/pedido/[code]`.
 

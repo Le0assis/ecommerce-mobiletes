@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { amountForMethod, formatBRL, formatCep, installmentByCount, priceProduct, quoteShipping, type StoreProduct } from "@/lib/catalog";
 import { track } from "@/lib/analytics";
+import { pesoInvalidoMessage, produtoDesabilitadoMessage } from "@/lib/commerce";
 import { placeOrder } from "@/lib/shop-api";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -37,10 +38,12 @@ export function CheckoutForm({ products, catalogMessage }: { products: StoreProd
         return { line, quote: priced.quote };
       });
       const weight = quotes.reduce((sum, item) => sum + (item.quote.weightKg ?? 0) * item.line.qty, 0);
+      if (!(weight > 0)) return { error: pesoInvalidoMessage };
       const shipping = quoteShipping(cep, weight);
       return { quotes, shipping };
     } catch (cause) {
-      return { error: cause instanceof Error ? cause.message : "CEP inválido." };
+      const message = cause instanceof Error ? cause.message : "CEP inválido.";
+      return { error: message === "Peso fora da faixa de transporte." ? pesoInvalidoMessage : message };
     }
   }, [shop.lines, cep, products]);
 
@@ -49,7 +52,7 @@ export function CheckoutForm({ products, catalogMessage }: { products: StoreProd
 
   async function onSubmit(formData: FormData) {
     if (shop.lines.some((line) => !products.some((item) => item.id === line.productId && item.isEnabled !== false))) {
-      setError("Tem um modelo desabilitado no carrinho.");
+      setError(produtoDesabilitadoMessage);
       return;
     }
     setPending(true);
