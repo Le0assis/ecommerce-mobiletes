@@ -1,25 +1,38 @@
 import { CategorySearch } from "@/components/category-search";
 import { Hero } from "@/components/hero";
+import { HomeCarousel } from "@/components/home-carousel";
+import { loadHomeSlides } from "@/lib/home-slides";
 import { catalogHasSample, SampleBanner } from "@/components/sample-banner";
 import { CityRulesNotice } from "@/components/self-propelled-seal";
-import { AUTOPROPELIDO_NOTICE } from "@/lib/catalog";
 import { ProductCard } from "@/components/product-card";
 import { TrustRow } from "@/components/trust-row";
 import { buttonVariants } from "@/components/ui/button";
-import { configurePrice, formatBRL, getMotorcycle, installmentByCount, motorcycles, reviews } from "@/lib/catalog";
+import { AUTOPROPELIDO_NOTICE, configurePrice, formatBRL, getMotorcycle, installmentByCount, motorcycles, reviews } from "@/lib/catalog";
 import { cn } from "cn";
 import Link from "next/link";
+import { Suspense } from "react";
 
 export default function HomePage() {
+  return (
+    <Suspense fallback={<p className="px-5 pt-32 text-muted-foreground">Abrindo a vitrine…</p>}>
+      <HomeContent />
+    </Suspense>
+  );
+}
+
+async function HomeContent() {
   const apex = getMotorcycle("apex");
   if (!apex) return null;
+  const slides = await loadHomeSlides();
   const quote = configurePrice({ productId: apex.id, colorId: "obsidiana" });
   const compared = ["s", "via", "apex"].map((slug) => getMotorcycle(slug)).filter((item) => item !== undefined);
 
   return (
     <>
       <SampleBanner show={catalogHasSample()} clearNav />
+      <HomeCarousel slides={slides} />
       <Hero
+        anchor={false}
         name={apex.name}
         speed={apex.topSpeedKmh}
         range={apex.rangeKm}
@@ -139,7 +152,7 @@ export default function HomePage() {
           <div className="p-8 md:p-12">
             <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Bike Quiz</p>
             <h2 className="display mt-4 text-6xl md:text-7xl">Me ajude a escolher.</h2>
-            <p className="mt-4 max-w-md text-muted-foreground">Cinco minutos. Cidade, distância, velocidade, orçamento, tomada e garupa.</p>
+            <p className="mt-4 max-w-md text-muted-foreground">Oito perguntas: uso, distância, ladeira, carga, orçamento, estilo e cor.</p>
             <Link href="/me-ajude-a-escolher" className={cn(buttonVariants({ size: "lg" }), "mt-8 h-12 rounded-full px-6")}>
               Começar o quiz
             </Link>

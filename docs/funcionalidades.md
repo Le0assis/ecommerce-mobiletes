@@ -54,7 +54,7 @@ Perguntas: uso (trabalho, entregas, passeio, levar criança), km por dia (até 2
 
 Estender: pergunta nova é um passo no array e um campo em `QuizAnswers`, com teste no domínio.
 
-O carrossel da home lê `GET /v1/banners`: foto, título, subtítulo, link e ordem. Só entra slide ativo.
+O carrossel da home (`components/home-carousel.tsx`) lê `GET /v1/banners` e, se a API não responder, a lista de `banners` do domínio. Foto, título, subtítulo, link e ordem. Só entra slide ativo. Troca a cada 6 s, pausa no mouse ou no foco, tem setas e bolinhas, e não anima para quem pede menos movimento. Se houver menos de três slides ativos, a vitrine completa com o quiz e o WhatsApp, até cinco.
 
 ## WhatsApp no lugar do test ride
 

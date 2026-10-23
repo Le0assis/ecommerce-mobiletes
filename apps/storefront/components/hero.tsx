@@ -14,19 +14,21 @@ export function Hero({
   range,
   priceCents,
   pixCents,
+  anchor = true,
 }: {
   name: string;
   speed: number;
   range: number;
   priceCents: number;
   pixCents: number;
+  anchor?: boolean;
 }) {
   const reduce = useReducedMotion();
   const plan = installmentByCount(priceCents, 21);
   const motionProps = reduce ? {} : { initial: { opacity: 0, y: 16 }, animate: { opacity: 1, y: 0 } };
 
   return (
-    <section className="relative min-h-[100svh] overflow-hidden" id="conteudo">
+    <section className="relative min-h-[100svh] overflow-hidden" id={anchor ? "conteudo" : undefined}>
       <HeroFilm />
       <div className="relative z-10 mx-auto flex min-h-[100svh] max-w-6xl flex-col px-5 pt-28 pb-28">
         <motion.p {...motionProps} className="text-xs tracking-[0.22em] text-muted-foreground uppercase">

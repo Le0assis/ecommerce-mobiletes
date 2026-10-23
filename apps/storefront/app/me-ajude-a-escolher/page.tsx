@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Me ajude a escolher",
-  description: "Quiz para cruzar uso, distância, velocidade e orçamento com a linha LUME.",
+  description: "Quiz de uso, distância, ladeira, bateria, carga, orçamento, estilo e cor. Até três modelos, sem pergunta de CNH.",
 };
 
 export default function QuizPage() {

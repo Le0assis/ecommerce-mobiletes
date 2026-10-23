@@ -41,6 +41,7 @@ export {
   reviewsFor,
   simulateInstallments,
   type Accessory,
+  type Banner,
   type Category,
   type Dealer,
   type Motorcycle,

@@ -170,9 +170,13 @@ export function Quiz() {
                 ))}
               </ul>
               {item.accessories.length > 0 ? (
-                <p className="mt-4 text-sm text-muted-foreground">
-                  Acessórios: {item.accessories.map((accessory) => accessory.name).join(", ")}.
-                </p>
+                <ul className="mt-4 grid gap-2 text-sm text-muted-foreground">
+                  {item.accessories.map((accessory) => (
+                    <li key={accessory.kind}>
+                      {accessory.name}. {accessory.reason}
+                    </li>
+                  ))}
+                </ul>
               ) : null}
               <Link href={`/motos/${item.product.slug}`} className={cn(buttonVariants(), "mt-5 h-11 rounded-full")}>
                 Configurar
