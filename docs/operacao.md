@@ -25,6 +25,8 @@ pnpm test
 pnpm --filter @lume/storefront exec playwright test
 ```
 
+`pnpm db:audit` lê o Postgres e não apaga nada. Exige `DATABASE_URL`. Lista centavos negativos em `orders` (`subtotal_cents`, `shipping_cents`, `total_cents`), `customers.email` repetido sem diferenciar maiúsculas, `test_ride_bookings` sem dealer ou sem produto, e pedido com `status` fora de `aguardando_pagamento | pago | em_preparo | em_transporte | entregue | recusado` ou `installments` fora de 1 a 21. Sai 0 sem achado e 1 se houver linha para o DBA olhar antes do `VALIDATE`.
+
 `pnpm test` cobre o domínio (preço, 21x, juros quando a carência cai, CEP, quiz) e a API (checkout simulado, cupom, troca, serviço e a visão do admin). O Playwright abre a home, troca a Apex para Cobre, espera R$ 64.700,00 e cai no checkout. Ele exige `html[data-configurator=ready]`. Outro teste filtra `marca=VOLTIS` e abre a legislação.
 
 O typecheck da vitrine roda `next typegen` antes do `tsc`, porque `PageProps` e `LayoutProps` nascem aí.

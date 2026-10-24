@@ -15,7 +15,8 @@
     "dev:web": "pnpm --filter @lume/storefront dev",
     "dev:api": "pnpm --filter @lume/commerce dev",
     "db:push": "pnpm --filter @lume/commerce db:push",
-    "db:seed": "pnpm --filter @lume/commerce db:seed"
+    "db:seed": "pnpm --filter @lume/commerce db:seed",
+    "db:audit": "pnpm --filter @lume/commerce db:audit"
   },
   "devDependencies": {
     "turbo": "^2.11.10"

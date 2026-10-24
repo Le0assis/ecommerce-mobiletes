@@ -488,6 +488,7 @@ Scripts da raiz:
 | `pnpm build` | Build de produção da vitrine |
 | `pnpm db:push` | Cria ou atualiza tabelas |
 | `pnpm db:seed` | Grava o catálogo no Postgres |
+| `pnpm db:audit` | Lê pedidos, clientes e test rides e não apaga nada |
 
 Build e servidor de produção da vitrine, depois do build:
 
