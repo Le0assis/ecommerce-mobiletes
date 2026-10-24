@@ -1,37 +1,28 @@
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { sql } from "drizzle-orm";
 import type { Database } from "./client";
 
 const directory = dirname(fileURLToPath(import.meta.url));
+const migrationsDirectory = join(directory, "../../drizzle");
+const migrationName = /^\d{4}_.+\.sql$/;
 
-export const migrationFiles = [
-  "0000_bumpy_turbo.sql",
-  "0001_autopropelidos_catalog.sql",
-  "0002_banners_imagem.sql",
-  "0003_catalogo_integridade.sql",
-  "0004_products_habilitacao_ficha.sql",
-  "0005_product_specs_numeric.sql",
-  "0006_consultas_loja.sql",
-  "0007_acesso_operacao.sql",
-  "0008_public_id_restante.sql",
-  "0009_public_id_gatilho.sql",
-] as const;
+/** Arquivos `NNNN_*.sql` em ordem de nome. Um arquivo novo entra sem editar esta lista. */
+export function discoverMigrations(folder = migrationsDirectory) {
+  return readdirSync(folder)
+    .filter((name) => migrationName.test(name))
+    .sort((left, right) => (left < right ? -1 : left > right ? 1 : 0));
+}
 
-/** 0004 a 0009 entram no arranque. Cada arquivo roda uma vez; o livro está em schema_migrations. A 0010 fica de fora. */
-export const publicationMigrations = [
-  "0004_products_habilitacao_ficha.sql",
-  "0005_product_specs_numeric.sql",
-  "0006_consultas_loja.sql",
-  "0007_acesso_operacao.sql",
-  "0008_public_id_restante.sql",
-  "0009_public_id_gatilho.sql",
-] as const;
+export const migrationFiles = discoverMigrations();
 
-export function readMigration(name: string) {
-  return readFileSync(join(directory, "../../drizzle", name), "utf8");
+/** Arranque: de 0001 ao último arquivo numerado. 0000 fica no schema inicial. */
+export const publicationMigrations = migrationFiles.filter((name) => name >= "0001");
+
+export function readMigration(name: string, folder = migrationsDirectory) {
+  return readFileSync(join(folder, name), "utf8");
 }
 
 export function migrationStatements(source: string) {
@@ -41,8 +32,8 @@ export function migrationStatements(source: string) {
     .filter((statement) => statement.length > 0);
 }
 
-export function migrationChecksum(name: string) {
-  return createHash("sha256").update(readMigration(name)).digest("hex");
+export function migrationChecksum(name: string, folder = migrationsDirectory) {
+  return createHash("sha256").update(readMigration(name, folder)).digest("hex");
 }
 
 type SqlClient = Pick<Database, "execute">;
@@ -113,6 +104,11 @@ async function schemaAlreadyHas(db: SqlClient, name: string) {
           sql`select 1 as ok from pg_trigger where tgname = 'orders_public_id_from_payload' and tgrelid = '"orders"'::regclass and not tgisinternal`,
         ))
       );
+    case "0010_public_id_gatilho_seguro.sql":
+      return exists(
+        db,
+        sql`select 1 as ok from pg_trigger where tgname = 'orders_public_id_from_payload' and tgrelid = '"orders"'::regclass and not tgisinternal and pg_get_triggerdef(oid) ilike '%update%'`,
+      );
     default:
       return false;
   }
@@ -124,15 +120,15 @@ const ledgerSql = sql`create table if not exists schema_migrations (
   checksum text not null
 )`;
 
-async function record(db: SqlClient, name: string) {
-  await db.execute(sql`insert into schema_migrations (name, checksum) values (${name}, ${migrationChecksum(name)})`);
+async function record(db: SqlClient, name: string, folder: string) {
+  await db.execute(sql`insert into schema_migrations (name, checksum) values (${name}, ${migrationChecksum(name, folder)})`);
 }
 
 /**
  * Aplica cada arquivo uma vez. O lock vale a transação.
  * Banco que já tem o objeto só ganha a linha no livro, sem rodar o SQL de novo.
  */
-export async function applyMigrations(db: Database, files: readonly string[]) {
+export async function applyMigrations(db: Database, files: readonly string[], folder = migrationsDirectory) {
   for (const name of files) {
     await db.transaction(async (tx) => {
       const client = tx as unknown as SqlClient;
@@ -141,13 +137,13 @@ export async function applyMigrations(db: Database, files: readonly string[]) {
       const recorded = rowsOf(await client.execute(sql`select name from schema_migrations where name = ${name}`));
       if (recorded.length > 0) return;
       if (await schemaAlreadyHas(client, name)) {
-        await record(client, name);
+        await record(client, name, folder);
         return;
       }
-      for (const statement of migrationStatements(readMigration(name))) {
+      for (const statement of migrationStatements(readMigration(name, folder))) {
         await client.execute(sql.raw(statement));
       }
-      await record(client, name);
+      await record(client, name, folder);
     });
   }
 }

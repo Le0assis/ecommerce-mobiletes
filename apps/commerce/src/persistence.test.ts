@@ -181,14 +181,25 @@ describe("persistência da operação", () => {
         1, 1000, 0, 1000, '01310100', '{"publicId":"so-no-payload"}'::jsonb
       )
     `);
-    expect(await store.orderByPublicId("so-no-payload")).toBeUndefined();
+    expect((await store.orderByPublicId("so-no-payload"))?.code).toBe("LM-SEM-ID");
     const [legacy] = await db.select({ publicId: orders.publicId }).from(orders).where(eq(orders.code, "LM-SEM-ID"));
-    expect(legacy?.publicId).toBeNull();
+    expect(legacy?.publicId).toBe("so-no-payload");
+
+    await db.execute(sql`
+      insert into orders (
+        code, status, customer_name, customer_email, customer_phone, method, provider,
+        installments, subtotal_cents, shipping_cents, total_cents, cep, payload
+      ) values (
+        'LM-SEM-ID-2', 'aguardando_pagamento', 'Gustavo Teste', 'antigo@example.com', '11999990000', 'pix', 'mock',
+        1, 1000, 0, 1000, '01310100', '{"publicId":"so-no-payload"}'::jsonb
+      )
+    `);
+    const [repeated] = await db.select({ publicId: orders.publicId }).from(orders).where(eq(orders.code, "LM-SEM-ID-2"));
+    expect(repeated?.publicId).toBeNull();
   });
 
   it("avança o sandbox de pedido antigo com public_id nulo e não preenche a coluna", async () => {
-    await db.insert(orders).values({
-      code: "LM260099",
+    const legacy = {
       status: "aguardando_pagamento",
       customerName: "Gustavo Teste",
       customerEmail: "antigo@example.com",
@@ -202,7 +213,9 @@ describe("persistência da operação", () => {
       cep: "01310100",
       payload: { publicId: "token-antigo", lines: [] },
       publicId: null,
-    });
+    };
+    await db.insert(orders).values({ ...legacy, code: "LM260098" });
+    await db.insert(orders).values({ ...legacy, code: "LM260099" });
     const response = await createApp({ db }).request("/v1/orders/LM260099/sandbox", { method: "POST" });
     expect(response.status).toBe(200);
     expect((await response.json()).order.status).toBe("pago");

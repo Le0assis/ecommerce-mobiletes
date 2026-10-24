@@ -311,7 +311,10 @@ describe("0010 gatilho seguro de public_id", { timeout: 20_000 }, () => {
     const client = new PGlite();
     const db = drizzle(client, { schema }) as unknown as Database;
     try {
-      await applyMigrations(db, migrationFiles);
+      await applyMigrations(
+        db,
+        migrationFiles.filter((name) => name < migration0010),
+      );
       await insertOrders(db, [
         row("LM-PAR-A", "token-par", null, "par-a@example.com", 3100),
         row("LM-PAR-B", "token-par", null, "par-b@example.com", 3200),
@@ -380,7 +383,10 @@ describe("0010 gatilho seguro de public_id", { timeout: 20_000 }, () => {
     const client = new PGlite();
     const db = drizzle(client, { schema }) as unknown as Database;
     try {
-      await applyMigrations(db, migrationFiles);
+      await applyMigrations(
+        db,
+        migrationFiles.filter((name) => name < migration0010),
+      );
       await insertOrders(db, [
         row("LM-VAZIO", "", null, "vazio@example.com", 5100),
         row("LM-FIXO", "token-fixo", "token-fixo", "fixo@example.com", 5200),
