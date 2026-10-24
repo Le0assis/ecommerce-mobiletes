@@ -388,7 +388,8 @@ export function createApp(deps: CommerceDeps = {}) {
     }
     const raw = c.req.param("code");
     const display = isDisplayCode(raw);
-    const order = await loadOrder(store, raw);
+    const owner = await orderOwner(c, store, now().getTime());
+    const order = await loadOrder(store, raw, display ? undefined : owner);
     if (!order || (display && !(await ownsOrder(c, order, store, now().getTime())))) {
       return c.json({ error: "pedido_inexistente", message: "Pedido não encontrado." }, 404);
     }
@@ -578,9 +579,23 @@ function isDisplayCode(raw: string) {
   return /^LM\d{6}$/.test(raw.toUpperCase());
 }
 
-async function loadOrder(store: { orderByCode(code: string): Promise<StoredOrder | undefined>; orderByPublicId(publicId: string): Promise<StoredOrder | undefined> }, raw: string) {
+async function loadOrder(
+  store: {
+    orderByCode(code: string): Promise<StoredOrder | undefined>;
+    orderByPublicId(publicId: string, ownerEmail?: string): Promise<StoredOrder | undefined>;
+  },
+  raw: string,
+  ownerEmail?: string,
+) {
   if (isDisplayCode(raw)) return store.orderByCode(raw.toUpperCase()) as Promise<OrderRecord | undefined>;
-  return store.orderByPublicId(raw) as Promise<OrderRecord | undefined>;
+  return store.orderByPublicId(raw, ownerEmail) as Promise<OrderRecord | undefined>;
+}
+
+async function orderOwner(c: Context, store: { customerEmail(token: string, now: number): Promise<string | undefined> }, nowMs: number) {
+  const session = await customerSessionEmail(c, store, nowMs);
+  if (session) return session;
+  const query = (c.req.query("email") ?? "").trim().toLowerCase();
+  return query || undefined;
 }
 
 async function customerSessionEmail(c: Context, store: { customerEmail(token: string, now: number): Promise<string | undefined> }, nowMs: number) {

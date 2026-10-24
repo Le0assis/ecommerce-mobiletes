@@ -6,6 +6,8 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { hashAdminPassword } from "./auth";
 import { clearRateLimit, createApp } from "./app";
 import type { Mailer } from "./mailer";
+import { persistOrder, type OrderWrite } from "./db/persist";
+import { createPostgresStore } from "./db/operations";
 import { colorStock, exchanges, loginCodes, orders, serviceBookings, sessions, testRideBookings } from "./db/schema";
 import { openTestDatabase } from "./db/test-database";
 import { productionDatabaseError } from "./env";
@@ -29,6 +31,25 @@ function cookiePair(response: Response) {
 
 function codeOf(text: string) {
   return text.match(/\d{6}/)?.[0] ?? "";
+}
+
+function sampleOrder(code: string, publicId: string, email = "dono@example.com"): OrderWrite {
+  return {
+    code,
+    publicId,
+    status: "aguardando_pagamento",
+    method: "pix",
+    provider: "mock",
+    installments: 1,
+    installmentCents: 1000,
+    subtotalCents: 1000,
+    shippingCents: 0,
+    totalCents: 1000,
+    cep: "01310100",
+    customer: { name: "Gustavo Teste", email, phone: "11999990000" },
+    lines: [],
+    createdAt: "2026-06-01T12:00:00.000Z",
+  };
 }
 
 const checkout = {
@@ -111,6 +132,10 @@ describe("persistência da operação", () => {
     const second = createApp({ db });
     const byToken = await second.request(`/v1/orders/${body.order.publicId}`);
     expect(byToken.status).toBe(200);
+    const byOwner = await second.request(`/v1/orders/${body.order.publicId}?email=dono@example.com`);
+    expect(byOwner.status).toBe(200);
+    const otherOwner = await second.request(`/v1/orders/${body.order.publicId}?email=outro@example.com`);
+    expect(otherOwner.status).toBe(404);
     const hidden = await second.request(`/v1/orders/${body.order.code}`);
     expect(hidden.status).toBe(404);
     const owned = await second.request(`/v1/orders/${body.order.code}?email=dono@example.com`);
@@ -123,6 +148,42 @@ describe("persistência da operação", () => {
     expect((await reread.json()).order.status).toBe("pago");
     const [updated] = await db.select().from(orders).where(eq(orders.code, body.order.code));
     expect(updated?.status).toBe("pago");
+  });
+
+  it("grava public_id não nulo, lê where public_id e rejeita duplicata", async () => {
+    const token = "token-unico-do-dono";
+    await persistOrder(db, sampleOrder("LM100001", token));
+    const found = await db
+      .select({ code: orders.code, publicId: orders.publicId, email: orders.customerEmail })
+      .from(orders)
+      .where(sql`${orders.publicId} = ${token}`);
+    expect(found).toEqual([{ code: "LM100001", publicId: token, email: "dono@example.com" }]);
+    expect(found[0]?.publicId).toBeTruthy();
+
+    const store = createPostgresStore(db);
+    expect((await store.orderByPublicId(token, "dono@example.com"))?.code).toBe("LM100001");
+    expect(await store.orderByPublicId(token, "outro@example.com")).toBeUndefined();
+
+    await expect(persistOrder(db, sampleOrder("LM100002", token, "outro@example.com"))).rejects.toThrow();
+    const afterDuplicate = await db.select({ code: orders.code }).from(orders).where(sql`${orders.publicId} = ${token}`);
+    expect(afterDuplicate.map((row) => row.code)).toEqual(["LM100001"]);
+
+    await persistOrder(db, { ...sampleOrder("LM100001", token), status: "pago" });
+    const upserted = await db.select({ code: orders.code, publicId: orders.publicId, status: orders.status }).from(orders).where(eq(orders.code, "LM100001"));
+    expect(upserted).toEqual([{ code: "LM100001", publicId: token, status: "pago" }]);
+
+    await db.execute(sql`
+      insert into orders (
+        code, status, customer_name, customer_email, customer_phone, method, provider,
+        installments, subtotal_cents, shipping_cents, total_cents, cep, payload
+      ) values (
+        'LM-SEM-ID', 'aguardando_pagamento', 'Gustavo Teste', 'antigo@example.com', '11999990000', 'pix', 'mock',
+        1, 1000, 0, 1000, '01310100', '{"publicId":"so-no-payload"}'::jsonb
+      )
+    `);
+    expect(await store.orderByPublicId("so-no-payload")).toBeUndefined();
+    const [legacy] = await db.select({ publicId: orders.publicId }).from(orders).where(eq(orders.code, "LM-SEM-ID"));
+    expect(legacy?.publicId).toBeNull();
   });
 
   it("mantém a sessão do cliente e a do admin, apaga no logout e expira em 12 horas", async () => {

@@ -2,6 +2,7 @@ import { and, desc, eq, lt, sql } from "drizzle-orm";
 import { ADMIN_SESSION_MS, sessionIsCurrent } from "../catalog-routes";
 import { memoryLoginCodes, type LoginCodeRepo, type StoredCode } from "../login-code";
 import type { Database } from "./client";
+import { persistOrder } from "./persist";
 import { colorStock, exchanges, loginCodes, orders, serviceBookings, sessions, testRideBookings } from "./schema";
 
 export type StoredOrder = {
@@ -67,7 +68,7 @@ export type OperationStore = {
   saveOrder(order: StoredOrder): Promise<void>;
   saveOrderStatus(order: StoredOrder): Promise<void>;
   orderByCode(code: string): Promise<StoredOrder | undefined>;
-  orderByPublicId(publicId: string): Promise<StoredOrder | undefined>;
+  orderByPublicId(publicId: string, ownerEmail?: string): Promise<StoredOrder | undefined>;
   ordersForEmail(email: string): Promise<StoredOrder[]>;
   orderCount(): Promise<number>;
   recentOrders(limit: number): Promise<StoredOrder[]>;
@@ -102,27 +103,7 @@ function asOrder(row: { code: string; status: string; publicId: string | null; p
     ...payload,
     code: row.code,
     status: row.status,
-    publicId: row.publicId || payload.publicId,
-  };
-}
-
-function orderValues(order: StoredOrder) {
-  return {
-    code: order.code,
-    status: order.status,
-    customerName: order.customer.name,
-    customerEmail: order.customer.email,
-    customerPhone: order.customer.phone,
-    method: order.method,
-    provider: order.provider,
-    installments: order.installments,
-    subtotalCents: order.subtotalCents,
-    shippingCents: order.shippingCents,
-    totalCents: order.totalCents,
-    cep: order.cep,
-    payload: order,
-    publicId: order.publicId,
-    createdAt: new Date(order.createdAt),
+    publicId: row.publicId ?? payload.publicId,
   };
 }
 
@@ -160,8 +141,9 @@ export function createMemoryStore(seed: {
     async orderByCode(code) {
       return orders.get(code);
     },
-    async orderByPublicId(publicId) {
-      return [...orders.values()].find((order) => order.publicId === publicId);
+    async orderByPublicId(publicId, ownerEmail) {
+      const owner = ownerEmail?.trim().toLowerCase();
+      return [...orders.values()].find((order) => order.publicId === publicId && (!owner || order.customer.email.toLowerCase() === owner));
     },
     async ordersForEmail(email) {
       return [...orders.values()].filter((order) => order.customer.email.toLowerCase() === email);
@@ -287,21 +269,23 @@ export function createPostgresStore(db: Database): OperationStore {
       return Boolean(row);
     },
     async saveOrder(order) {
-      await db.insert(orders).values(orderValues(order));
+      await persistOrder(db, order);
     },
     async saveOrderStatus(order) {
-      await db
-        .update(orders)
-        .set({ status: order.status, payload: order, publicId: order.publicId })
-        .where(eq(orders.code, order.code));
+      await persistOrder(db, order);
     },
     async orderByCode(code) {
       const [row] = await db.select().from(orders).where(eq(orders.code, code)).limit(1);
       return row ? asOrder(row) : undefined;
     },
-    async orderByPublicId(publicId) {
-      const [row] = await db.select().from(orders).where(eq(orders.publicId, publicId)).limit(1);
-      return row ? asOrder(row) : undefined;
+    async orderByPublicId(publicId, ownerEmail) {
+      const owner = ownerEmail?.trim().toLowerCase();
+      const where = owner
+        ? sql`${orders.publicId} = ${publicId} and lower(${orders.customerEmail}) = ${owner}`
+        : sql`${orders.publicId} = ${publicId}`;
+      const [row] = await db.select().from(orders).where(where).limit(1);
+      if (!row?.publicId) return undefined;
+      return asOrder(row);
     },
     async ordersForEmail(email) {
       const rows = await db.select().from(orders).where(sql`lower(${orders.customerEmail}) = ${email}`);
