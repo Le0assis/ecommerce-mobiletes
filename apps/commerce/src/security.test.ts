@@ -14,6 +14,7 @@ const saved = {
   STOREFRONT_ORIGIN: process.env.STOREFRONT_ORIGIN,
   CORS_ORIGINS: process.env.CORS_ORIGINS,
   LUME_ENABLE_SANDBOX: process.env.LUME_ENABLE_SANDBOX,
+  LUME_SANDBOX: process.env.LUME_SANDBOX,
   SANDBOX: process.env.SANDBOX,
   MAILER_URL: process.env.MAILER_URL,
   ADMIN_TOKEN: process.env.ADMIN_TOKEN,
@@ -209,41 +210,52 @@ describe("segurança", () => {
     expect((await after.json()).error).toBe("codigo_invalido");
   });
 
-  it("só aceita LUME-SANDBOX em teste ou com SANDBOX fora de produção", async () => {
+  it("só aceita LUME-SANDBOX com a flag, em qualquer NODE_ENV", async () => {
+    delete process.env.LUME_SANDBOX;
+    delete process.env.SANDBOX;
     const app = createApp();
-    const allowed = await app.request("/v1/auth/verify", {
+    const closed = await app.request("/v1/auth/verify", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ email: "sandbox@example.com", code: "LUME-SANDBOX" }),
     });
-    expect(allowed.status).toBe(200);
+    expect(closed.status).toBe(400);
+    expect((await closed.json()).error).toBe("codigo_invalido");
 
     process.env.NODE_ENV = "development";
-    delete process.env.SANDBOX;
-    const dev = await app.request("/v1/auth/verify", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ email: "sandbox@example.com", code: "lume-sandbox" }),
-    });
-    expect((await dev.json()).error).toBe("codigo_invalido");
-
-    process.env.SANDBOX = "true";
-    const flagged = await app.request("/v1/auth/verify", {
+    process.env.SANDBOX = "1";
+    const oldFlag = await app.request("/v1/auth/verify", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ email: "sandbox@example.com", code: "LUME-SANDBOX" }),
     });
-    expect(flagged.status).toBe(200);
+    expect((await oldFlag.json()).error).toBe("codigo_invalido");
 
     process.env.NODE_ENV = "production";
-    process.env.SANDBOX = "1";
+    process.env.LUME_SANDBOX = "1";
     const production = await app.request("/v1/auth/verify", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ email: "sandbox@example.com", code: "LUME-SANDBOX" }),
     });
-    expect(production.status).toBe(400);
-    expect((await production.json()).error).toBe("codigo_invalido");
+    expect(production.status).toBe(200);
+
+    process.env.NODE_ENV = "test";
+    process.env.LUME_SANDBOX = " TRUE ";
+    const flagged = await app.request("/v1/auth/verify", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ email: "sandbox@example.com", code: "lume-sandbox" }),
+    });
+    expect(flagged.status).toBe(200);
+
+    delete process.env.LUME_SANDBOX;
+    const again = await app.request("/v1/auth/verify", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ email: "sandbox@example.com", code: "LUME-SANDBOX" }),
+    });
+    expect(again.status).toBe(400);
   });
 
   it("não grava o código se o envio falha e, em produção sem provedor, responde 503 sem logar", async () => {
@@ -328,6 +340,7 @@ describe("segurança", () => {
   });
 
   it("exige o cliente do pedido no código LM e abre pelo identificador público", async () => {
+    process.env.LUME_SANDBOX = "1";
     const app = createApp();
     const order = await place(app);
     expect(order.code).toMatch(/^LM\d{6}$/);

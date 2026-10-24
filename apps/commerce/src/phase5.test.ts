@@ -366,23 +366,17 @@ describe("fase 5: cadastro no Postgres", () => {
   });
 
   it("a 0006 não apaga pedido com centavo negativo e pode rodar de novo", async () => {
-    const side = await openTestDatabase(migrationFiles.filter((name) => name !== "0006_consultas_loja.sql"));
+    const side = await openTestDatabase(migrationFiles.filter((name) => name < "0006_consultas_loja.sql"));
     try {
-      await side.db.insert(orders).values({
-        code: "LM-NEG",
-        status: "aguardando_pagamento",
-        customerName: customer.name,
-        customerEmail: customer.email,
-        customerPhone: customer.phone,
-        method: "pix",
-        provider: "mock",
-        installments: 1,
-        subtotalCents: -1,
-        shippingCents: 0,
-        totalCents: 0,
-        cep: "01310100",
-        payload: { lines: [] },
-      });
+      await side.db.execute(sql`
+        insert into orders (
+          code, status, customer_name, customer_email, customer_phone, method, provider,
+          installments, subtotal_cents, shipping_cents, total_cents, cep, payload
+        ) values (
+          'LM-NEG', 'aguardando_pagamento', ${customer.name}, ${customer.email}, ${customer.phone},
+          'pix', 'mock', 1, -1, 0, 0, '01310100', '{"lines":[]}'::jsonb
+        )
+      `);
       await applyMigrations(side.db, ["0006_consultas_loja.sql", "0006_consultas_loja.sql"]);
       const kept = rowsOf(await side.db.execute(sql`select subtotal_cents from orders where code = 'LM-NEG'`));
       expect(kept).toHaveLength(1);

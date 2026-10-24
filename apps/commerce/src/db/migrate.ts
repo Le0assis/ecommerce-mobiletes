@@ -7,19 +7,31 @@ import type { Database } from "./client";
 
 const directory = dirname(fileURLToPath(import.meta.url));
 const migrationsDirectory = join(directory, "../../drizzle");
-const migrationName = /^\d{4}_.+\.sql$/;
+const migrationName = /^\d{4}[_-].+\.sql$/;
 
-/** Arquivos `NNNN_*.sql` em ordem de nome. Um arquivo novo entra sem editar esta lista. */
+export class MigrationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "MigrationError";
+  }
+}
+
+/** Arquivos `NNNN_nome.sql` ou `NNNN-nome.sql`, em ordem. Qualquer outro `.sql` falha. */
 export function discoverMigrations(folder = migrationsDirectory) {
-  return readdirSync(folder)
-    .filter((name) => migrationName.test(name))
-    .sort((left, right) => (left < right ? -1 : left > right ? 1 : 0));
+  const sqlFiles = readdirSync(folder).filter((name) => name.endsWith(".sql"));
+  const invalid = sqlFiles.filter((name) => !migrationName.test(name)).sort();
+  if (invalid.length > 0) {
+    throw new MigrationError(
+      `Arquivo de migração fora do padrão NNNN_nome.sql ou NNNN-nome.sql: ${invalid.join(", ")}.`,
+    );
+  }
+  return sqlFiles.sort((left, right) => (left < right ? -1 : left > right ? 1 : 0));
 }
 
 export const migrationFiles = discoverMigrations();
 
-/** Arranque: de 0001 ao último arquivo numerado. 0000 fica no schema inicial. */
-export const publicationMigrations = migrationFiles.filter((name) => name >= "0001");
+/** Arranque: do 0000 ao último arquivo. Banco vazio roda o 0000; banco que já tem o schema só registra. */
+export const publicationMigrations = migrationFiles.filter((name) => name >= "0000");
 
 export function readMigration(name: string, folder = migrationsDirectory) {
   return readFileSync(join(folder, name), "utf8");
@@ -117,25 +129,91 @@ async function schemaAlreadyHas(db: SqlClient, name: string) {
 const ledgerSql = sql`create table if not exists schema_migrations (
   name text primary key,
   applied_at timestamptz not null default now(),
-  checksum text not null
+  checksum text,
+  checksum_enforced boolean not null default false
 )`;
 
+function migrationPrefix(name: string) {
+  return name.slice(0, 4);
+}
+
+function latestApplied(rows: Record<string, unknown>[]) {
+  let latest: string | null = null;
+  for (const row of rows) {
+    const name = String(row.name ?? "");
+    if (!migrationName.test(name)) continue;
+    if (!latest || migrationPrefix(name) > migrationPrefix(latest)) latest = name;
+  }
+  return latest;
+}
+
+function storedChecksum(value: unknown) {
+  if (value == null) return "";
+  return String(value).trim();
+}
+
+function checksumEnforced(value: unknown) {
+  return value === true || value === "t" || value === "true" || value === 1 || value === "1";
+}
+
+async function ensureLedger(db: SqlClient) {
+  await db.execute(ledgerSql);
+  await db.execute(sql`alter table schema_migrations add column if not exists checksum_enforced boolean not null default false`);
+  await db.execute(sql`alter table schema_migrations alter column checksum drop not null`);
+}
+
 async function record(db: SqlClient, name: string, folder: string) {
-  await db.execute(sql`insert into schema_migrations (name, checksum) values (${name}, ${migrationChecksum(name, folder)})`);
+  await db.execute(sql`
+    insert into schema_migrations (name, checksum, checksum_enforced)
+    values (${name}, ${migrationChecksum(name, folder)}, true)
+  `);
+}
+
+async function reconcileChecksum(db: SqlClient, name: string, row: Record<string, unknown>, folder: string) {
+  const current = migrationChecksum(name, folder);
+  const stored = storedChecksum(row.checksum);
+  if (!stored) {
+    await db.execute(sql`update schema_migrations set checksum = ${current} where name = ${name}`);
+    return;
+  }
+  if (stored === current) return;
+  if (!checksumEnforced(row.checksum_enforced)) {
+    console.warn(
+      JSON.stringify({
+        msg: "checksum_legado",
+        migration: name,
+        message: `Checksum de ${name} diverge do arquivo. Migração anterior a esta checagem não trava o boot.`,
+      }),
+    );
+    return;
+  }
+  throw new MigrationError(`Checksum de ${name} diverge do arquivo aplicado.`);
 }
 
 /**
  * Aplica cada arquivo uma vez. O lock vale a transação.
  * Banco que já tem o objeto só ganha a linha no livro, sem rodar o SQL de novo.
+ * Número menor que a última aplicada, nome fora do padrão ou checksum novo divergente falham.
  */
 export async function applyMigrations(db: Database, files: readonly string[], folder = migrationsDirectory) {
   for (const name of files) {
+    if (!migrationName.test(name)) {
+      throw new MigrationError(`Arquivo de migração fora do padrão NNNN_nome.sql ou NNNN-nome.sql: ${name}.`);
+    }
     await db.transaction(async (tx) => {
       const client = tx as unknown as SqlClient;
       await client.execute(sql`select pg_advisory_xact_lock(hashtext('lume_schema_migrations'))`);
-      await client.execute(ledgerSql);
-      const recorded = rowsOf(await client.execute(sql`select name from schema_migrations where name = ${name}`));
-      if (recorded.length > 0) return;
+      await ensureLedger(client);
+      const applied = rowsOf(await client.execute(sql`select name, checksum, checksum_enforced from schema_migrations`));
+      const row = applied.find((item) => item.name === name);
+      if (row) {
+        await reconcileChecksum(client, name, row, folder);
+        return;
+      }
+      const latest = latestApplied(applied);
+      if (latest && migrationPrefix(name) < migrationPrefix(latest)) {
+        throw new MigrationError(`Migração ${name} é anterior à última aplicada (${latest}).`);
+      }
       if (await schemaAlreadyHas(client, name)) {
         await record(client, name, folder);
         return;

@@ -5,7 +5,7 @@ import { createCatalog } from "./catalog-store";
 import { createDatabase } from "./db/client";
 import { applyMigrations, publicationMigrations } from "./db/migrate";
 import { createPostgresCatalog } from "./db/postgres-catalog";
-import { loadEnvFile, productionAdminTokenError, productionDatabaseError } from "./env";
+import { loadEnvFile, memoryFallbackAllowed, productionAdminTokenError, productionDatabaseError } from "./env";
 
 loadEnvFile();
 const refused = productionAdminTokenError() ?? productionDatabaseError();
@@ -23,12 +23,12 @@ async function openCatalog() {
     await applyMigrations(opened.db, publicationMigrations);
     return { catalog: createPostgresCatalog(opened.db), persistent: true as const, db: opened.db };
   } catch (error) {
-    console.error(
-      JSON.stringify({
-        msg: "catalogo_indisponivel",
-        message: error instanceof Error ? error.message : "falha",
-      }),
-    );
+    const message = error instanceof Error ? error.message : "falha";
+    console.error(JSON.stringify({ msg: "catalogo_indisponivel", message }));
+    if (!memoryFallbackAllowed()) {
+      console.error(JSON.stringify({ msg: "boot_recusado", message }));
+      process.exit(1);
+    }
     return { catalog: createCatalog(), persistent: false as const, db: undefined };
   }
 }

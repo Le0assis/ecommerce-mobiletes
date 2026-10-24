@@ -7,7 +7,7 @@ import { openTestDatabase } from "./db/test-database";
 
 describe("auditoria somente leitura", () => {
   it("aponta centavo negativo, e-mail duplicado, test ride órfão e status ou parcela fora do conjunto", async () => {
-    const database = await openTestDatabase(migrationFiles.filter((name) => name !== "0006_consultas_loja.sql"));
+    const database = await openTestDatabase(migrationFiles.filter((name) => name < "0006_consultas_loja.sql"));
     try {
       await database.db.insert(products).values({
         id: "modelo",
@@ -27,68 +27,16 @@ describe("auditoria somente leitura", () => {
         { id: "c2", name: "Dois", email: "cliente@teste.com", phone: "11999990001" },
         { id: "c3", name: "Três", email: "unico@example.com", phone: "11999990002" },
       ]);
-      await database.db.insert(orders).values([
-        {
-          code: "LM-OK",
-          status: "aguardando_pagamento",
-          customerName: "Um",
-          customerEmail: "unico@example.com",
-          customerPhone: "11999990000",
-          method: "pix",
-          provider: "mock",
-          installments: 21,
-          subtotalCents: 100,
-          shippingCents: 0,
-          totalCents: 100,
-          cep: "01310100",
-          payload: {},
-        },
-        {
-          code: "LM-NEG",
-          status: "pago",
-          customerName: "Um",
-          customerEmail: "unico@example.com",
-          customerPhone: "11999990000",
-          method: "pix",
-          provider: "mock",
-          installments: 1,
-          subtotalCents: -1,
-          shippingCents: 0,
-          totalCents: 0,
-          cep: "01310100",
-          payload: {},
-        },
-        {
-          code: "LM-STATUS",
-          status: "cancelado",
-          customerName: "Um",
-          customerEmail: "unico@example.com",
-          customerPhone: "11999990000",
-          method: "pix",
-          provider: "mock",
-          installments: 1,
-          subtotalCents: 10,
-          shippingCents: 0,
-          totalCents: 10,
-          cep: "01310100",
-          payload: {},
-        },
-        {
-          code: "LM-PARCELA",
-          status: "entregue",
-          customerName: "Um",
-          customerEmail: "unico@example.com",
-          customerPhone: "11999990000",
-          method: "cartao",
-          provider: "mock",
-          installments: 22,
-          subtotalCents: 10,
-          shippingCents: 0,
-          totalCents: 10,
-          cep: "01310100",
-          payload: {},
-        },
-      ]);
+      await database.db.execute(sql`
+        insert into orders (
+          code, status, customer_name, customer_email, customer_phone, method, provider,
+          installments, subtotal_cents, shipping_cents, total_cents, cep, payload
+        ) values
+          ('LM-OK', 'aguardando_pagamento', 'Um', 'unico@example.com', '11999990000', 'pix', 'mock', 21, 100, 0, 100, '01310100', '{}'::jsonb),
+          ('LM-NEG', 'pago', 'Um', 'unico@example.com', '11999990000', 'pix', 'mock', 1, -1, 0, 0, '01310100', '{}'::jsonb),
+          ('LM-STATUS', 'cancelado', 'Um', 'unico@example.com', '11999990000', 'pix', 'mock', 1, 10, 0, 10, '01310100', '{}'::jsonb),
+          ('LM-PARCELA', 'entregue', 'Um', 'unico@example.com', '11999990000', 'cartao', 'mock', 22, 10, 0, 10, '01310100', '{}'::jsonb)
+      `);
       await database.db.insert(testRideBookings).values([
         {
           id: "ride-ok",

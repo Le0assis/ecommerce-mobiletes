@@ -9,9 +9,11 @@ describe("API de commerce", () => {
   let close: () => Promise<void> = async () => undefined;
 
   const previousSandbox = process.env.LUME_ENABLE_SANDBOX;
+  const previousLoginSandbox = process.env.LUME_SANDBOX;
 
   beforeAll(async () => {
     process.env.LUME_ENABLE_SANDBOX = "1";
+    process.env.LUME_SANDBOX = "1";
     const database = await openTestDatabase();
     await seedCatalog(database.db);
     const now = () => new Date("2026-10-22T12:00:00.000Z");
@@ -26,6 +28,8 @@ describe("API de commerce", () => {
   afterAll(async () => {
     if (previousSandbox === undefined) delete process.env.LUME_ENABLE_SANDBOX;
     else process.env.LUME_ENABLE_SANDBOX = previousSandbox;
+    if (previousLoginSandbox === undefined) delete process.env.LUME_SANDBOX;
+    else process.env.LUME_SANDBOX = previousLoginSandbox;
     await close();
   });
 

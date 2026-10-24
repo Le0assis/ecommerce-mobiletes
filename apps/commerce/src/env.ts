@@ -46,6 +46,11 @@ function flagOn(value: string | undefined) {
   return flag === "1" || flag === "true";
 }
 
+/** Única forma de a API continuar em memória quando o Postgres ou a migração falha. */
+export function memoryFallbackAllowed() {
+  return flagOn(process.env.LUME_ALLOW_MEMORY_FALLBACK);
+}
+
 /** O avanço de rastreio só existe com a flag. NODE_ENV não liga nem desliga a rota. */
 export function sandboxEnabled() {
   return flagOn(process.env.LUME_ENABLE_SANDBOX);

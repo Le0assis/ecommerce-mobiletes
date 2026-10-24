@@ -36,7 +36,8 @@ API:
 | `LUME_ENABLE_SANDBOX` | `1` ou `true` liga `POST /v1/orders/:ref/sandbox`. Ausente, a rota responde 404 e o pedido não muda. Deixe desligada em produção. |
 | `MAILER_URL` | POST JSON do código de acesso (`to`, `subject`, `text`). Em produção, sem essa URL, `POST /v1/auth/request` responde 503. |
 | `REDIS_URL` | Limite de taxa. Opcional. Falha de conexão volta para a memória do processo. |
-| `SANDBOX` | `1` ou `true` aceita o código `LUME-SANDBOX` fora de produção. Em produção o código não entra. |
+| `LUME_SANDBOX` | `1` ou `true` aceita o código de login `LUME-SANDBOX`, em qualquer `NODE_ENV`. Ausente, o código não entra. Deixe desligada em produção. |
+| `LUME_ALLOW_MEMORY_FALLBACK` | `1` ou `true` deixa a API subir em memória se o Postgres ou a migração falhar. Ausente, essa falha encerra o processo. |
 | `TRUSTED_PROXIES` | IPs do proxy, separados por vírgula. Só então `x-forwarded-for` entra no limite. Vazio: vale o socket. |
 | `VERCEL` | A plataforma define `1`. A API lê `x-vercel-forwarded-for` e ignora o `x-forwarded-for` do cliente. Não grave isso no `.env` local. |
 
@@ -47,7 +48,7 @@ Pix de demonstração continua prefixado com `LUME-MOCK-PIX`. Não troque esse p
 1. `pnpm install --frozen-lockfile`
 2. `pnpm lint && pnpm typecheck && pnpm test`
 3. `pnpm --filter @lume/storefront build`
-4. Subir a API com `NODE_ENV=production`, `ADMIN_TOKEN` de pelo menos 24 caracteres e `CORS_ORIGINS` com a origem pública da vitrine. Não defina `LUME_ENABLE_SANDBOX`.
+4. Subir a API com `NODE_ENV=production`, `ADMIN_TOKEN` de pelo menos 24 caracteres e `CORS_ORIGINS` com a origem pública da vitrine. `CORS_ORIGINS` substitui `STOREFRONT_ORIGIN`. Não defina `LUME_ENABLE_SANDBOX`, `LUME_SANDBOX` nem `LUME_ALLOW_MEMORY_FALLBACK`.
 5. Subir a vitrine apontando `COMMERCE_API_URL` para essa API.
 6. Abrir `/health` na API e a home na URL pública.
 7. Confirmar que `/admin` sem o token de produção não lista pedido.

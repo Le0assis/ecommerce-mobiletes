@@ -59,9 +59,7 @@ export const memoryLoginCodes: LoginCodeRepo = {
 };
 
 export function sandboxLoginAllowed() {
-  if (process.env.NODE_ENV === "production") return false;
-  if (process.env.NODE_ENV === "test") return true;
-  const flag = process.env.SANDBOX?.trim().toLowerCase();
+  const flag = process.env.LUME_SANDBOX?.trim().toLowerCase();
   return flag === "1" || flag === "true";
 }
 

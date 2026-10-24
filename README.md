@@ -222,8 +222,10 @@ O que cada linha significa:
 | `BLOB_READ_WRITE_TOKEN` | token do Blob | Token de escrita do Vercel Blob. Só no servidor. Sem ele, o upload de foto responde 503. O caminho aceito é `lume/<arquivo>`. |
 | `TRUSTED_PROXIES` | vazio | IPs que podem informar o cliente. Sem isso, o limite usa o socket e ignora `x-forwarded-for`. Na Vercel, `VERCEL=1` faz a API ler `x-vercel-forwarded-for`. |
 | `ADMIN_TOKEN` | `troque-este-token` | Cabeçalho `x-admin-token` fora de produção. Em desenvolvimento, se esta linha não existir, a API aceita `dev-admin-token`. Em produção o cabeçalho não autentica, e a API não sobe se o valor faltar, tiver menos de 24 caracteres ou for `dev-admin-token`. |
-| `CORS_ORIGINS` | `http://127.0.0.1:43123` | Origens da vitrine, separadas por vírgula. O browser só passa se a origem estiver na lista. Sem a variável o CORS fica fechado, em desenvolvimento e em produção. |
+| `CORS_ORIGINS` | `http://127.0.0.1:43123` | Substitui `STOREFRONT_ORIGIN`. Origens da vitrine, separadas por vírgula. O browser só passa se a origem estiver na lista. Sem a variável o CORS fica fechado, em desenvolvimento e em produção. |
 | `LUME_ENABLE_SANDBOX` | comentada | `1` ou `true` liga o botão “Avançar no sandbox” da página do pedido. Sem a linha a rota responde 404. |
+| `LUME_SANDBOX` | comentada | `1` ou `true` aceita o código de login `LUME-SANDBOX`. Sem a linha o código não entra, em teste nem em produção. |
+| `LUME_ALLOW_MEMORY_FALLBACK` | comentada | `1` ou `true` sobe a API em memória se o Postgres ou a migração falhar. Sem a linha essa falha encerra o processo. |
 | `MAILER_URL` | vazio | Para onde a API manda o código de acesso. Vazio em desenvolvimento: o código sai no log da API. Em produção, vazio faz o pedido de código responder 503. |
 
 Se for rodar **sem Docker**, não deixe o `DATABASE_URL` apontando para um Postgres desligado. Apague ou comente (coloque `#` no começo) as linhas `DATABASE_URL`, `REDIS_URL`, `MEILI_HOST` e `MEILI_MASTER_KEY`. A API sobe do mesmo jeito. A loja lê a semente em memória. Criar ou editar produto no admin responde 503 até o banco existir.

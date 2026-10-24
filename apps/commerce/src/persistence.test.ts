@@ -1,4 +1,4 @@
-import { execFile } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { eq, sql } from "drizzle-orm";
@@ -14,6 +14,45 @@ import { productionDatabaseError } from "./env";
 
 const exec = promisify(execFile);
 const password = "senha-de-teste";
+
+function runBoot(env: NodeJS.ProcessEnv, timeoutMs: number, until?: string) {
+  return new Promise<{ code: number | null; output: string }>((resolve, reject) => {
+    const child = spawn("pnpm", ["exec", "tsx", "src/index.ts"], {
+      cwd: fileURLToPath(new URL("..", import.meta.url)),
+      env,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    let output = "";
+    let settled = false;
+    const timer = setTimeout(() => {
+      child.kill("SIGTERM");
+      if (!settled) {
+        settled = true;
+        reject(new Error(`timeout\n${output}`));
+      }
+    }, timeoutMs);
+    const finish = (code: number | null) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve({ code, output });
+    };
+    const onData = (chunk: Buffer) => {
+      output += chunk.toString();
+      if (until && output.includes(until)) child.kill("SIGTERM");
+    };
+    child.stdout.on("data", onData);
+    child.stderr.on("data", onData);
+    child.on("error", (error) => {
+      if (!settled) {
+        settled = true;
+        clearTimeout(timer);
+        reject(error);
+      }
+    });
+    child.on("exit", (code) => finish(code));
+  });
+}
 
 function inbox() {
   const sent: { to: string; text: string }[] = [];
@@ -119,6 +158,26 @@ describe("persistência da operação", () => {
     expect(failed?.code).toBe(1);
     expect(`${failed?.stderr ?? ""}${failed?.stdout ?? ""}`).toContain("DATABASE_URL ausente");
   }, 20_000);
+
+  it("derruba o boot se o Postgres falha e só usa memória com a flag", async () => {
+    const base: Record<string, string> = {};
+    for (const [key, value] of Object.entries(process.env)) {
+      if (typeof value === "string") base[key] = value;
+    }
+    base.NODE_ENV = "development";
+    base.DATABASE_URL = "postgres://lume:lume@127.0.0.1:1/lume";
+    base.PORT = "0";
+    delete base.LUME_ALLOW_MEMORY_FALLBACK;
+
+    const refused = await runBoot(base, 15_000);
+    expect(refused.code).toBe(1);
+    expect(refused.output).toContain("boot_recusado");
+    expect(refused.output).toContain("catalogo_indisponivel");
+
+    const allowed = await runBoot({ ...base, LUME_ALLOW_MEMORY_FALLBACK: "1" }, 15_000, "commerce_up");
+    expect(allowed.output).toContain("commerce_up");
+    expect(allowed.output).toContain("memoria");
+  }, 40_000);
 
   it("grava o pedido com public_id e só o dono relê o LM depois de reabrir", async () => {
     const first = createApp({ db });
