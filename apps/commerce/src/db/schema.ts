@@ -1,25 +1,33 @@
 import { sql } from "drizzle-orm";
 import { boolean, check, index, integer, jsonb, numeric, pgTable, primaryKey, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 
-export const customers = pgTable("customers", {
-  id: text("id").primaryKey(),
-  name: text("name").notNull(),
-  email: text("email").notNull(),
-  phone: text("phone").notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+export const customers = pgTable(
+  "customers",
+  {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    email: text("email").notNull(),
+    phone: text("phone").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("customers_email_idx").on(table.email)],
+);
 
-export const addresses = pgTable("addresses", {
-  id: text("id").primaryKey(),
-  customerId: text("customer_id").references(() => customers.id),
-  cep: text("cep").notNull(),
-  street: text("street"),
-  number: text("number"),
-  complement: text("complement"),
-  district: text("district"),
-  city: text("city"),
-  state: text("state"),
-});
+export const addresses = pgTable(
+  "addresses",
+  {
+    id: text("id").primaryKey(),
+    customerId: text("customer_id").references(() => customers.id),
+    cep: text("cep").notNull(),
+    street: text("street"),
+    number: text("number"),
+    complement: text("complement"),
+    district: text("district"),
+    city: text("city"),
+    state: text("state"),
+  },
+  (table) => [index("addresses_customer_id_idx").on(table.customerId)],
+);
 
 export const products = pgTable(
   "products",
@@ -49,6 +57,10 @@ export const products = pgTable(
     index("products_style_idx").on(table.style),
     index("products_is_sample_idx").on(table.isSample),
     index("products_is_enabled_idx").on(table.isEnabled),
+    index("products_status_enabled_idx").on(table.status, table.isEnabled),
+    index("products_public_listing_idx")
+      .on(table.category, table.brand, table.basePriceCents)
+      .where(sql`${table.status} = 'ativo' and ${table.isEnabled} = true`),
     index("products_base_price_cents_idx").on(table.basePriceCents),
     index("products_created_at_idx").on(table.createdAt),
     check("products_base_price_cents_non_negative", sql`${table.basePriceCents} >= 0`),
@@ -271,43 +283,66 @@ export const dealers = pgTable("dealers", {
   cep: text("cep").notNull(),
 });
 
-export const testRideBookings = pgTable("test_ride_bookings", {
-  id: text("id").primaryKey(),
-  productId: text("product_id").notNull(),
-  dealerId: text("dealer_id").notNull(),
-  name: text("name").notNull(),
-  email: text("email").notNull(),
-  phone: text("phone").notNull(),
-  preferredDate: text("preferred_date").notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+export const testRideBookings = pgTable(
+  "test_ride_bookings",
+  {
+    id: text("id").primaryKey(),
+    productId: text("product_id").notNull(),
+    dealerId: text("dealer_id").notNull(),
+    name: text("name").notNull(),
+    email: text("email").notNull(),
+    phone: text("phone").notNull(),
+    preferredDate: text("preferred_date").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("test_ride_bookings_dealer_id_idx").on(table.dealerId),
+    index("test_ride_bookings_product_id_idx").on(table.productId),
+  ],
+);
 
-export const orders = pgTable("orders", {
-  code: text("code").primaryKey(),
-  status: text("status").notNull(),
-  customerName: text("customer_name").notNull(),
-  customerEmail: text("customer_email").notNull(),
-  customerPhone: text("customer_phone").notNull(),
-  method: text("method").notNull(),
-  provider: text("provider").notNull(),
-  installments: integer("installments").notNull(),
-  subtotalCents: integer("subtotal_cents").notNull(),
-  shippingCents: integer("shipping_cents").notNull(),
-  totalCents: integer("total_cents").notNull(),
-  cep: text("cep").notNull(),
-  payload: jsonb("payload").notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+export const orders = pgTable(
+  "orders",
+  {
+    code: text("code").primaryKey(),
+    status: text("status").notNull(),
+    customerName: text("customer_name").notNull(),
+    customerEmail: text("customer_email").notNull(),
+    customerPhone: text("customer_phone").notNull(),
+    method: text("method").notNull(),
+    provider: text("provider").notNull(),
+    installments: integer("installments").notNull(),
+    subtotalCents: integer("subtotal_cents").notNull(),
+    shippingCents: integer("shipping_cents").notNull(),
+    totalCents: integer("total_cents").notNull(),
+    cep: text("cep").notNull(),
+    payload: jsonb("payload").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("orders_created_at_idx").on(table.createdAt),
+    index("orders_status_created_at_idx").on(table.status, table.createdAt),
+    index("orders_customer_email_idx").on(table.customerEmail),
+    check(
+      "orders_money_non_negative",
+      sql`${table.subtotalCents} >= 0 and ${table.shippingCents} >= 0 and ${table.totalCents} >= 0`,
+    ),
+  ],
+);
 
-export const reviews = pgTable("reviews", {
-  id: text("id").primaryKey(),
-  productSlug: text("product_slug").notNull(),
-  city: text("city").notNull(),
-  rating: integer("rating").notNull(),
-  title: text("title").notNull(),
-  body: text("body").notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+export const reviews = pgTable(
+  "reviews",
+  {
+    id: text("id").primaryKey(),
+    productSlug: text("product_slug").notNull(),
+    city: text("city").notNull(),
+    rating: integer("rating").notNull(),
+    title: text("title").notNull(),
+    body: text("body").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("reviews_product_slug_created_at_idx").on(table.productSlug, table.createdAt)],
+);
 
 export const banners = pgTable(
   "banners",
@@ -330,10 +365,14 @@ export const banners = pgTable(
 );
 
 /** Reservado para a NF-e. O MVP não emite documento fiscal. */
-export const fiscalDocuments = pgTable("fiscal_documents", {
-  id: text("id").primaryKey(),
-  orderCode: text("order_code").references(() => orders.code),
-  status: text("status").notNull().default("nao_emitida"),
-  accessKey: text("access_key"),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+export const fiscalDocuments = pgTable(
+  "fiscal_documents",
+  {
+    id: text("id").primaryKey(),
+    orderCode: text("order_code").references(() => orders.code),
+    status: text("status").notNull().default("nao_emitida"),
+    accessKey: text("access_key"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("fiscal_documents_order_code_idx").on(table.orderCode)],
+);

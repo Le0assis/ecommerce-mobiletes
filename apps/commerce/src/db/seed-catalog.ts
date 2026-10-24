@@ -1,5 +1,5 @@
 import { accessories, banners, dealers } from "@lume/domain";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import type { Database } from "./client";
 import { sampleScooters } from "./sample-scooters";
 import {
@@ -7,6 +7,7 @@ import {
   banners as bannerTable,
   dealers as dealerTable,
   productSpecs,
+  orders,
   productVariants,
   products,
 } from "./schema";
@@ -14,7 +15,13 @@ import {
 /** Grava a semente atual. Não recoloca `is_enabled` numa linha que o admin já desligou. */
 export async function seedCatalog(db: Database) {
   await db.transaction(async (tx) => {
-    await tx.delete(products).where(eq(products.id, "foston-x15-max"));
+    // O id aposentado só sai se nenhum pedido o citou. A exclusão não mexe em pedido nem em is_enabled.
+    await tx.delete(products).where(
+      and(
+        eq(products.id, "foston-x15-max"),
+        sql`not exists (select 1 from ${orders} where ${orders.payload}::text like '%foston-x15-max%')`,
+      ),
+    );
 
     await tx
       .insert(products)

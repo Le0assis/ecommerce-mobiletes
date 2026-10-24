@@ -1,7 +1,7 @@
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createApp } from "./app";
-import { applyMigrations } from "./db/migrate";
+import { applyMigrations, migrationFiles } from "./db/migrate";
 import { createPostgresCatalog } from "./db/postgres-catalog";
 import { seedCatalog } from "./db/seed-catalog";
 import { orders, products } from "./db/schema";
@@ -363,6 +363,56 @@ describe("fase 5: cadastro no Postgres", () => {
       headers,
       body: JSON.stringify({ specs: { weightKg: 80 } }),
     });
+  });
+
+  it("a 0006 não apaga pedido com centavo negativo e pode rodar de novo", async () => {
+    const side = await openTestDatabase(migrationFiles.filter((name) => name !== "0006_consultas_loja.sql"));
+    try {
+      await side.db.insert(orders).values({
+        code: "LM-NEG",
+        status: "aguardando_pagamento",
+        customerName: customer.name,
+        customerEmail: customer.email,
+        customerPhone: customer.phone,
+        method: "pix",
+        provider: "mock",
+        installments: 1,
+        subtotalCents: -1,
+        shippingCents: 0,
+        totalCents: 0,
+        cep: "01310100",
+        payload: { lines: [] },
+      });
+      await applyMigrations(side.db, ["0006_consultas_loja.sql", "0006_consultas_loja.sql"]);
+      const kept = rowsOf(await side.db.execute(sql`select subtotal_cents from orders where code = 'LM-NEG'`));
+      expect(kept).toHaveLength(1);
+      expect(Number(kept[0]?.subtotal_cents)).toBe(-1);
+      const indexes = rowsOf(
+        await side.db.execute(sql`
+          select indexname from pg_indexes
+          where schemaname = 'public' and indexname in (
+            'products_public_listing_idx',
+            'products_status_enabled_idx',
+            'orders_status_created_at_idx',
+            'orders_created_at_idx',
+            'orders_customer_email_idx',
+            'reviews_product_slug_created_at_idx',
+            'addresses_customer_id_idx',
+            'fiscal_documents_order_code_idx',
+            'test_ride_bookings_dealer_id_idx',
+            'test_ride_bookings_product_id_idx',
+            'customers_email_idx'
+          )
+        `),
+      );
+      expect(indexes).toHaveLength(11);
+      const constraint = rowsOf(
+        await side.db.execute(sql`select convalidated from pg_constraint where conname = 'orders_money_non_negative'`),
+      );
+      expect(constraint[0]?.convalidated).toBe(false);
+    } finally {
+      await side.close();
+    }
   });
 
   it("convive com a migration do DBA no nome is_enabled e nos tetos da ficha", async () => {
