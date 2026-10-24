@@ -17,6 +17,10 @@ export const registrationNote: Record<RegistrationClass, string> = {
   moto: "Condução na categoria A, emplacamento e capacete. A potência de cada modelo só vale depois da homologação.",
 };
 
+/** Ficha do modelo. Não afirma CNH, placa nem prazo. */
+const customerLicenseNote =
+  "Enquadramento conforme a Resolução CONTRAN 996/2023. Confirme os requisitos com o Detran do seu estado antes de rodar.";
+
 const categoryIds: Category[] = ["mobilete", "scooter", "naked", "adventure", "sport"];
 
 export function isCategory(value: string): value is Category {
@@ -212,8 +216,7 @@ export const motorcycles: Motorcycle[] = [
     seatHeightMm: 770,
     chargeHours: 4,
     fastChargeMin: null,
-    licenseNote:
-      "Ciclomotor na Resolução CONTRAN 996/2023: registro e licenciamento, arts. 13 e 14. O art. 14, § 1º, I, impede a circulação em via pública de quem não incluiu no RENAVAM o ciclomotor sem CAT até 31/12/2025. A resolução não cita CNH nem ACC.",
+    licenseNote: customerLicenseNote,
     colors: [obsidiana(14), nevoa(9), sal(6, 20_000)],
     accessoryIds: ["bolsa", "carregador", "banco"],
     optimalSpeedKmh: 35,
@@ -346,8 +349,7 @@ export const motorcycles: Motorcycle[] = [
     seatHeightMm: 740,
     chargeHours: 3,
     fastChargeMin: null,
-    licenseNote:
-      "Autopropelido na Resolução CONTRAN 996/2023 quando a ficha fica em até 1.000 W nominais, 32 km/h, 70 cm de largura e 130 cm de entre-eixos. O art. 12 não exige registro, licenciamento nem placa. A resolução não cita CNH.",
+    licenseNote: customerLicenseNote,
     colors: [obsidiana(10), nevoa(6)],
     accessoryIds: ["bolsa", "carregador"],
     optimalSpeedKmh: 20,
@@ -372,8 +374,7 @@ export const motorcycles: Motorcycle[] = [
     seatHeightMm: 760,
     chargeHours: 4,
     fastChargeMin: null,
-    licenseNote:
-      "Ciclomotor na Resolução CONTRAN 996/2023: registro e licenciamento, arts. 13 e 14. O art. 19, III, cita sanção para condução sem placa de identificação, conforme o caso. A resolução não cita CNH nem ACC.",
+    licenseNote: customerLicenseNote,
     colors: [obsidiana(7), sal(4, 20_000)],
     accessoryIds: ["bolsa", "banco", "carregador"],
     optimalSpeedKmh: 40,

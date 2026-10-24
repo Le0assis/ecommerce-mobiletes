@@ -19,7 +19,7 @@ export default function AboutPage() {
           A linha vai da mobilete S, para a volta curta, até a Apex, a flagship de 180 km/h. No meio ficam a City, a Via e a Serra. Cada uma tem cor e um preço que se recalcula no mesmo gesto.
         </p>
         <p>
-          Esta vitrine é de demonstração. Os endereços de loja, os relatos e os números de produto são de referência. O nome jurídico do operador e o CNPJ entram antes de qualquer venda real.
+          Esta vitrine é de demonstração. Os endereços de loja, os relatos e os números de produto são de referência. A razão social do operador e o CNPJ entram antes de qualquer venda real.
         </p>
         <p>
           <Link className="text-paper underline" href="/energia">

@@ -7,7 +7,7 @@ export default function PrivacyPage() {
     <main id="conteudo" className="mx-auto max-w-3xl px-5 pt-28 pb-20 text-sm leading-7 text-muted-foreground">
       <h1 className="display text-6xl text-paper md:text-7xl">Privacidade.</h1>
       <p className="mt-6">
-        Esta página descreve o tratamento de dados da loja LUME, marca de demonstração. Antes de ir ao ar com clientes reais, o jurídico revisa o texto e publica o nome do operador e do encarregado.
+        Esta página descreve o tratamento de dados da loja LUME, marca de demonstração. O nome do operador e do encarregado entram antes de qualquer venda real.
       </p>
       <h2 className="mt-8 text-xl text-paper">O que coletamos</h2>
       <p className="mt-2">

@@ -18,7 +18,7 @@ export default function FaqPage() {
     })),
   };
   return (
-    <PageShell eyebrow="Ajuda" title="FAQ." lede="Respostas curtas. O contrato e o jurídico vencem este texto.">
+    <PageShell eyebrow="Ajuda" title="FAQ." lede="Respostas curtas. O que vale na compra é o pedido.">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structured) }} />
       <div className="grid gap-3">
         {faq.map((item) => (
