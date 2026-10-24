@@ -126,11 +126,9 @@ const budgetLabel: Record<QuizAnswers["budget"], string> = {
   mais10: "acima de R$ 10 mil",
 };
 
-function eligibleHits(products: StoreProduct[], budget: QuizAnswers["budget"]): QuizHit[] {
-  const ceiling = budgetCeiling[budget];
+function eligibleHits(products: StoreProduct[]): QuizHit[] {
   return products
     .filter((product) => product.autopropelido.eligible)
-    .filter((product) => ceiling == null || product.basePriceCents <= ceiling)
     .sort((a, b) => a.basePriceCents - b.basePriceCents || a.name.localeCompare(b.name, "pt-BR"))
     .map((product) => ({
       slug: product.slug,
@@ -181,7 +179,7 @@ export function Quiz({ products, catalogMessage }: { products: StoreProduct[]; c
       if (request.current !== id) return;
       if (!response.ok) throw new Error(body.message ?? "O quiz não respondeu.");
       const hits = body.recommendations ?? [];
-      setResult(payload.withoutCnh ? eligibleHits(products, payload.budget) : hits);
+      setResult(payload.withoutCnh ? eligibleHits(products) : hits);
     } catch (cause) {
       if (request.current !== id) return;
       setError(cause instanceof Error ? cause.message : "O quiz não respondeu.");
