@@ -129,12 +129,12 @@ Identificadores estáveis para o backlog. O que está marcado como vitrine já e
 - RF-PAY-05. Sandbox sem credencial: avançar o status do pedido e deixar explícito que Mercado Pago e Pagar.me não capturaram valor. Etapa 3.
 - RF-PAY-02. Provedor: Pix e boleto no Mercado Pago. Cartão parcelado na Pagar.me. Stripe fica como alternativa contratual, não como adquirente principal: no varejo brasileiro o parcelado com a mecânica de loja e o boleto estão mais maduros em Mercado Pago e Pagar.me. Interface `selectProvider` no domínio. Credencial e webhook são v1.
 - RF-PAY-03. O payload de Pix de demonstração é prefixado com `LUME-MOCK-PIX` para ninguém confundir com um BR Code real.
-- RF-PED-01. Código de pedido, página de acompanhamento e lista local dos códigos feitos neste navegador. Vitrine. Status real (pago, em transporte, entregue) vem com o webhook.
+- RF-PED-01. Código `LM` só para mostrar. A página e a lista local usam um identificador longo. Status real (pago, em transporte, entregue) vem com o webhook.
 - RF-PED-02. E-mail transacional do pedido. v1.
 
 ### Conta
 
-- RF-ACC-01. Perfil de demonstração só no navegador, sem senha e sem CPF. Vitrine. A etapa 3 acrescenta sessão de sandbox por código visível na tela, não por e-mail.
+- RF-ACC-01. Perfil de demonstração só no navegador, sem senha e sem CPF. A sessão pede um código de uso único. Fora de produção, sem provedor de e-mail, o código fica no log da API.
 - RF-ACC-02. Entrada por link mágico, sessão no servidor, pedido histórico, exclusão de conta. v1. Sem Keycloak no MVP.
 
 ### Admin e conteúdo
@@ -182,9 +182,9 @@ Identificadores estáveis para o backlog. O que está marcado como vitrine já e
 
 - Preço e frete revalidados na API. O browser não é fonte do total.
 - Zod na borda. Erro de domínio vira 400 com código estável. Erro inesperado vira 500 sem stack para o cliente.
-- Admin por header `x-admin-token`. Em produção, sem `ADMIN_TOKEN` definido, a rota recusa. O token de desenvolvimento `dev-admin-token` não pode ir para o ambiente público.
-- Limite simples de escrita em checkout e test ride (memória do processo). Redis assume isso na v1.
-- CORS preso a `STOREFRONT_ORIGIN` quando a variável existe.
+- Fora de produção o admin ainda aceita `x-admin-token`. Em produção o cabeçalho não autentica, e o processo não sobe sem `ADMIN_TOKEN` de pelo menos 24 caracteres, diferente de `dev-admin-token`.
+- Limite de checkout, test ride, consulta de pedido e login de admin. Redis quando `REDIS_URL` existe; memória do processo no resto, inclusive se o Redis falhar.
+- CORS em produção só para origens listadas em `STOREFRONT_ORIGIN`. Sem a lista, nenhuma origem de browser é liberada.
 - Log em JSON com `requestId`, método, caminho, status e duração. Sem e-mail, telefone ou corpo do pedido no log.
 - Segredo fora do git. `.env` e `.env.local` não sobem. Exemplo sim.
 

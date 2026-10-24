@@ -78,15 +78,15 @@ Quantidade máxima 2. Linha igual (mesmo modelo, cor e acessórios) soma. `clear
 
 Métodos: Pix (−5%), boleto (−3%), cartão 1 a 21 vezes sem juros. A prévia usa `amountForMethod` e soma o frete. A parcela da prévia inclui o frete. O único serviço é `dedicado` (“Entrega da moto em casa”). O POST manda linhas, CEP, serviço, método e cliente. A API ignora qualquer total. Pix de demonstração começa com `LUME-MOCK-PIX`. Linha desabilitada sai antes do envio, com o mesmo aviso do carrinho. O botão fica desligado enquanto essa linha ainda está no navegador. Se o POST ainda assim responde `produto_desabilitado`, a tela mostra “Esse modelo não está habilitado.” Cor sem estoque mostra a frase da API (`cor_sem_estoque`), no modelo e na prévia. Peso ausente, zero ou acima de 400 kg, na linha ou na soma, responde 400 `peso_invalido` no frete e no checkout. A tela lê o código, não a frase, e mostra “Peso fora da faixa de transporte. O frete aceita um peso maior que zero e até 400 kg.” Sem Postgres, o admin mostra “O cadastro precisa do Postgres.”
 
-Depois do sucesso, `rememberOrder` grava o código e `clear` esvazia o carrinho. A navegação vai para `/pedido/[code]`.
+Depois do sucesso, `rememberOrder` grava o `publicId` e `clear` esvazia o carrinho. A navegação vai para `/pedido/[code]` com esse identificador. O código `LM` aparece na página quando o pedido carrega.
 
 ## Pedido e lista
 
-`components/order-status.tsx` lê `GET /v1/orders/:code`. `components/order-list.tsx` lê os códigos de `lume-shop-v1` e busca cada um. Se a API reiniciou sem Postgres, o código continua na lista e o detalhe falha com texto explicando.
+`components/order-status.tsx` lê `GET /v1/orders/:publicId` e mostra `order.code`. `components/order-list.tsx` lê os identificadores de `lume-shop-v1` e busca cada um. O título da linha é o código `LM` quando a busca funciona. Um código `LM` antigo, guardado antes do `publicId`, deixa de abrir. Carrinho sem `orderCodes` continua válido. Se a API reiniciou sem Postgres, o identificador continua na lista e o detalhe falha com texto explicando.
 
 ## Conta e desejos
 
-`components/account-form.tsx` grava nome e e-mail em `lume-profile`. Sem senha. `components/wishlist-view.tsx` e `components/wish-toggle.tsx` usam os slugs do provider. A página é `/desejos`.
+`components/account-form.tsx` grava nome e e-mail em `lume-profile`. Sem senha. A sessão pede o código de uso único em `POST /v1/auth/request` e não mostra o código na tela. O link do pedido usa `publicId` e o texto é o código `LM`. `components/wishlist-view.tsx` e `components/wish-toggle.tsx` usam os slugs do provider. A página é `/desejos`.
 
 ## Financiamento
 

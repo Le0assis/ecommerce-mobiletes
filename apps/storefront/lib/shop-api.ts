@@ -10,6 +10,7 @@ import { commerce } from "@/lib/commerce";
 
 export type PlacedOrder = {
   code: string;
+  publicId?: string;
   status: string;
   method: string;
   provider: string;
@@ -95,7 +96,7 @@ export async function advanceSandbox(code: string): Promise<{ order: PlacedOrder
   return commerce(`/v1/orders/${encodeURIComponent(code)}/sandbox`, { method: "POST", body: "{}" });
 }
 
-export async function requestSandboxCode(email: string): Promise<{ devCode: string; message: string }> {
+export async function requestSandboxCode(email: string): Promise<{ email: string; message: string }> {
   return commerce("/v1/auth/request", { method: "POST", body: JSON.stringify({ email }) });
 }
 

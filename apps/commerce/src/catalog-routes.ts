@@ -85,7 +85,7 @@ export function mountCatalogRoutes(
     catalog: Catalog;
     sessions: Map<string, Session>;
     authorized: (c: Context) => boolean;
-    rateLimit: (key: string, limit: number) => boolean;
+    rateLimit: (key: string, limit: number) => boolean | Promise<boolean>;
     now?: () => Date;
     blobSigner?: (input: UploadRequest) => Promise<{ clientToken: string; pathname: string }>;
     persistent?: boolean;
@@ -107,7 +107,7 @@ export function mountCatalogRoutes(
 
   app.post("/v1/admin/login", async (c) => {
     const ip = clientAddress(c);
-    if (rateLimit(`admin-login:${ip}`, 8)) {
+    if (await rateLimit(`admin-login:${ip}`, 8)) {
       return c.json({ error: "limite", message: "Muitas tentativas. Espere um minuto." }, 429);
     }
     let payload: unknown;
