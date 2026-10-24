@@ -21,5 +21,5 @@ Regras que não se negociam ao implementar:
 - O servidor de desenvolvimento escuta em `http://127.0.0.1:43123`. Não suba o Next em `localhost`: a página deixa de hidratar.
 - `lume-cookies` aceita `ok`, `essential` e `analytics`. Só `analytics` liga `track`, e só com `NEXT_PUBLIC_ANALYTICS=console`. Sem script de terceiro.
 - Serviço e troca ficam na memória da API e aparecem em `GET /v1/admin/overview`. O estoque de `PATCH /v1/admin/stock` entra na ficha e no card pelo `color_stock`. Sem essa linha, o card segue o estoque da variante do cadastro ou o do código.
-- Publicar segue [docs/deploy.md](docs/deploy.md). Em produção o admin exige `ADMIN_PASSWORD_HASH` e o cookie `lume_admin`. `ADMIN_TOKEN` não autentica com `NODE_ENV=production`. O processo não sobe sem `ADMIN_TOKEN` de pelo menos 32 caracteres. Não há token padrão.
+- Publicar segue [docs/deploy.md](docs/deploy.md). Em produção o admin exige `ADMIN_PASSWORD_HASH` e o cookie `lume_admin`. `ADMIN_TOKEN` não autentica com `NODE_ENV=production`. O processo não sobe sem `ADMIN_TOKEN` de pelo menos 32 caracteres, 16 distintos e entropia Shannon de 3 bits por caractere. Não há token padrão.
 - Se a mudança alterar comportamento que o próximo agente precisaria saber, atualize o arquivo correspondente em `docs/`.

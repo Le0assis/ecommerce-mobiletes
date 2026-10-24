@@ -16,14 +16,33 @@ export function loadEnvFile() {
 }
 
 const MIN_ADMIN_TOKEN = 32;
+const MIN_DISTINCT_CHARS = 16;
+const MIN_SHANNON_BITS = 3;
+
+function shannonBits(token: string) {
+  const counts = new Map<string, number>();
+  for (const char of token) counts.set(char, (counts.get(char) ?? 0) + 1);
+  let entropy = 0;
+  for (const count of counts.values()) {
+    const probability = count / token.length;
+    entropy -= probability * Math.log2(probability);
+  }
+  return entropy;
+}
+
+function strongAdminToken(token: string) {
+  if (token.length < MIN_ADMIN_TOKEN) return false;
+  if (new Set(token).size < MIN_DISTINCT_CHARS) return false;
+  return shannonBits(token) >= MIN_SHANNON_BITS;
+}
 
 export function adminToken(): string | null {
   const token = process.env.ADMIN_TOKEN?.trim() ?? "";
-  if (token.length < MIN_ADMIN_TOKEN) return null;
+  if (!strongAdminToken(token)) return null;
   return token;
 }
 
-/** Sem token, ou com menos de 32 caracteres, o processo não escuta porta. */
+/** Sem token forte o processo não escuta porta. Exige 32 caracteres, 16 distintos e entropia Shannon de pelo menos 3 bits. */
 export function adminTokenError(): string | null {
   if (adminToken()) return null;
   return "ADMIN_TOKEN ausente ou fraco. A API não sobe.";

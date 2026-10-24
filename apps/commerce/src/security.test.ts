@@ -470,7 +470,7 @@ describe("segurança", () => {
     expect(legacy.headers.get("access-control-allow-origin")).toBeNull();
   });
 
-  it("recusa o arranque sem ADMIN_TOKEN de 32 caracteres", async () => {
+  it("recusa o arranque com ADMIN_TOKEN ausente, repetido ou de entropia baixa", async () => {
     process.env.NODE_ENV = "development";
     delete process.env.ADMIN_TOKEN;
     expect(adminTokenError()).toBe("ADMIN_TOKEN ausente ou fraco. A API não sobe.");
@@ -479,6 +479,12 @@ describe("segurança", () => {
     process.env.NODE_ENV = "production";
     expect(adminTokenError()).toMatch(/não sobe/);
     process.env.ADMIN_TOKEN = "a".repeat(32);
+    expect(adminTokenError()).toMatch(/não sobe/);
+    process.env.ADMIN_TOKEN = `${"abcdefghijklmno".repeat(2)}aa`;
+    expect(adminTokenError()).toMatch(/não sobe/);
+    process.env.ADMIN_TOKEN = `${"a".repeat(17)}bcdefghijklmnop`;
+    expect(adminTokenError()).toMatch(/não sobe/);
+    process.env.ADMIN_TOKEN = "abcdefghijklmnop".repeat(2);
     expect(adminTokenError()).toBeNull();
     process.env.NODE_ENV = "test";
     delete process.env.ADMIN_TOKEN;
@@ -488,7 +494,7 @@ describe("segurança", () => {
     for (const [key, value] of Object.entries(process.env)) {
       if (typeof value === "string") env[key] = value;
     }
-    delete env.ADMIN_TOKEN;
+    env.ADMIN_TOKEN = "a".repeat(32);
     env.NODE_ENV = "development";
     env.PORT = "0";
     let failed: { code?: number | string; stderr?: string; stdout?: string } | undefined;

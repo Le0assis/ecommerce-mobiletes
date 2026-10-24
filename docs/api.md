@@ -67,13 +67,13 @@ A resposta traz `order` recalculado e a frase de que nenhum pagamento foi ao Mer
 
 O CORS reflete só uma origem presente em `CORS_ORIGINS` (lista separada por vírgula, com esquema e sem caminho). Essa variável substitui `STOREFRONT_ORIGIN`. Sem a lista, com lista vazia ou com origem de fora, a resposta não traz `Access-Control-Allow-Origin`, em qualquer `NODE_ENV`. A API não devolve `*`. `STOREFRONT_ORIGIN` não abre o CORS. A vitrine no mesmo host passa pelo rewrite `/api/commerce` e não depende desse cabeçalho. `Authorization` entra nos cabeçalhos permitidos.
 
-`ADMIN_TOKEN` precisa existir e ter pelo menos 32 caracteres, em qualquer `NODE_ENV`. Sem isso o processo sai com `boot_recusado` e não escuta porta. Não há token padrão. O cabeçalho `x-admin-token` continua sem autenticar em produção. Sem `DATABASE_URL`, ou se o Postgres não conectar, produção também sai com `boot_recusado`. A semente em memória fica só em dev e teste.
+`ADMIN_TOKEN` precisa existir com pelo menos 32 caracteres, 16 caracteres distintos e entropia Shannon de pelo menos 3 bits por caractere, em qualquer `NODE_ENV`. Um caractere repetido não passa. Sem isso o processo sai com `boot_recusado` e não escuta porta. Não há token padrão. O cabeçalho `x-admin-token` continua sem autenticar em produção. Sem `DATABASE_URL`, ou se o Postgres não conectar, produção também sai com `boot_recusado`. A semente em memória fica só em dev e teste.
 
 ## Admin
 
 A entrada é `POST /v1/admin/login` com `{ password }`. A senha não fica no código: `ADMIN_PASSWORD_HASH` é `scrypt$<sal hex>$<hash hex>`, gerado por `hashAdminPassword` em `apps/commerce/src/auth.ts`. O cookie `lume_admin` é `httpOnly`, `SameSite=Lax`, `Path=/` e, em produção, `Secure`. A sessão no servidor dura 12 horas e o logout a apaga. O `Set-Cookie` do logout repete `Path`, `HttpOnly`, `Secure` e `SameSite`. O login aceita 8 tentativas por minuto por IP.
 
-Fora de produção, `x-admin-token` abre o admin com o valor de `ADMIN_TOKEN`. Com `NODE_ENV=production` o cabeçalho não autentica. Em todo ambiente a API não sobe se `ADMIN_TOKEN` faltar ou tiver menos de 32 caracteres.
+Fora de produção, `x-admin-token` abre o admin com o valor de `ADMIN_TOKEN`. Com `NODE_ENV=production` o cabeçalho não autentica. Em todo ambiente a API não sobe se `ADMIN_TOKEN` faltar, tiver menos de 32 caracteres, menos de 16 caracteres distintos ou entropia Shannon abaixo de 3 bits por caractere.
 
 `GET /v1/admin/dealers?cidade=` é a única leitura de lojas. A rota pública `/v1/dealers` não existe mais. A vitrine não lista lojas.
 
