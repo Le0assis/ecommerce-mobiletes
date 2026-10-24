@@ -221,7 +221,7 @@ flowchart LR
 
 O browser pede a página ao Next. O catálogo e a conta de preço vêm de `@lume/domain`, importado pela vitrine e pela API, então os dois não divergem. Mutação (checkout, test ride, admin) passa pela API. O Next reescreve `/api/commerce/*` para o processo da API, e o browser não precisa conhecer a porta 8787.
 
-Postgres é o sistema de registro que o schema já descreve. Nesta fundação, o catálogo canônico ainda é o código, o seed espelha isso no banco, e pedido/test ride são gravados no Postgres quando `DATABASE_URL` conecta. Redis e Meilisearch estão no Compose para o time ligar, sem serem obrigatórios para a página abrir.
+Postgres é o sistema de registro que o schema já descreve. O catálogo canônico de demonstração ainda é o código, o seed espelha isso no banco, e pedido, sessão, código de login, test ride, troca, serviço e estoque por cor gravam e leem no Postgres quando `DATABASE_URL` conecta. Fora de produção, sem a variável, isso fica na memória do processo. Em produção a API não sobe. Redis e Meilisearch estão no Compose para o time ligar, sem serem obrigatórios para a página abrir.
 
 ### Por que o commerce é nosso, e não Medusa ou Saleor
 

@@ -29,16 +29,17 @@ import {
   serviceBody,
   testRideBody,
   tradeInBody,
-  type PaymentMethod,
 } from "@lume/domain";
 import { randomBytes } from "node:crypto";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import type { Context } from "hono";
 import { getCookie } from "hono/cookie";
-import { ADMIN_COOKIE, mountCatalogRoutes, sessionIsCurrent } from "./catalog-routes";
+import { ADMIN_COOKIE, mountCatalogRoutes } from "./catalog-routes";
 import { clientAddress } from "./client-address";
 import { CatalogUnavailable, createCatalog, type Catalog } from "./catalog-store";
+import type { Database } from "./db/client";
+import { createMemoryStore, createPostgresStore, type ExchangeRecord, type ServiceRecord, type StoredOrder, type TestRideRecord } from "./db/operations";
 import { resolveCorsOrigin, adminToken } from "./env";
 import { LoginError, requestLoginCode, verifyLoginCode } from "./login-code";
 import { createMailer, MailUnavailable, type Mailer } from "./mailer";
@@ -47,49 +48,22 @@ import { quoteCatalogProduct, type CatalogLine } from "./quote-catalog";
 import { rateLimit, type RateCounter } from "./rate-limit";
 import type { UploadRequest } from "./uploads";
 
-type OrderRecord = {
-  code: string;
-  publicId: string;
+type OrderRecord = StoredOrder & {
   status: "aguardando_pagamento" | "pago" | "em_preparo" | "em_transporte" | "entregue" | "recusado";
-  couponCode?: string;
-  couponCents?: number;
-  method: PaymentMethod;
-  provider: string;
-  installments: number;
-  installmentCents: number;
-  subtotalCents: number;
-  shippingCents: number;
-  totalCents: number;
-  cep: string;
-  customer: { name: string; email: string; phone: string };
-  lines: unknown[];
-  pix?: { copyPaste: string; expiresAt: string };
-  boleto?: { line: string; dueDate: string };
-  createdAt: string;
-};
-
-type Booking = {
-  id: string;
-  productId: string;
-  dealerId: string;
-  name: string;
-  email: string;
-  phone: string;
-  preferredDate: string;
-  createdAt: string;
 };
 
 type ReviewRecord = (typeof reviews)[number] & { pending?: boolean };
 
 export type CommerceDeps = {
   now?: () => Date;
-  orders?: Map<string, OrderRecord>;
-  bookings?: Booking[];
+  orders?: Map<string, StoredOrder>;
+  bookings?: TestRideRecord[];
   onOrder?: (order: OrderRecord) => void;
-  onBooking?: (booking: Booking) => void;
+  onBooking?: (booking: TestRideRecord) => void;
   extraReviews?: ReviewRecord[];
   stock?: Map<string, number>;
   banners?: Map<string, boolean>;
+  db?: Database;
   blobSigner?: (input: UploadRequest) => Promise<{ clientToken: string; pathname: string }>;
   catalog?: Catalog;
   mailer?: Mailer;
@@ -117,16 +91,14 @@ function orderCode(now: Date) {
 }
 
 export function createApp(deps: CommerceDeps = {}) {
-  const orders = deps.orders ?? new Map<string, OrderRecord>();
-  const sessions = new Map<string, string>();
-  const bookings = deps.bookings ?? [];
+  const store = deps.db
+    ? createPostgresStore(deps.db)
+    : createMemoryStore({ orders: deps.orders, bookings: deps.bookings, stock: deps.stock });
   const mailer = deps.mailer ?? createMailer();
   const limited = (key: string, limit: number) => rateLimit(key, limit, deps.limiter);
   const extraReviews = deps.extraReviews ?? [];
-  const stock = deps.stock ?? new Map<string, number>();
   const now = deps.now ?? (() => new Date());
   const catalog = deps.catalog ?? createCatalog({ now, bannerOverrides: deps.banners });
-  const adminSessions = new Map<string, { createdAt: number }>();
 
   async function quoteLine(line: CatalogLine) {
     const managed = await catalog.findProduct(line.productId);
@@ -162,12 +134,11 @@ export function createApp(deps: CommerceDeps = {}) {
     return [...motorcycles.filter((item) => !slugs.has(item.slug)), ...managed];
   }
 
-  function authorized(c: Context) {
+  async function authorized(c: Context) {
     const cookie = getCookie(c, ADMIN_COOKIE);
     if (cookie) {
-      const session = adminSessions.get(cookie);
-      if (sessionIsCurrent(session, now().getTime())) return true;
-      if (session) adminSessions.delete(cookie);
+      const session = await store.adminSession(cookie, now().getTime());
+      if (session) return true;
     }
     if (process.env.NODE_ENV === "production") return false;
     const expected = adminToken();
@@ -294,7 +265,7 @@ export function createApp(deps: CommerceDeps = {}) {
     if (await limited(`ride:${clientAddress(c)}`, 20)) {
       return c.json({ error: "limite", message: "Muitas tentativas. Espere um minuto." }, 429);
     }
-    return read(c, testRideBody, (input) => {
+    return read(c, testRideBody, async (input) => {
       const product = getMotorcycle(input.productId);
       const dealer = getDealer(input.dealerId);
       if (!product) throw new DomainError("produto_inexistente", "Modelo não encontrado.");
@@ -302,8 +273,8 @@ export function createApp(deps: CommerceDeps = {}) {
       if (!dealer.testRideSlugs.includes(product.slug)) {
         throw new DomainError("test_ride_indisponivel", "Esse modelo não está nessa loja.");
       }
-      const booking: Booking = { id: crypto.randomUUID(), ...input, productId: product.id, createdAt: now().toISOString() };
-      bookings.push(booking);
+      const booking: TestRideRecord = { id: crypto.randomUUID(), ...input, productId: product.id, createdAt: now().toISOString() };
+      await store.saveTestRide(booking);
       deps.onBooking?.(booking);
       return { booking };
     });
@@ -363,9 +334,9 @@ export function createApp(deps: CommerceDeps = {}) {
       const provider = selectProvider(input.method);
       const moment = now();
       let code = orderCode(moment);
-      while (orders.has(code)) code = orderCode(moment);
+      while (await store.hasOrderCode(code)) code = orderCode(moment);
       let publicId = randomBytes(32).toString("base64url");
-      while ([...orders.values()].some((order) => order.publicId === publicId)) publicId = randomBytes(32).toString("base64url");
+      while (await store.hasPublicId(publicId)) publicId = randomBytes(32).toString("base64url");
       const record: OrderRecord = {
         code,
         publicId,
@@ -401,7 +372,7 @@ export function createApp(deps: CommerceDeps = {}) {
         const due = new Date(moment.getTime() + 3 * 24 * 60 * 60_000);
         record.boleto = { line: `34191.79001 01043.510047 91020.150008 7 00000000000000`, dueDate: due.toISOString().slice(0, 10) };
       }
-      orders.set(code, record);
+      await store.saveOrder(record);
       deps.onOrder?.(record);
       return {
         order: record,
@@ -417,8 +388,8 @@ export function createApp(deps: CommerceDeps = {}) {
     }
     const raw = c.req.param("code");
     const display = isDisplayCode(raw);
-    const order = findOrder(orders, raw);
-    if (!order || (display && !ownsOrder(c, order, sessions))) {
+    const order = await loadOrder(store, raw);
+    if (!order || (display && !(await ownsOrder(c, order, store, now().getTime())))) {
       return c.json({ error: "pedido_inexistente", message: "Pedido não encontrado." }, 404);
     }
     return c.json({ order, tracking: trackingFor(order.status) });
@@ -428,7 +399,7 @@ export function createApp(deps: CommerceDeps = {}) {
     if (process.env.NODE_ENV === "production") {
       return c.json({ error: "nao_encontrado", message: "Não encontrado." }, 404);
     }
-    const order = findOrder(orders, c.req.param("code"));
+    const order = await loadOrder(store, c.req.param("code"));
     if (!order) return c.json({ error: "pedido_inexistente", message: "Pedido não encontrado." }, 404);
     const steps = ["aguardando_pagamento", "pago", "em_preparo", "em_transporte", "entregue"] as const;
     const index = steps.indexOf(order.status as (typeof steps)[number]);
@@ -436,6 +407,7 @@ export function createApp(deps: CommerceDeps = {}) {
       return c.json({ error: "sandbox_recusado", message: "Esse pedido de sandbox não avança mais." }, 409);
     }
     order.status = steps[index + 1] ?? order.status;
+    await store.saveOrderStatus(order);
     return c.json({
       order,
       tracking: trackingFor(order.status),
@@ -443,17 +415,14 @@ export function createApp(deps: CommerceDeps = {}) {
     });
   });
 
-  const tradeIns: { id: string; createdAt: string; brand: string; model: string; city: string }[] = [];
-  const serviceBookings: { id: string; createdAt: string; dealerId: string; productId: string; preferredDate: string }[] = [];
-
   app.post("/v1/service-bookings", async (c) =>
-    read(c, serviceBody, (input) => {
+    read(c, serviceBody, async (input) => {
       const dealer = getDealer(input.dealerId);
       const product = getMotorcycle(input.productId);
       if (!dealer) throw new DomainError("loja_inexistente", "Loja não encontrada.");
       if (!product) throw new DomainError("produto_inexistente", "Modelo não encontrado.");
-      const booking = { id: crypto.randomUUID(), ...input, createdAt: now().toISOString() };
-      serviceBookings.push(booking);
+      const booking: ServiceRecord = { id: crypto.randomUUID(), ...input, createdAt: now().toISOString() };
+      await store.saveService(booking);
       return {
         booking,
         message: "Horário de serviço pedido. A loja confirma.",
@@ -462,9 +431,9 @@ export function createApp(deps: CommerceDeps = {}) {
   );
 
   app.post("/v1/trade-ins", async (c) =>
-    read(c, tradeInBody, (input) => {
-      const tradeIn = { id: crypto.randomUUID(), ...input, createdAt: now().toISOString() };
-      tradeIns.push(tradeIn);
+    read(c, tradeInBody, async (input) => {
+      const tradeIn: ExchangeRecord = { id: crypto.randomUUID(), ...input, createdAt: now().toISOString() };
+      await store.saveExchange(tradeIn);
       return { tradeIn, message: "Pedido de avaliação recebido. Nenhum valor foi oferecido." };
     }),
   );
@@ -472,41 +441,56 @@ export function createApp(deps: CommerceDeps = {}) {
   app.post("/v1/auth/request", async (c) =>
     read(c, authRequestBody, async (input) => {
       const email = input.email.toLowerCase();
-      await requestLoginCode(email, now().getTime(), async (code) => {
-        await mailer.send({
-          to: email,
-          subject: "Código de acesso LUME",
-          text: `Seu código é ${code}. Ele vale por 10 minutos e só pode ser usado uma vez.`,
-        });
-      });
+      await requestLoginCode(
+        email,
+        now().getTime(),
+        async (code) => {
+          await mailer.send({
+            to: email,
+            subject: "Código de acesso LUME",
+            text: `Seu código é ${code}. Ele vale por 10 minutos e só pode ser usado uma vez.`,
+          });
+        },
+        store.loginCodes,
+      );
       return { email, message: "Código enviado." };
     }),
   );
 
   app.post("/v1/auth/verify", async (c) =>
-    read(c, authVerifyBody, (input) => {
-      const email = verifyLoginCode(input.email, input.code, now().getTime());
+    read(c, authVerifyBody, async (input) => {
+      const email = await verifyLoginCode(input.email, input.code, now().getTime(), store.loginCodes);
       const token = crypto.randomUUID();
-      sessions.set(token, email);
+      await store.saveCustomerSession(token, email, now().getTime());
       return { token, email };
     }),
   );
 
-  app.get("/v1/account/orders", (c) => {
-    const email = bearerEmail(c, sessions);
+  app.get("/v1/account/orders", async (c) => {
+    const email = await customerSessionEmail(c, store, now().getTime());
     if (!email) return c.json({ error: "nao_autorizado", message: "Entre de novo." }, 401);
-    const mine = [...orders.values()].filter((order) => order.customer.email.toLowerCase() === email);
+    const mine = await store.ordersForEmail(email);
     return c.json({ email, orders: mine });
   });
 
-  app.get("/v1/admin/dealers", (c) => {
-    if (!authorized(c)) return c.json({ error: "nao_autorizado", message: "Token de admin inválido." }, 401);
+  app.get("/v1/admin/dealers", async (c) => {
+    if (!(await authorized(c))) return c.json({ error: "nao_autorizado", message: "Token de admin inválido." }, 401);
     const result = filterShowroom({ city: c.req.query("cidade") ?? undefined });
     return c.json({ dealers: result.dealers });
   });
 
   app.get("/v1/admin/overview", async (c) => {
-    if (!authorized(c)) return c.json({ error: "nao_autorizado", message: "Token de admin inválido." }, 401);
+    if (!(await authorized(c))) return c.json({ error: "nao_autorizado", message: "Token de admin inválido." }, 401);
+    const stocks = await store.colorStockMap();
+    const [orderCount, bookingCount, tradeCount, serviceCount, recentOrders, recentTradeIns, recentService] = await Promise.all([
+      store.orderCount(),
+      store.testRideCount(),
+      store.exchangeCount(),
+      store.serviceCount(),
+      store.recentOrders(8),
+      store.recentExchanges(5),
+      store.recentServices(5),
+    ]);
     return c.json({
       products: motorcycles.map((product) => ({
         id: product.id,
@@ -519,29 +503,29 @@ export function createApp(deps: CommerceDeps = {}) {
         })),
         colors: product.colors.map((color) => ({
           ...color,
-          stock: stock.get(`${product.id}:${color.id}`) ?? color.stock,
+          stock: stocks.get(`${product.id}:${color.id}`) ?? color.stock,
         })),
       })),
       banners: await catalog.listBanners(),
-      orders: orders.size,
-      bookings: bookings.length,
-      tradeIns: tradeIns.length,
-      serviceBookings: serviceBookings.length,
-      recentOrders: [...orders.values()].slice(-8).reverse().map((order) => ({
+      orders: orderCount,
+      bookings: bookingCount,
+      tradeIns: tradeCount,
+      serviceBookings: serviceCount,
+      recentOrders: recentOrders.map((order) => ({
         code: order.code,
         status: order.status,
         method: order.method,
         totalCents: order.totalCents,
         createdAt: order.createdAt,
       })),
-      recentTradeIns: tradeIns.slice(-5).reverse().map((item) => ({
+      recentTradeIns: recentTradeIns.map((item) => ({
         id: item.id,
         brand: item.brand,
         model: item.model,
         city: item.city,
         createdAt: item.createdAt,
       })),
-      recentService: serviceBookings.slice(-5).reverse().map((item) => ({
+      recentService: recentService.map((item) => ({
         id: item.id,
         dealerId: item.dealerId,
         productId: item.productId,
@@ -554,20 +538,21 @@ export function createApp(deps: CommerceDeps = {}) {
   });
 
   app.patch("/v1/admin/stock", async (c) => {
-    if (!authorized(c)) return c.json({ error: "nao_autorizado", message: "Token de admin inválido." }, 401);
-    return read(c, stockPatchBody, (input) => {
+    if (!(await authorized(c))) return c.json({ error: "nao_autorizado", message: "Token de admin inválido." }, 401);
+    return read(c, stockPatchBody, async (input) => {
       const product = getMotorcycle(input.productId);
       if (!product?.colors.some((color) => color.id === input.colorId)) {
         throw new DomainError("cor_invalida", "Cor não encontrada nesse modelo.");
       }
-      stock.set(`${product.id}:${input.colorId}`, input.stock);
+      await store.setColorStock(product.id, input.colorId, input.stock);
       return { ok: true, stock: input.stock };
     });
   });
 
   mountCatalogRoutes(app, {
     catalog,
-    sessions: adminSessions,
+    saveSession: (token, createdAt) => store.saveAdminSession(token, createdAt),
+    endSession: (token) => store.deleteSession(token),
     authorized,
     rateLimit: limited,
     now,
@@ -593,20 +578,20 @@ function isDisplayCode(raw: string) {
   return /^LM\d{6}$/.test(raw.toUpperCase());
 }
 
-function findOrder(orders: Map<string, OrderRecord>, raw: string) {
-  if (isDisplayCode(raw)) return orders.get(raw.toUpperCase());
-  return [...orders.values()].find((order) => order.publicId === raw);
+async function loadOrder(store: { orderByCode(code: string): Promise<StoredOrder | undefined>; orderByPublicId(publicId: string): Promise<StoredOrder | undefined> }, raw: string) {
+  if (isDisplayCode(raw)) return store.orderByCode(raw.toUpperCase()) as Promise<OrderRecord | undefined>;
+  return store.orderByPublicId(raw) as Promise<OrderRecord | undefined>;
 }
 
-function bearerEmail(c: Context, sessions: Map<string, string>) {
+async function customerSessionEmail(c: Context, store: { customerEmail(token: string, now: number): Promise<string | undefined> }, nowMs: number) {
   const token = (c.req.header("authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
   if (!token) return undefined;
-  return sessions.get(token);
+  return store.customerEmail(token, nowMs);
 }
 
-function ownsOrder(c: Context, order: OrderRecord, sessions: Map<string, string>) {
+async function ownsOrder(c: Context, order: OrderRecord, store: { customerEmail(token: string, now: number): Promise<string | undefined> }, nowMs: number) {
   const customer = order.customer.email.toLowerCase();
-  const session = bearerEmail(c, sessions);
+  const session = await customerSessionEmail(c, store, nowMs);
   if (session && session === customer) return true;
   const query = (c.req.query("email") ?? "").trim().toLowerCase();
   return query.length > 0 && query === customer;

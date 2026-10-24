@@ -42,4 +42,4 @@ Nada disso é conta. Não há CPF.
 
 ## Persistência da API
 
-Sem `DATABASE_URL`, pedido e test ride morrem quando o processo cai, e o cadastro de produto não aceita escrita (503). Com Postgres alcançável, o cadastro grava de verdade e a API tenta gravar pedido e test ride; se esses dois falharem, ainda responde sucesso e registra o erro. Redis e Meilisearch sobem no Compose e não entram no caminho do pedido.
+Fora de produção, sem `DATABASE_URL`, pedido, sessão, código de login, test ride, troca, serviço e estoque por cor morrem quando o processo cai, e o cadastro de produto não aceita escrita (503). Em produção a API não sobe sem `DATABASE_URL` nem se o Postgres não conectar. Com o banco alcançável, o cadastro, o pedido, a sessão, o código, o test ride, a troca, o serviço e o `color_stock` gravam e leem de lá. Redis e Meilisearch sobem no Compose e não entram no caminho do pedido.

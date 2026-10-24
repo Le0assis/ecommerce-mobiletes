@@ -83,15 +83,16 @@ export function mountCatalogRoutes(
   app: Hono,
   options: {
     catalog: Catalog;
-    sessions: Map<string, Session>;
-    authorized: (c: Context) => boolean;
+    saveSession: (token: string, createdAt: number) => void | Promise<void>;
+    endSession: (token: string) => void | Promise<void>;
+    authorized: (c: Context) => boolean | Promise<boolean>;
     rateLimit: (key: string, limit: number) => boolean | Promise<boolean>;
     now?: () => Date;
     blobSigner?: (input: UploadRequest) => Promise<{ clientToken: string; pathname: string }>;
     persistent?: boolean;
   },
 ) {
-  const { catalog, sessions, authorized, rateLimit } = options;
+  const { catalog, saveSession, endSession, authorized, rateLimit } = options;
   const now = options.now ?? (() => new Date());
   const persistent = options.persistent === true;
 
@@ -99,8 +100,8 @@ export function mountCatalogRoutes(
     return c.json({ error: "catalogo_indisponivel", message: "O cadastro precisa do Postgres." }, 503);
   }
 
-  function gate(c: Context) {
-    if (!authorized(c)) return c.json({ error: "nao_autorizado", message: "Entre com a senha de admin." }, 401);
+  async function gate(c: Context) {
+    if (!(await authorized(c))) return c.json({ error: "nao_autorizado", message: "Entre com a senha de admin." }, 401);
     if (!persistent) return unavailable(c);
     return null;
   }
@@ -129,31 +130,31 @@ export function mountCatalogRoutes(
       return c.json({ error: "senha_invalida", message: "Senha inválida." }, 401);
     }
     const token = crypto.randomUUID();
-    sessions.set(token, { createdAt: now().getTime() });
+    await saveSession(token, now().getTime());
     setCookie(c, ADMIN_COOKIE, token, cookieOptions());
     return c.json({ ok: true });
   });
 
-  app.post("/v1/admin/logout", (c) => {
+  app.post("/v1/admin/logout", async (c) => {
     const token = getCookie(c, ADMIN_COOKIE);
-    if (token) sessions.delete(token);
+    if (token) await endSession(token);
     deleteCookie(c, ADMIN_COOKIE, cookieOptions());
     return c.json({ ok: true });
   });
 
   app.get("/v1/admin/products", async (c) => {
-    if (!authorized(c)) return c.json({ error: "nao_autorizado", message: "Entre com a senha de admin." }, 401);
+    if (!(await authorized(c))) return c.json({ error: "nao_autorizado", message: "Entre com a senha de admin." }, 401);
     return c.json({ products: await catalog.listProducts(c.req.query("q") ?? "") });
   });
 
   app.post("/v1/admin/products", async (c) => {
-    const blocked = gate(c);
+    const blocked = await gate(c);
     if (blocked) return blocked;
     return readJson(c, adminProductBody, (input) => catalog.createProduct(input));
   });
 
   app.post("/v1/admin/products/:id/duplicate", async (c) => {
-    const blocked = gate(c);
+    const blocked = await gate(c);
     if (blocked) return blocked;
     const product = await catalog.duplicateProduct(c.req.param("id"));
     if (!product) return c.json({ error: "nao_encontrado", message: "Registro não encontrado." }, 404);
@@ -161,13 +162,13 @@ export function mountCatalogRoutes(
   });
 
   app.patch("/v1/admin/products/:id", async (c) => {
-    const blocked = gate(c);
+    const blocked = await gate(c);
     if (blocked) return blocked;
     return readJson(c, adminProductPatchBody, (input) => catalog.updateProduct(c.req.param("id"), input));
   });
 
   app.delete("/v1/admin/products/:id", async (c) => {
-    const blocked = gate(c);
+    const blocked = await gate(c);
     if (blocked) return blocked;
     const product = await catalog.archiveProduct(c.req.param("id"));
     if (!product) return c.json({ error: "nao_encontrado", message: "Registro não encontrado." }, 404);
@@ -175,7 +176,7 @@ export function mountCatalogRoutes(
   });
 
   app.post("/v1/admin/products/:id/variants", async (c) => {
-    const blocked = gate(c);
+    const blocked = await gate(c);
     if (blocked) return blocked;
     return readJson(c, adminVariantBody, (input) =>
       catalog.addVariant(c.req.param("id"), { ...input, batteryLabel: input.batteryLabel ?? null }),
@@ -183,13 +184,13 @@ export function mountCatalogRoutes(
   });
 
   app.patch("/v1/admin/products/:id/variants/:variantId", async (c) => {
-    const blocked = gate(c);
+    const blocked = await gate(c);
     if (blocked) return blocked;
     return readJson(c, adminVariantPatchBody, (input) => catalog.updateVariant(c.req.param("id"), c.req.param("variantId"), input));
   });
 
   app.delete("/v1/admin/products/:id/variants/:variantId", async (c) => {
-    const blocked = gate(c);
+    const blocked = await gate(c);
     if (blocked) return blocked;
     const ok = await catalog.removeVariant(c.req.param("id"), c.req.param("variantId"));
     if (!ok) return c.json({ error: "nao_encontrado", message: "Registro não encontrado." }, 404);
@@ -197,7 +198,7 @@ export function mountCatalogRoutes(
   });
 
   app.post("/v1/admin/products/:id/images", async (c) => {
-    const blocked = gate(c);
+    const blocked = await gate(c);
     if (blocked) return blocked;
     return readJson(c, adminImageBody, async (input) => {
       const image = await catalog.addImage(c.req.param("id"), {
@@ -213,7 +214,7 @@ export function mountCatalogRoutes(
   });
 
   app.patch("/v1/admin/products/:id/images", async (c) => {
-    const blocked = gate(c);
+    const blocked = await gate(c);
     if (blocked) return blocked;
     return readJson(c, adminImageOrderBody, async (input) => {
       const images = await catalog.reorderImages(c.req.param("id"), input.images);
@@ -223,7 +224,7 @@ export function mountCatalogRoutes(
   });
 
   app.delete("/v1/admin/products/:id/images/:imageId", async (c) => {
-    const blocked = gate(c);
+    const blocked = await gate(c);
     if (blocked) return blocked;
     const ok = await catalog.removeImage(c.req.param("id"), c.req.param("imageId"));
     if (!ok) return c.json({ error: "nao_encontrado", message: "Registro não encontrado." }, 404);
@@ -231,24 +232,24 @@ export function mountCatalogRoutes(
   });
 
   app.get("/v1/admin/accessories", async (c) => {
-    if (!authorized(c)) return c.json({ error: "nao_autorizado", message: "Entre com a senha de admin." }, 401);
+    if (!(await authorized(c))) return c.json({ error: "nao_autorizado", message: "Entre com a senha de admin." }, 401);
     return c.json({ accessories: await catalog.listAccessories() });
   });
 
   app.post("/v1/admin/accessories", async (c) => {
-    const blocked = gate(c);
+    const blocked = await gate(c);
     if (blocked) return blocked;
     return readJson(c, adminAccessoryBody, (input) => catalog.createAccessory({ ...input, imageUrl: input.imageUrl ?? null }));
   });
 
   app.patch("/v1/admin/accessories/:id", async (c) => {
-    const blocked = gate(c);
+    const blocked = await gate(c);
     if (blocked) return blocked;
     return readJson(c, adminAccessoryPatchBody, (input) => catalog.updateAccessory(c.req.param("id"), input));
   });
 
   app.delete("/v1/admin/accessories/:id", async (c) => {
-    const blocked = gate(c);
+    const blocked = await gate(c);
     if (blocked) return blocked;
     const ok = await catalog.removeAccessory(c.req.param("id"));
     if (!ok) return c.json({ error: "nao_encontrado", message: "Registro não encontrado." }, 404);
@@ -256,12 +257,12 @@ export function mountCatalogRoutes(
   });
 
   app.get("/v1/admin/damages", async (c) => {
-    if (!authorized(c)) return c.json({ error: "nao_autorizado", message: "Entre com a senha de admin." }, 401);
+    if (!(await authorized(c))) return c.json({ error: "nao_autorizado", message: "Entre com a senha de admin." }, 401);
     return c.json({ damages: await catalog.listDamages() });
   });
 
   app.post("/v1/admin/damages", async (c) => {
-    const blocked = gate(c);
+    const blocked = await gate(c);
     if (blocked) return blocked;
     return readJson(c, adminDamageBody, (input) =>
       catalog.createDamage({
@@ -278,13 +279,13 @@ export function mountCatalogRoutes(
   });
 
   app.patch("/v1/admin/damages/:id", async (c) => {
-    const blocked = gate(c);
+    const blocked = await gate(c);
     if (blocked) return blocked;
     return readJson(c, adminDamagePatchBody, (input) => catalog.updateDamage(c.req.param("id"), input));
   });
 
   app.delete("/v1/admin/damages/:id", async (c) => {
-    const blocked = gate(c);
+    const blocked = await gate(c);
     if (blocked) return blocked;
     const ok = await catalog.removeDamage(c.req.param("id"));
     if (!ok) return c.json({ error: "nao_encontrado", message: "Registro não encontrado." }, 404);
@@ -292,19 +293,19 @@ export function mountCatalogRoutes(
   });
 
   app.get("/v1/admin/banners", async (c) => {
-    if (!authorized(c)) return c.json({ error: "nao_autorizado", message: "Entre com a senha de admin." }, 401);
+    if (!(await authorized(c))) return c.json({ error: "nao_autorizado", message: "Entre com a senha de admin." }, 401);
     return c.json({ banners: await catalog.listBanners() });
   });
 
   app.post("/v1/admin/banners", async (c) => {
-    if (!authorized(c)) return c.json({ error: "nao_autorizado", message: "Entre com a senha de admin." }, 401);
+    if (!(await authorized(c))) return c.json({ error: "nao_autorizado", message: "Entre com a senha de admin." }, 401);
     return readJson(c, adminBannerBody, async (input) => ({
       banner: await catalog.createBanner({ ...input, imageUrl: input.imageUrl ?? null }),
     }));
   });
 
   app.patch("/v1/admin/banners/:id", async (c) => {
-    if (!authorized(c)) return c.json({ error: "nao_autorizado", message: "Entre com a senha de admin." }, 401);
+    if (!(await authorized(c))) return c.json({ error: "nao_autorizado", message: "Entre com a senha de admin." }, 401);
     return readJson(c, adminBannerPatchBody, async (input) => {
       const banner = await catalog.updateBanner(c.req.param("id"), input);
       if (!banner) throw new DomainError("nao_encontrado", "Registro não encontrado.");
@@ -313,14 +314,14 @@ export function mountCatalogRoutes(
   });
 
   app.delete("/v1/admin/banners/:id", async (c) => {
-    if (!authorized(c)) return c.json({ error: "nao_autorizado", message: "Entre com a senha de admin." }, 401);
+    if (!(await authorized(c))) return c.json({ error: "nao_autorizado", message: "Entre com a senha de admin." }, 401);
     const ok = await catalog.removeBanner(c.req.param("id"));
     if (!ok) return c.json({ error: "nao_encontrado", message: "Registro não encontrado." }, 404);
     return c.json({ ok: true });
   });
 
   app.post("/v1/admin/uploads", async (c) => {
-    if (!authorized(c)) return c.json({ error: "nao_autorizado", message: "Entre com a senha de admin." }, 401);
+    if (!(await authorized(c))) return c.json({ error: "nao_autorizado", message: "Entre com a senha de admin." }, 401);
     let payload: unknown;
     try {
       payload = await c.req.json();

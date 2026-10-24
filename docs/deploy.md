@@ -28,7 +28,7 @@ API:
 | --- | --- |
 | `NODE_ENV` | `production` |
 | `PORT` | A porta que o processo escuta. |
-| `DATABASE_URL` | Postgres da região, com senha fora do repositório. |
+| `DATABASE_URL` | Obrigatória. Sem ela, ou se o Postgres não conectar, o processo sai com `boot_recusado` e não escuta porta. Senha fora do repositório. |
 | `ADMIN_PASSWORD_HASH` | Obrigatório para o login. Hash scrypt no formato `scrypt$<sal hex>$<hash hex>`. Gere com `hashAdminPassword` em `apps/commerce/src/auth.ts`. Não commite a senha nem o hash de produção. |
 | `BLOB_READ_WRITE_TOKEN` | Token de escrita do Vercel Blob, store da LUME. Só no servidor. O admin recebe um token de cliente, com JPG/PNG/WebP e teto de 5 MB. |
 | `ADMIN_TOKEN` | Fora de produção, cabeçalho `x-admin-token`. Em produção o cabeçalho não autentica, mas o processo recusa subir se o valor faltar, tiver menos de 24 caracteres ou for `dev-admin-token`. |

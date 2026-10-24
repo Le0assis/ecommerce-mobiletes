@@ -14,7 +14,7 @@ Vitrine: [http://127.0.0.1:43123](http://127.0.0.1:43123). API: [http://127.0.0.
 
 O Next precisa do hostname `127.0.0.1`. Em `localhost` o dev server do Next 16 bloqueia o asset e a página não hidrata: a cor não muda o preço. `allowedDevOrigins` inclui os dois, e os scripts `dev` e `start` já prendem o host.
 
-Sem Docker a loja abre. `persistence` fica `memoria`. Postgres, Redis e Meilisearch são o Compose, portas 54329, 63799 e 7709. Docker não é obrigatório para ver a vitrine.
+Sem Docker a loja abre em dev e teste. `persistence` fica `memoria`. Postgres, Redis e Meilisearch são o Compose, portas 54329, 63799 e 7709. Docker não é obrigatório para ver a vitrine. Em produção a API não sobe sem `DATABASE_URL`.
 
 ## Testar
 

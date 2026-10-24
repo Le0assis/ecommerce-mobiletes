@@ -34,6 +34,13 @@ export function productionAdminTokenError(): string | null {
   return null;
 }
 
+/** Em produção a semente em memória não substitui o Postgres. */
+export function productionDatabaseError(): string | null {
+  if (process.env.NODE_ENV !== "production") return null;
+  if (!process.env.DATABASE_URL?.trim()) return "DATABASE_URL ausente. A API não sobe em produção.";
+  return null;
+}
+
 export function storefrontOrigins() {
   return (process.env.STOREFRONT_ORIGIN ?? "")
     .split(",")
