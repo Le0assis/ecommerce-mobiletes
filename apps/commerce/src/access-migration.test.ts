@@ -3,7 +3,7 @@ import { drizzle } from "drizzle-orm/pglite";
 import { sql } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import type { Database } from "./db/client";
-import { applyMigrations, migrationFiles, migrationStatements, readMigration } from "./db/migrate";
+import { applyMigrations, migrationFiles, migrationStatements, publicationMigrations, readMigration } from "./db/migrate";
 import { productColors, products, productVariants, testRideBookings } from "./db/schema";
 import * as schema from "./db/schema";
 
@@ -447,6 +447,83 @@ describe("0010 gatilho seguro de public_id", { timeout: 20_000 }, () => {
       await client.close();
     }
   });
+
+  it("aplica a 0010 no arranque e no insert e no update ignora a própria linha pela code", async () => {
+    const client = new PGlite();
+    const db = drizzle(client, { schema }) as unknown as Database;
+    try {
+      expect(publicationMigrations).toContain(migration0010);
+      await applyMigrations(
+        db,
+        migrationFiles.filter((name) => name < migration0010),
+      );
+      await insertOrders(db, [row("LM-EU", "token-eu", null, "eu@example.com", 6300)]);
+      await applyMigrations(db, publicationMigrations);
+
+      const recorded = rowsOf(await db.execute(sql`select name from schema_migrations where name = ${migration0010}`));
+      expect(recorded).toHaveLength(1);
+      const idColumn = rowsOf(await db.execute(sql`
+        select column_name
+        from information_schema.columns
+        where table_schema = 'public' and table_name = 'orders' and column_name = 'id'
+      `));
+      expect(idColumn).toHaveLength(0);
+      const body = String((await functionDef(db)) ?? "");
+      expect(body.toLowerCase()).toContain("code");
+      expect(body).not.toMatch(/\.id\b|"id"/i);
+
+      const legacy = rowsOf(await db.execute(sql`select public_id from orders where code = 'LM-EU'`));
+      expect(legacy[0]?.public_id).toBeNull();
+
+      await insertOrders(db, [
+        row("LM-INS", "token-ins", null, "ins@example.com", 6100),
+        row("LM-INS-DUP", "token-ins", null, "dup@example.com", 6200),
+        row("LM-EU-2", "token-eu", null, "eu2@example.com", 6400),
+      ]);
+      let rows = rowsOf(await db.execute(sql`select code, public_id from orders order by code`));
+      let byCode = new Map(rows.map((entry) => [String(entry.code), entry]));
+      expect(byCode.get("LM-INS")?.public_id).toBe("token-ins");
+      expect(byCode.get("LM-INS-DUP")?.public_id).toBeNull();
+      expect(byCode.get("LM-EU")?.public_id).toBeNull();
+      expect(byCode.get("LM-EU-2")?.public_id).toBeNull();
+
+      await db.execute(sql`
+        update orders
+        set payload = '{"publicId":"token-eu"}'::jsonb
+        where code = 'LM-EU'
+      `);
+      const blocked = rowsOf(await db.execute(sql`select public_id from orders where code = 'LM-EU'`));
+      expect(blocked[0]?.public_id).toBeNull();
+
+      await db.execute(sql`delete from orders where code = 'LM-EU-2'`);
+      await db.execute(sql`
+        update orders
+        set payload = '{"publicId":"token-eu"}'::jsonb
+        where code = 'LM-EU'
+      `);
+      await insertOrders(db, [row("LM-LIVRE-UPD", "   ", null, "livre-upd@example.com", 6500)]);
+      await db.execute(sql`
+        update orders
+        set payload = '{"publicId":"token-ins"}'::jsonb
+        where code = 'LM-LIVRE-UPD'
+      `);
+      await db.execute(sql`
+        update orders
+        set payload = '{"publicId":"token-novo"}'::jsonb
+        where code = 'LM-INS-DUP'
+      `);
+
+      rows = rowsOf(await db.execute(sql`select code, public_id from orders order by code`));
+      byCode = new Map(rows.map((entry) => [String(entry.code), entry]));
+      expect(byCode.get("LM-EU")?.public_id).toBe("token-eu");
+      expect(byCode.get("LM-LIVRE-UPD")?.public_id).toBeNull();
+      expect(byCode.get("LM-INS-DUP")?.public_id).toBe("token-novo");
+      expect(byCode.get("LM-INS")?.public_id).toBe("token-ins");
+      expect(byCode.has("LM-EU-2")).toBe(false);
+    } finally {
+      await client.close();
+    }
+  });
 });
 
 function row(
@@ -487,6 +564,16 @@ async function insertOrders(
       )
     `);
   }
+}
+
+async function functionDef(db: Database) {
+  const rows = rowsOf(await db.execute(sql`
+    select pg_get_functiondef(proc.oid) as def
+    from pg_proc as proc
+    join pg_namespace as ns on ns.oid = proc.pronamespace
+    where proc.proname = 'orders_public_id_from_payload' and ns.nspname = 'public'
+  `));
+  return rows[0]?.def;
 }
 
 async function triggerDef(db: Database) {
