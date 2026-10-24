@@ -126,6 +126,21 @@ const budgetLabel: Record<QuizAnswers["budget"], string> = {
   mais10: "acima de R$ 10 mil",
 };
 
+function eligibleHits(products: StoreProduct[], budget: QuizAnswers["budget"]): QuizHit[] {
+  const ceiling = budgetCeiling[budget];
+  return products
+    .filter((product) => product.autopropelido.eligible)
+    .filter((product) => ceiling == null || product.basePriceCents <= ceiling)
+    .sort((a, b) => a.basePriceCents - b.basePriceCents || a.name.localeCompare(b.name, "pt-BR"))
+    .map((product) => ({
+      slug: product.slug,
+      name: product.name,
+      score: 1,
+      reasons: ["O selo marca este modelo como autopropelido."],
+      accessories: [],
+    }));
+}
+
 function nearestProducts(products: StoreProduct[], budget?: QuizAnswers["budget"], withoutCnh?: boolean) {
   const pool = withoutCnh ? products.filter((item) => item.autopropelido.eligible) : products;
   const ceiling = budget ? budgetCeiling[budget] : null;
@@ -166,11 +181,7 @@ export function Quiz({ products, catalogMessage }: { products: StoreProduct[]; c
       if (request.current !== id) return;
       if (!response.ok) throw new Error(body.message ?? "O quiz não respondeu.");
       const hits = body.recommendations ?? [];
-      setResult(
-        payload.withoutCnh
-          ? hits.filter((item) => products.some((product) => product.slug === item.slug && product.autopropelido.eligible))
-          : hits,
-      );
+      setResult(payload.withoutCnh ? eligibleHits(products, payload.budget) : hits);
     } catch (cause) {
       if (request.current !== id) return;
       setError(cause instanceof Error ? cause.message : "O quiz não respondeu.");
