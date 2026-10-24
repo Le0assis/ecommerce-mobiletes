@@ -9,6 +9,7 @@ import { configurePrice } from "./pricing";
 import { estimateRange } from "./range";
 import { estimateFuelSavings } from "./savings";
 import { formatCep, normalizeCep, quoteShipping } from "./shipping";
+import { faq } from "./guides";
 import { filterShowroom } from "./showroom";
 
 describe("preço do configurador", () => {
@@ -179,6 +180,12 @@ describe("vitrine por categoria e cidade", () => {
     const result = filterShowroom({ semCnh: "sim", brand: "voltis" });
     expect(result.products.every((item) => autopropelidoBadge(item).eligible)).toBe(true);
     expect(result.products.map((item) => item.slug)).not.toContain("pico");
+  });
+
+  it("o FAQ de CNH cita o registro do ciclomotor", () => {
+    const item = faq.find((entry) => entry.question === "Preciso de CNH?");
+    expect(item?.answer).toContain("O ciclomotor também exige registro (CTB art. 141).");
+    expect(item?.answer).toContain("placa e ACC ou CNH A");
   });
 
   it("não inventa loja em cidade sem operação", () => {

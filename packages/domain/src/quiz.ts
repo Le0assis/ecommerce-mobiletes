@@ -88,7 +88,7 @@ const accessoryCopy: Record<QuizAccessoryKind, { name: string; reason: string }>
   cesta: { name: "Cesta dianteira", reason: "Deixa a compra à vista, sem baú." },
   cadeirinha: { name: "Cadeirinha", reason: "Para levar criança com o encaixe do modelo." },
   retrovisor: { name: "Retrovisor", reason: "Par para ver o corredor." },
-  capacete: { name: "Capacete", reason: "Proteção, mesmo quando a cidade dispensa CNH." },
+  capacete: { name: "Capacete", reason: "Proteção, mesmo no autopropelido, que dispensa habilitação." },
   capa: { name: "Capa", reason: "Cobre o banco na chuva." },
   "suporte-celular": { name: "Suporte de celular", reason: "Mapa e pedido na altura do olhar." },
   "gaiola-pet": { name: "Gaiola pet", reason: "Espaço fechado para o animal." },

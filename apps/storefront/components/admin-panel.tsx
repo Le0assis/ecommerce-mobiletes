@@ -65,12 +65,14 @@ export function AdminPanel() {
       if (!response.ok) {
         setData(null);
         setError(body.message ?? "Não autorizado.");
-        return;
+        return false;
       }
       setData(body);
+      return true;
     } catch {
       setData(null);
       setError("A API não respondeu.");
+      return false;
     }
   }
 
@@ -103,9 +105,10 @@ export function AdminPanel() {
 
   async function enterWithToken(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const accepted = await loadOverview(token);
+    if (!accepted) return;
     setMode("token");
     setSection("pedidos");
-    await loadOverview(token);
   }
 
   async function logout() {
@@ -181,9 +184,62 @@ export function AdminPanel() {
         </div>
       )}
       {error ? <p className="text-sm text-signal">{error}</p> : null}
-      {mode !== "anon" && section === "pedidos" ? <Orders data={data} token={authToken} onSaved={() => loadOverview(authToken)} /> : null}
+      {mode !== "anon" && section === "pedidos" ? <Orders data={data} token={authToken} onSaved={async () => { await loadOverview(authToken); }} /> : null}
       {mode !== "anon" && section !== "pedidos" ? <AdminCatalog token={authToken} section={section} /> : null}
     </div>
+  );
+}
+
+function StockEditor({
+  productId,
+  productName,
+  colorId,
+  colorName,
+  stock,
+  token,
+  onSaved,
+}: {
+  productId: string;
+  productName: string;
+  colorId: string;
+  colorName: string;
+  stock: number;
+  token?: string;
+  onSaved: () => Promise<void>;
+}) {
+  const [message, setMessage] = useState("");
+
+  return (
+    <form
+      className="flex flex-wrap items-center gap-2"
+      onSubmit={async (event) => {
+        event.preventDefault();
+        setMessage("");
+        const next = Number(new FormData(event.currentTarget).get("stock"));
+        if (!Number.isInteger(next) || next < 0) {
+          setMessage("Informe um estoque inteiro a partir de zero.");
+          return;
+        }
+        const response = await fetch("/api/commerce/v1/admin/stock", {
+          method: "PATCH",
+          headers: { "content-type": "application/json", ...(token ? { "x-admin-token": token } : {}) },
+          credentials: "include",
+          body: JSON.stringify({ productId, colorId, stock: next }),
+        });
+        if (!response.ok) {
+          const body = (await response.json().catch(() => ({}))) as { message?: string };
+          setMessage(body.message ?? "O estoque não foi salvo.");
+          return;
+        }
+        await onSaved();
+      }}
+    >
+      <Input name="stock" type="number" min={0} step={1} defaultValue={stock} key={stock} className="h-10 w-24 rounded-full px-3" aria-label={`Estoque de ${productName} ${colorName}`} />
+      <Button type="submit" variant="outline" className="rounded-full">
+        Salvar
+      </Button>
+      {message ? <p className="w-full text-sm text-signal">{message}</p> : null}
+    </form>
   );
 }
 
@@ -286,25 +342,15 @@ function Orders({ data, token, onSaved }: { data: Overview | null; token?: strin
                   <td className="py-3">{product.name}</td>
                   <td>{color.name}</td>
                   <td>
-                    <form
-                      className="flex gap-2"
-                      onSubmit={async (event) => {
-                        event.preventDefault();
-                        const stock = Number(new FormData(event.currentTarget).get("stock"));
-                        await fetch("/api/commerce/v1/admin/stock", {
-                          method: "PATCH",
-                          headers: { "content-type": "application/json", ...(token ? { "x-admin-token": token } : {}) },
-                          credentials: "include",
-                          body: JSON.stringify({ productId: product.id, colorId: color.id, stock }),
-                        });
-                        await onSaved();
-                      }}
-                    >
-                      <Input name="stock" type="number" min={0} defaultValue={color.stock} key={color.stock} className="h-10 w-24 rounded-full px-3" aria-label={`Estoque de ${product.name} ${color.name}`} />
-                      <Button type="submit" variant="outline" className="rounded-full">
-                        Salvar
-                      </Button>
-                    </form>
+                    <StockEditor
+                      productId={product.id}
+                      productName={product.name}
+                      colorId={color.id}
+                      colorName={color.name}
+                      stock={color.stock}
+                      token={token}
+                      onSaved={onSaved}
+                    />
                   </td>
                 </tr>
               )),

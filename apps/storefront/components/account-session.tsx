@@ -8,8 +8,6 @@ import { accountOrders, requestSandboxCode, verifySandboxCode, type PlacedOrder 
 import Link from "next/link";
 import { useState } from "react";
 
-const tokenKey = "lume-session";
-
 export function AccountSession() {
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
@@ -32,7 +30,6 @@ export function AccountSession() {
     setError("");
     try {
       const session = await verifySandboxCode(email, code);
-      localStorage.setItem(tokenKey, session.token);
       setToken(session.token);
       const mine = await accountOrders(session.token);
       setOrders(mine.orders);

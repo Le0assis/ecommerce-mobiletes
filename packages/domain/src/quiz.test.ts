@@ -131,6 +131,12 @@ describe("quiz de autopropelidos", () => {
     expect(result[0]?.accessories.map((item) => item.name)).toContain("Baú 29–41 L");
   });
 
+  it("atribui a dispensa de habilitação ao autopropelido", () => {
+    const result = recommendMotorcycles(answers({ use: "passeio", budget: "mais10" }), catalog);
+    const helmet = result.flatMap((item) => item.accessories).find((item) => item.kind === "capacete");
+    expect(helmet?.reason).toBe("Proteção, mesmo no autopropelido, que dispensa habilitação.");
+  });
+
   it("não deixa bateria desconhecida passar na frente da removível", () => {
     const withUnknown = [
       ...catalog,

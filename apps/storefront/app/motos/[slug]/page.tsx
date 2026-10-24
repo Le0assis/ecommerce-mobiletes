@@ -1,6 +1,7 @@
 import { CatalogDown } from "@/components/catalog-state";
 import { Configurator } from "@/components/configurator";
 import { formatBRL, loadProduct, loadProducts, relatedProducts } from "@/lib/catalog";
+import { jsonLdScript } from "@/lib/json-ld";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
@@ -54,7 +55,7 @@ async function MotoBody({ params }: PageProps<"/motos/[slug]">) {
 
   return (
     <main id="conteudo">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(offer) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdScript(offer) }} />
       <Configurator product={product} related={related} reviews={reviews} />
     </main>
   );
