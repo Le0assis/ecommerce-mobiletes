@@ -11,15 +11,14 @@ export const registrationLabel: Record<RegistrationClass, string> = {
 
 export const registrationNote: Record<RegistrationClass, string> = {
   autopropelido:
-    "Resolução CONTRAN 996/2023, art. 2º, II: potência nominal máxima de até 1.000 W, velocidade máxima de fabricação de até 32 km/h, largura de até 70 cm e entre-eixos de até 130 cm. O art. 12 não sujeita esse equipamento a registro, licenciamento e emplacamento. O art. 11 manda a circulação seguir as regras das bicicletas. A resolução não menciona CNH.",
+    "Resolução CONTRAN 996/2023, art. 2º, II: potência nominal máxima de até 1.000 W, velocidade máxima de fabricação de até 32 km/h, largura de até 70 cm e entre-eixos de até 130 cm. O art. 12 não sujeita esse equipamento a registro, licenciamento e emplacamento. O art. 11 manda a circulação seguir as regras das bicicletas. O autopropelido dispensa registro e habilitação.",
   ciclomotor:
-    "Resolução CONTRAN 996/2023, art. 2º, IV: duas ou três rodas, motor até 50 cm³ ou elétrico de até 4 kW, e velocidade máxima de fabricação de até 50 km/h. Os arts. 13 e 14 exigem registro e licenciamento. O art. 19, III, cita sanção para quem conduz o veículo sem placa de identificação, conforme o caso. O art. 14, § 1º, I, encerra em 31/12/2025 o prazo para incluir no RENAVAM o ciclomotor sem CAT; depois disso, ele fica impedido de circular em via pública. A resolução não nomeia CNH, ACC nem a data 01/01/2026.",
+    "Ciclomotor: placa e ACC ou CNH A (CTB art. 162, I; Res. 996/2023, Anexo I). O ciclomotor também exige registro (CTB art. 141). O prazo de 31/12/2025 era só para o registro no RENAVAM.",
   moto: "Condução na categoria A, emplacamento e capacete. A potência de cada modelo só vale depois da homologação.",
 };
 
-/** Ficha do modelo. Não afirma CNH, placa nem prazo. */
-const customerLicenseNote =
-  "Enquadramento conforme a Resolução CONTRAN 996/2023. Confirme os requisitos com o Detran do seu estado antes de rodar.";
+const ciclomotorLicenseNote = "Ciclomotor: placa e ACC ou CNH A (CTB art. 162, I; Res. 996/2023, Anexo I).";
+const autopropelidoLicenseNote = "Autopropelido: dispensa registro e habilitação.";
 
 const categoryIds: Category[] = ["mobilete", "scooter", "naked", "adventure", "sport"];
 
@@ -216,7 +215,7 @@ export const motorcycles: Motorcycle[] = [
     seatHeightMm: 770,
     chargeHours: 4,
     fastChargeMin: null,
-    licenseNote: customerLicenseNote,
+    licenseNote: ciclomotorLicenseNote,
     colors: [obsidiana(14), nevoa(9), sal(6, 20_000)],
     accessoryIds: ["bolsa", "carregador", "banco"],
     optimalSpeedKmh: 35,
@@ -349,7 +348,7 @@ export const motorcycles: Motorcycle[] = [
     seatHeightMm: 740,
     chargeHours: 3,
     fastChargeMin: null,
-    licenseNote: customerLicenseNote,
+    licenseNote: autopropelidoLicenseNote,
     colors: [obsidiana(10), nevoa(6)],
     accessoryIds: ["bolsa", "carregador"],
     optimalSpeedKmh: 20,
@@ -374,7 +373,7 @@ export const motorcycles: Motorcycle[] = [
     seatHeightMm: 760,
     chargeHours: 4,
     fastChargeMin: null,
-    licenseNote: customerLicenseNote,
+    licenseNote: ciclomotorLicenseNote,
     colors: [obsidiana(7), sal(4, 20_000)],
     accessoryIds: ["bolsa", "banco", "carregador"],
     optimalSpeedKmh: 40,

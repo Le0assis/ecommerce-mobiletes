@@ -207,6 +207,11 @@ export function Quiz({ products, catalogMessage }: { products: StoreProduct[]; c
             <div className="h-full bg-signal" style={{ width: `${((step + 1) / steps.length) * 100}%` }} />
           </div>
           <h2 className="mt-6 text-4xl font-light">{current.title}</h2>
+          {current.key === "withoutCnh" ? (
+            <p className="mt-3 max-w-xl text-sm text-muted-foreground">
+              Sim lista só autopropelido, que dispensa registro e habilitação. Ciclomotor: placa e ACC ou CNH A (CTB art. 162, I; Res. 996/2023, Anexo I).
+            </p>
+          ) : null}
           <div className="mt-6 grid gap-3">
             {current.options.map((option) => (
               <Button
