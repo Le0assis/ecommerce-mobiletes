@@ -13,10 +13,15 @@ export const migrationFiles = [
   "0003_catalogo_integridade.sql",
   "0004_products_habilitacao_ficha.sql",
   "0005_product_specs_numeric.sql",
+  "0006_consultas_loja.sql",
 ] as const;
 
-/** 0004 e 0005 podem rodar de novo num banco que já passou por `db:push`. */
-export const publicationMigrations = ["0004_products_habilitacao_ficha.sql", "0005_product_specs_numeric.sql"] as const;
+/** 0004 em diante podem rodar de novo num banco que já passou por `db:push`. Não apagam linha. */
+export const publicationMigrations = [
+  "0004_products_habilitacao_ficha.sql",
+  "0005_product_specs_numeric.sql",
+  "0006_consultas_loja.sql",
+] as const;
 
 export function readMigration(name: string) {
   return readFileSync(join(directory, "../../drizzle", name), "utf8");

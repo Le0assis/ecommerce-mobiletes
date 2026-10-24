@@ -14,13 +14,13 @@ import {
   type ProductStatus,
   type ProductStyle,
 } from "../catalog-store";
+import { flushCatalog } from "./catalog-flush";
 import type { SampleSpec } from "./sample-scooters";
 import {
   accessories,
   damageImages,
   damages,
   productAccessories,
-  productColors,
   productImages,
   productSpecs,
   productVariants,
@@ -28,9 +28,9 @@ import {
 } from "./schema";
 
 /**
- * O cadastro de produto vive no Postgres. Cada chamada relê e, na escrita, regrava
- * ficha, variantes, fotos, acessórios e avarias. Banners ficam na memória do processo:
- * o flush não mexe nessa tabela. O mutex é do processo; dois processos no mesmo banco
+ * O cadastro de produto vive no Postgres. Cada escrita relê e faz upsert por linha
+ * na mesma transação. Não apaga produto nem `product_colors`. Banners ficam na
+ * memória do processo. O mutex é do processo; dois processos no mesmo banco
  * ainda podem se atropelar.
  */
 export function createPostgresCatalog(
@@ -333,122 +333,5 @@ function group<T extends { productId: string }>(rows: T[]) {
 }
 
 async function writeState(db: Database, state: CatalogState) {
-  const cover = new Set<string>();
-  await db.transaction(async (tx) => {
-    await tx.delete(damageImages);
-    await tx.delete(damages);
-    await tx.delete(productAccessories);
-    await tx.delete(productImages);
-    await tx.delete(productVariants);
-    await tx.delete(productSpecs);
-    await tx.delete(productColors);
-    await tx.delete(products);
-    await tx.delete(accessories);
-
-    if (state.accessories.length > 0) {
-      await tx.insert(accessories).values(
-        state.accessories.map((item) => ({
-          id: item.id,
-          slug: item.slug,
-          name: item.name,
-          kind: item.kind,
-          priceCents: item.priceCents,
-          stock: item.stock,
-          imageUrl: item.imageUrl,
-        })),
-      );
-    }
-
-    if (state.products.length > 0) {
-      await tx.insert(products).values(
-        state.products.map((item) => ({
-          id: item.id,
-          slug: item.slug,
-          name: item.name,
-          brand: item.brand,
-          category: item.category,
-          style: item.style,
-          tagline: item.tagline,
-          description: item.description,
-          basePriceCents: item.basePriceCents,
-          status: item.status,
-          isSample: item.isSample,
-          isEnabled: item.isEnabled,
-          createdAt: new Date(item.createdAt),
-          updatedAt: new Date(item.updatedAt),
-        })),
-      );
-      await tx.insert(productSpecs).values(state.products.map((item) => ({ productId: item.id, ...item.specs })));
-    }
-
-    const variantRows = state.products.flatMap((product) =>
-      product.variants.map((item) => ({
-        id: item.id,
-        productId: product.id,
-        sku: item.sku,
-        colorName: item.colorName,
-        colorHex: item.colorHex,
-        batteryLabel: item.batteryLabel,
-        priceDeltaCents: item.priceDeltaCents,
-        stock: item.stock,
-        active: item.active,
-      })),
-    );
-    if (variantRows.length > 0) await tx.insert(productVariants).values(variantRows);
-
-    const imageRows = state.products.flatMap((product) =>
-      product.images.map((item) => {
-        let isCover = item.isCover;
-        if (isCover) {
-          if (cover.has(product.id)) isCover = false;
-          else cover.add(product.id);
-        }
-        return {
-          id: item.id,
-          productId: product.id,
-          variantId: item.variantId,
-          url: item.url,
-          alt: item.alt,
-          position: item.position,
-          isCover,
-        };
-      }),
-    );
-    if (imageRows.length > 0) await tx.insert(productImages).values(imageRows);
-
-    const linkRows = state.products.flatMap((product) =>
-      product.accessories.map((item) => ({
-        productId: product.id,
-        accessoryId: item.accessoryId,
-        recommended: item.recommended,
-      })),
-    );
-    if (linkRows.length > 0) await tx.insert(productAccessories).values(linkRows);
-
-    if (state.damages.length > 0) {
-      await tx.insert(damages).values(
-        state.damages.map((item) => ({
-          id: item.id,
-          productId: item.productId,
-          variantId: item.variantId,
-          description: item.description,
-          severity: item.severity,
-          discountCents: item.discountCents,
-          isPublic: item.isPublic,
-          resolvedAt: item.resolvedAt ? new Date(item.resolvedAt) : null,
-          createdAt: new Date(item.createdAt),
-        })),
-      );
-    }
-
-    const damagePictureRows = state.damages.flatMap((damage) =>
-      damage.images.map((item) => ({
-        id: item.id,
-        damageId: damage.id,
-        url: item.url,
-        position: item.position,
-      })),
-    );
-    if (damagePictureRows.length > 0) await tx.insert(damageImages).values(damagePictureRows);
-  });
+  await flushCatalog(db, state);
 }
