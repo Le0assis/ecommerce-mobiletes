@@ -1,7 +1,10 @@
+import { execFile } from "node:child_process";
+import { randomBytes } from "node:crypto";
 import { mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { promisify } from "node:util";
 import { PGlite } from "@electric-sql/pglite";
 import { drizzle } from "drizzle-orm/pglite";
 import { sql } from "drizzle-orm";
@@ -9,6 +12,8 @@ import { describe, expect, it, vi } from "vitest";
 import type { Database } from "./db/client";
 import { applyMigrations, discoverMigrations, migrationChecksum, migrationFiles, migrationStatements, publicationMigrations, readMigration } from "./db/migrate";
 import * as schema from "./db/schema";
+
+const exec = promisify(execFile);
 
 // Cada arquivo sobe o PGlite do zero. Em paralelo com o turbo isso passa de 5s.
 describe("livro de migrações", { timeout: 20_000 }, () => {
@@ -162,6 +167,37 @@ describe("livro de migrações", { timeout: 20_000 }, () => {
       rmSync(folder, { recursive: true, force: true });
     }
   });
+
+  it("nome fora do padrão encerra o arranque com boot_recusado e sem stack", async () => {
+    const folder = mkdtempSync(join(tmpdir(), "lume-boot-migrations-"));
+    writeFileSync(join(folder, "nota.sql"), "select 1;");
+    const env: Record<string, string> = {};
+    for (const [key, value] of Object.entries(process.env)) {
+      if (typeof value === "string") env[key] = value;
+    }
+    env.LUME_MIGRATIONS_DIR = folder;
+    env.ADMIN_TOKEN = randomBytes(32).toString("base64");
+    env.NODE_ENV = "development";
+    env.PORT = "0";
+    delete env.DATABASE_URL;
+    let failed: { code?: number | string; stderr?: string; stdout?: string } | undefined;
+    try {
+      await exec("pnpm", ["exec", "tsx", "src/index.ts"], {
+        cwd: fileURLToPath(new URL("..", import.meta.url)),
+        env,
+        timeout: 15_000,
+      });
+    } catch (error) {
+      failed = error as { code?: number | string; stderr?: string; stdout?: string };
+    } finally {
+      rmSync(folder, { recursive: true, force: true });
+    }
+    const output = `${failed?.stderr ?? ""}${failed?.stdout ?? ""}`;
+    expect(failed?.code).toBe(1);
+    expect(output).toContain("boot_recusado");
+    expect(output).toContain("nota.sql");
+    expect(output).not.toMatch(/^\s+at /m);
+  }, 30_000);
 
   it("aceita os arquivos atuais e recusa .sql fora de NNNN_nome.sql", () => {
     const folder = fileURLToPath(new URL("../drizzle", import.meta.url));

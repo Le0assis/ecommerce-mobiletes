@@ -3,12 +3,12 @@ import { sql } from "drizzle-orm";
 import { createApp } from "./app";
 import { createCatalog } from "./catalog-store";
 import { createDatabase } from "./db/client";
-import { applyMigrations, publicationMigrations } from "./db/migrate";
+import { applyMigrations, migrationBootError, publicationMigrations } from "./db/migrate";
 import { createPostgresCatalog } from "./db/postgres-catalog";
 import { adminTokenError, loadEnvFile, memoryFallbackAllowed, productionDatabaseError } from "./env";
 
 loadEnvFile();
-const refused = adminTokenError() ?? productionDatabaseError();
+const refused = adminTokenError() ?? productionDatabaseError() ?? migrationBootError;
 if (refused) {
   console.error(JSON.stringify({ msg: "boot_recusado", message: refused }));
   process.exit(1);

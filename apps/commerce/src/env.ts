@@ -15,25 +15,35 @@ export function loadEnvFile() {
   }
 }
 
-const MIN_ADMIN_TOKEN = 32;
-const MIN_DISTINCT_CHARS = 16;
-const MIN_SHANNON_BITS = 3;
+const MIN_TOKEN_BITS = 128;
 
-function shannonBits(token: string) {
-  const counts = new Map<string, number>();
-  for (const char of token) counts.set(char, (counts.get(char) ?? 0) + 1);
-  let entropy = 0;
-  for (const count of counts.values()) {
-    const probability = count / token.length;
-    entropy -= probability * Math.log2(probability);
+/** Hex 16, alfanumérico 62, base64 ou base64url 64, e 95 para o resto. */
+function alphabetSize(token: string) {
+  if (/^[0-9a-fA-F]+$/.test(token)) return 16;
+  if (/^[0-9A-Za-z]+$/.test(token)) return 62;
+  if (/^[0-9A-Za-z+/_=-]+$/.test(token)) return 64;
+  return 95;
+}
+
+function tokenBits(token: string) {
+  const alphabet = alphabetSize(token);
+  if (alphabet === 16) return token.length * 4;
+  if (alphabet === 64) return token.length * 6;
+  return token.length * Math.log2(alphabet);
+}
+
+/** O token inteiro é um bloco repetido, inclusive um caractere só. */
+function repeatedPeriod(token: string) {
+  for (let size = 1; size <= token.length / 2; size += 1) {
+    if (token.length % size !== 0) continue;
+    if (token.slice(0, size).repeat(token.length / size) === token) return true;
   }
-  return entropy;
+  return false;
 }
 
 function strongAdminToken(token: string) {
-  if (token.length < MIN_ADMIN_TOKEN) return false;
-  if (new Set(token).size < MIN_DISTINCT_CHARS) return false;
-  return shannonBits(token) >= MIN_SHANNON_BITS;
+  if (!token || repeatedPeriod(token)) return false;
+  return tokenBits(token) >= MIN_TOKEN_BITS;
 }
 
 export function adminToken(): string | null {
@@ -42,7 +52,7 @@ export function adminToken(): string | null {
   return token;
 }
 
-/** Sem token forte o processo não escuta porta. Exige 32 caracteres, 16 distintos e entropia Shannon de pelo menos 3 bits. */
+/** Sem token forte o processo não escuta porta. A força é o tamanho vezes log2 do alfabeto, com mínimo de 128 bits. Caractere único ou período repetido não passa. */
 export function adminTokenError(): string | null {
   if (adminToken()) return null;
   return "ADMIN_TOKEN ausente ou fraco. A API não sobe.";

@@ -1,4 +1,5 @@
 import { execFile } from "node:child_process";
+import { randomBytes } from "node:crypto";
 import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -470,22 +471,34 @@ describe("segurança", () => {
     expect(legacy.headers.get("access-control-allow-origin")).toBeNull();
   });
 
-  it("recusa o arranque com ADMIN_TOKEN ausente, repetido ou de entropia baixa", async () => {
+  it("recusa o arranque com ADMIN_TOKEN ausente, repetido ou abaixo de 128 bits", async () => {
     process.env.NODE_ENV = "development";
     delete process.env.ADMIN_TOKEN;
     expect(adminTokenError()).toBe("ADMIN_TOKEN ausente ou fraco. A API não sobe.");
-    process.env.ADMIN_TOKEN = "a".repeat(31);
-    expect(adminTokenError()).toMatch(/não sobe/);
     process.env.NODE_ENV = "production";
-    expect(adminTokenError()).toMatch(/não sobe/);
     process.env.ADMIN_TOKEN = "a".repeat(32);
     expect(adminTokenError()).toMatch(/não sobe/);
-    process.env.ADMIN_TOKEN = `${"abcdefghijklmno".repeat(2)}aa`;
-    expect(adminTokenError()).toMatch(/não sobe/);
-    process.env.ADMIN_TOKEN = `${"a".repeat(17)}bcdefghijklmnop`;
-    expect(adminTokenError()).toMatch(/não sobe/);
     process.env.ADMIN_TOKEN = "abcdefghijklmnop".repeat(2);
+    expect(adminTokenError()).toMatch(/não sobe/);
+    process.env.ADMIN_TOKEN = "0123456789abcdef0123456789abcde";
+    expect(adminTokenError()).toMatch(/não sobe/);
+    process.env.ADMIN_TOKEN = "abcdefghijklmnopqrst+";
+    expect(adminTokenError()).toMatch(/não sobe/);
+    process.env.ADMIN_TOKEN = "0123456789abcdeffedcba9876543210";
     expect(adminTokenError()).toBeNull();
+    process.env.ADMIN_TOKEN = "abcdefghijklmnopqrstu+";
+    expect(adminTokenError()).toBeNull();
+    for (let sample = 0; sample < 1000; sample += 1) {
+      const hex = randomBytes(32).toString("hex");
+      const base64 = randomBytes(32).toString("base64");
+      const uuid = randomBytes(16).toString("hex");
+      process.env.ADMIN_TOKEN = hex;
+      expect(adminTokenError(), hex).toBeNull();
+      process.env.ADMIN_TOKEN = base64;
+      expect(adminTokenError(), base64).toBeNull();
+      process.env.ADMIN_TOKEN = uuid;
+      expect(adminTokenError(), uuid).toBeNull();
+    }
     process.env.NODE_ENV = "test";
     delete process.env.ADMIN_TOKEN;
     expect(adminTokenError()).toMatch(/não sobe/);

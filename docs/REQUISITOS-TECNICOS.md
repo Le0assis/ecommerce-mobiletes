@@ -182,7 +182,7 @@ Identificadores estáveis para o backlog. O que está marcado como vitrine já e
 
 - Preço e frete revalidados na API. O browser não é fonte do total.
 - Zod na borda. Erro de domínio vira 400 com código estável. Erro inesperado vira 500 sem stack para o cliente.
-- Fora de produção o admin ainda aceita `x-admin-token` com o `ADMIN_TOKEN` do ambiente. Em produção o cabeçalho não autentica. O processo não sobe sem `ADMIN_TOKEN` de pelo menos 32 caracteres, 16 distintos e entropia Shannon de 3 bits por caractere. Não há token padrão.
+- Fora de produção o admin ainda aceita `x-admin-token` com o `ADMIN_TOKEN` do ambiente. Em produção o cabeçalho não autentica. O processo não sobe sem `ADMIN_TOKEN` de pelo menos 128 bits (`openssl rand -base64 32`). Caractere único ou período repetido não passa. Não há token padrão.
 - Limite de checkout, test ride, consulta de pedido e login de admin. Redis quando `REDIS_URL` existe; memória do processo no resto, inclusive se o Redis falhar.
 - CORS só para origens listadas em `CORS_ORIGINS`, que substitui `STOREFRONT_ORIGIN`. Sem a lista, nenhuma origem de browser é liberada, em qualquer ambiente. `POST /v1/orders/:ref/sandbox` só avança com `LUME_ENABLE_SANDBOX=1` ou `true`. O código de login `LUME-SANDBOX` só entra com `LUME_SANDBOX=1` ou `true`.
 - Log em JSON com `requestId`, método, caminho, status e duração. Sem e-mail, telefone ou corpo do pedido no log.

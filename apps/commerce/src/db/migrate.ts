@@ -6,7 +6,13 @@ import { sql } from "drizzle-orm";
 import type { Database } from "./client";
 
 const directory = dirname(fileURLToPath(import.meta.url));
-const migrationsDirectory = join(directory, "../../drizzle");
+const bundledMigrationsDirectory = join(directory, "../../drizzle");
+
+/** `LUME_MIGRATIONS_DIR` só troca a pasta no teste de arranque. No processo normal vale `drizzle/`. */
+function migrationsDirectory() {
+  const override = process.env.LUME_MIGRATIONS_DIR?.trim();
+  return override || bundledMigrationsDirectory;
+}
 const migrationName = /^\d{4}[_-].+\.sql$/;
 
 export class MigrationError extends Error {
@@ -17,7 +23,7 @@ export class MigrationError extends Error {
 }
 
 /** Arquivos `NNNN_nome.sql` ou `NNNN-nome.sql`, em ordem. Qualquer outro `.sql` falha. */
-export function discoverMigrations(folder = migrationsDirectory) {
+export function discoverMigrations(folder = migrationsDirectory()) {
   const sqlFiles = readdirSync(folder).filter((name) => name.endsWith(".sql"));
   const invalid = sqlFiles.filter((name) => !migrationName.test(name)).sort();
   if (invalid.length > 0) {
@@ -28,12 +34,24 @@ export function discoverMigrations(folder = migrationsDirectory) {
   return sqlFiles.sort((left, right) => (left < right ? -1 : left > right ? 1 : 0));
 }
 
-export const migrationFiles = discoverMigrations();
+function loadBootMigrations() {
+  try {
+    return { files: discoverMigrations(migrationsDirectory()), error: null as string | null };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "falha";
+    return { files: [] as string[], error: message };
+  }
+}
+
+const bootMigrations = loadBootMigrations();
+export const migrationFiles = bootMigrations.files;
+/** Nome fora do padrão. O arranque sai com `boot_recusado` e não imprime stack. */
+export const migrationBootError = bootMigrations.error;
 
 /** Arranque: do 0000 ao último arquivo. Banco vazio roda o 0000; banco que já tem o schema só registra. */
 export const publicationMigrations = migrationFiles.filter((name) => name >= "0000");
 
-export function readMigration(name: string, folder = migrationsDirectory) {
+export function readMigration(name: string, folder = migrationsDirectory()) {
   return readFileSync(join(folder, name), "utf8");
 }
 
@@ -44,7 +62,7 @@ export function migrationStatements(source: string) {
     .filter((statement) => statement.length > 0);
 }
 
-export function migrationChecksum(name: string, folder = migrationsDirectory) {
+export function migrationChecksum(name: string, folder = migrationsDirectory()) {
   return createHash("sha256").update(readMigration(name, folder)).digest("hex");
 }
 
@@ -195,7 +213,7 @@ async function reconcileChecksum(db: SqlClient, name: string, row: Record<string
  * Banco que já tem o objeto só ganha a linha no livro, sem rodar o SQL de novo.
  * Número menor que a última aplicada, nome fora do padrão ou checksum novo divergente falham.
  */
-export async function applyMigrations(db: Database, files: readonly string[], folder = migrationsDirectory) {
+export async function applyMigrations(db: Database, files: readonly string[], folder = migrationsDirectory()) {
   for (const name of files) {
     if (!migrationName.test(name)) {
       throw new MigrationError(`Arquivo de migração fora do padrão NNNN_nome.sql ou NNNN-nome.sql: ${name}.`);
