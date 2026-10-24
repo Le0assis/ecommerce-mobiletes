@@ -15,6 +15,7 @@ export const migrationFiles = [
   "0005_product_specs_numeric.sql",
   "0006_consultas_loja.sql",
   "0007_acesso_operacao.sql",
+  "0008_public_id_restante.sql",
 ] as const;
 
 /** 0004 em diante podem rodar de novo num banco que já passou por `db:push`. Não apagam linha. */
@@ -23,6 +24,7 @@ export const publicationMigrations = [
   "0005_product_specs_numeric.sql",
   "0006_consultas_loja.sql",
   "0007_acesso_operacao.sql",
+  "0008_public_id_restante.sql",
 ] as const;
 
 export function readMigration(name: string) {

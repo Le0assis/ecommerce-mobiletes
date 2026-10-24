@@ -16,7 +16,7 @@ describe("0007 acesso e operação", () => {
     try {
       await applyMigrations(
         db,
-        migrationFiles.filter((name) => name !== migration),
+        migrationFiles.filter((name) => name < migration),
       );
       await db.insert(products).values({
         id: "p-estoque",
@@ -198,6 +198,56 @@ describe("0007 acesso e operação", () => {
       await expect(
         db.execute(sql`insert into color_stock (product_id, color_id, stock) values ('outro', 'preto', -1)`),
       ).rejects.toThrow();
+    } finally {
+      await client.close();
+    }
+  });
+});
+
+describe("0008 public_id restante", () => {
+  it("preenche só o token livre e pode rodar de novo", async () => {
+    const client = new PGlite();
+    const db = drizzle(client, { schema }) as unknown as Database;
+    const migration0008 = "0008_public_id_restante.sql";
+    try {
+      await applyMigrations(
+        db,
+        migrationFiles.filter((name) => name < migration0008),
+      );
+      await db.execute(sql`
+        insert into orders (
+          code, status, customer_name, customer_email, customer_phone, method, provider,
+          installments, subtotal_cents, shipping_cents, total_cents, cep, payload, public_id, created_at
+        ) values
+          ('LM-UNIQ', 'aguardando_pagamento', 'Cliente Teste', 'cliente@example.com', '11999990000', 'pix', 'mock', 1, 1100, 0, 1100, '01310100', '{"publicId":"token-uniq"}'::jsonb, null, '2026-04-01T00:00:00.000Z'),
+          ('LM-D1', 'aguardando_pagamento', 'Cliente Teste', 'cliente@example.com', '11999990000', 'pix', 'mock', 1, 1200, 0, 1200, '01310100', '{"publicId":"token-dup2"}'::jsonb, null, '2026-04-02T00:00:00.000Z'),
+          ('LM-D2', 'pago', 'Cliente Teste', 'cliente@example.com', '11999990000', 'pix', 'mock', 1, 1300, 0, 1300, '01310100', '{"publicId":"token-dup2","lines":[{"qty":1}]}'::jsonb, null, '2026-04-03T00:00:00.000Z'),
+          ('LM-TAKEN', 'aguardando_pagamento', 'Cliente Teste', 'cliente@example.com', '11999990000', 'pix', 'mock', 1, 1400, 0, 1400, '01310100', '{"publicId":"token-taken"}'::jsonb, 'token-taken', '2026-04-04T00:00:00.000Z'),
+          ('LM-COPY', 'aguardando_pagamento', 'Cliente Teste', 'cliente@example.com', '11999990000', 'pix', 'mock', 1, 1500, 0, 1500, '01310100', '{"publicId":"token-taken"}'::jsonb, null, '2026-04-05T00:00:00.000Z'),
+          ('LM-EMPTY', 'aguardando_pagamento', 'Cliente Teste', 'cliente@example.com', '11999990000', 'pix', 'mock', 1, 1600, 0, 1600, '01310100', '{"publicId":""}'::jsonb, null, '2026-04-06T00:00:00.000Z'),
+          ('LM-SPACE', 'aguardando_pagamento', 'Cliente Teste', 'cliente@example.com', '11999990000', 'pix', 'mock', 1, 1700, 0, 1700, '01310100', '{"publicId":"   "}'::jsonb, null, '2026-04-07T00:00:00.000Z'),
+          ('LM-KEEP', 'em_preparo', 'Cliente Teste', 'cliente@example.com', '11999990000', 'pix', 'mock', 1, 1800, 0, 1800, '01310100', '{"publicId":"token-other"}'::jsonb, 'token-keep', '2026-04-08T00:00:00.000Z')
+      `);
+      const before = rowsOf(await db.execute(sql`select count(*)::int as n from orders`));
+
+      await applyMigrations(db, [migration0008, migration0008]);
+
+      const rows = rowsOf(await db.execute(sql`select code, public_id, status, total_cents, payload from orders order by code`));
+      const byCode = new Map(rows.map((row) => [String(row.code), row]));
+      expect(rows).toHaveLength(Number(before[0]?.n));
+      expect(byCode.get("LM-UNIQ")?.public_id).toBe("token-uniq");
+      expect(byCode.get("LM-UNIQ")?.total_cents).toBe(1100);
+      expect(byCode.get("LM-D1")?.public_id).toBeNull();
+      expect(byCode.get("LM-D2")?.public_id).toBeNull();
+      expect(byCode.get("LM-D2")?.status).toBe("pago");
+      expect(byCode.get("LM-D2")?.payload).toMatchObject({ publicId: "token-dup2", lines: [{ qty: 1 }] });
+      expect(byCode.get("LM-TAKEN")?.public_id).toBe("token-taken");
+      expect(byCode.get("LM-COPY")?.public_id).toBeNull();
+      expect(byCode.get("LM-EMPTY")?.public_id).toBeNull();
+      expect(byCode.get("LM-SPACE")?.public_id).toBeNull();
+      expect(byCode.get("LM-KEEP")?.public_id).toBe("token-keep");
+      expect(byCode.get("LM-KEEP")?.status).toBe("em_preparo");
+      expect(byCode.get("LM-KEEP")?.total_cents).toBe(1800);
     } finally {
       await client.close();
     }

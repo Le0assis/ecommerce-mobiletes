@@ -317,7 +317,7 @@ export const orders = pgTable(
     totalCents: integer("total_cents").notNull(),
     cep: text("cep").notNull(),
     payload: jsonb("payload").notNull(),
-    /** Token longo. NULL quando o payload não tem publicId ou quando ele está repetido e esta não é a linha mais antiga. */
+    /** Token longo. NULL se o payload não traz valor utilizável, se outro pedido já usa o token, ou se mais de um pedido nulo repete o mesmo valor. */
     publicId: text("public_id"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
