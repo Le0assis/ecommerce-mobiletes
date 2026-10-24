@@ -1,7 +1,8 @@
 -- Acesso e operação. Pode rodar de novo. Não apaga linha, não mexe no estoque de
 -- product_variants/product_colors e não altera test_ride_bookings.
--- O selo de public_id usa o texto de payload->>'publicId'. A tabela orders não tem
--- coluna id: o desempate do backfill é code, depois de created_at.
+-- O backfill de public_id só copia payload->>'publicId' quando o valor não é vazio,
+-- é único entre os pedidos ainda nulos e não está em outra linha. Token repetido
+-- não vai para o mais antigo: os dois ficam NULL. Não apaga linha.
 ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "public_id" text;--> statement-breakpoint
 DO $$
 DECLARE
@@ -10,33 +11,36 @@ BEGIN
   FOR rec IN
     SELECT payload->>'publicId' AS public_id, count(*) AS n
     FROM "orders"
-    WHERE nullif(btrim(payload->>'publicId'), '') IS NOT NULL
+    WHERE "public_id" IS NULL
+      AND nullif(btrim(payload->>'publicId'), '') IS NOT NULL
     GROUP BY payload->>'publicId'
     HAVING count(*) > 1
   LOOP
     RAISE WARNING USING MESSAGE = format(
-      'orders.public_id: publicId repetido (%s) em %s pedidos; preenchido só o de menor created_at/code, os outros ficam NULL',
+      'orders.public_id: publicId repetido (%s) em %s pedidos nulos; nenhum recebe o token',
       rec.public_id,
       rec.n
     );
   END LOOP;
 
   UPDATE "orders" AS o
-  SET "public_id" = chosen.public_id
+  SET "public_id" = candidate.public_id
   FROM (
-    SELECT DISTINCT ON (payload->>'publicId')
+    SELECT
       "code",
-      payload->>'publicId' AS public_id
+      payload->>'publicId' AS public_id,
+      count(*) OVER (PARTITION BY payload->>'publicId') AS copies
     FROM "orders"
-    WHERE nullif(btrim(payload->>'publicId'), '') IS NOT NULL
-    ORDER BY payload->>'publicId', "created_at" ASC, "code" ASC
-  ) AS chosen
-  WHERE o."code" = chosen."code"
+    WHERE "public_id" IS NULL
+      AND nullif(btrim(payload->>'publicId'), '') IS NOT NULL
+  ) AS candidate
+  WHERE o."code" = candidate."code"
     AND o."public_id" IS NULL
+    AND candidate.copies = 1
     AND NOT EXISTS (
       SELECT 1 FROM "orders" AS other
-      WHERE other."public_id" = chosen.public_id
-        AND other."code" <> chosen."code"
+      WHERE other."public_id" = candidate.public_id
+        AND other."code" <> candidate."code"
     );
 END $$;--> statement-breakpoint
 CREATE UNIQUE INDEX IF NOT EXISTS "orders_public_id_idx" ON "orders" USING btree ("public_id");--> statement-breakpoint

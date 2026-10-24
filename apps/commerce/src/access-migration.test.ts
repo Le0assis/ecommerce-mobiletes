@@ -81,9 +81,9 @@ describe("0007 acesso e operação", () => {
       );
       expect(rows.map((row) => row.code)).toEqual(["LM-A", "LM-B", "LM-BLANK", "LM-NEW", "LM-NONE", "LM-OLD", "LM-SOLO"]);
       const byCode = new Map(rows.map((row) => [String(row.code), row]));
-      expect(byCode.get("LM-OLD")?.public_id).toBe("token-dup");
+      expect(byCode.get("LM-OLD")?.public_id).toBeNull();
       expect(byCode.get("LM-NEW")?.public_id).toBeNull();
-      expect(byCode.get("LM-A")?.public_id).toBe("token-tie");
+      expect(byCode.get("LM-A")?.public_id).toBeNull();
       expect(byCode.get("LM-B")?.public_id).toBeNull();
       expect(byCode.get("LM-SOLO")?.public_id).toBe("token-solo");
       expect(byCode.get("LM-NONE")?.public_id).toBeNull();
@@ -248,6 +248,52 @@ describe("0008 public_id restante", () => {
       expect(byCode.get("LM-KEEP")?.public_id).toBe("token-keep");
       expect(byCode.get("LM-KEEP")?.status).toBe("em_preparo");
       expect(byCode.get("LM-KEEP")?.total_cents).toBe(1800);
+    } finally {
+      await client.close();
+    }
+  });
+});
+
+describe("0004 a 0009 no token repetido", () => {
+  it("deixa o par duplicado com public_id nulo depois de rodar duas vezes", async () => {
+    const client = new PGlite();
+    const db = drizzle(client, { schema }) as unknown as Database;
+    const chain = [
+      "0004_products_habilitacao_ficha.sql",
+      "0005_product_specs_numeric.sql",
+      "0006_consultas_loja.sql",
+      "0007_acesso_operacao.sql",
+      "0008_public_id_restante.sql",
+      "0009_public_id_gatilho.sql",
+    ];
+    try {
+      await applyMigrations(
+        db,
+        migrationFiles.filter((name) => name < "0004_products_habilitacao_ficha.sql"),
+      );
+      await db.execute(sql`
+        insert into orders (
+          code, status, customer_name, customer_email, customer_phone, method, provider,
+          installments, subtotal_cents, shipping_cents, total_cents, cep, payload, created_at
+        ) values
+          ('LM-ANTIGO', 'aguardando_pagamento', 'Cliente Antigo', 'antigo@example.com', '11999990000', 'pix', 'mock', 1, 2100, 0, 2100, '01310100', '{"publicId":"token-compartilhado"}'::jsonb, '2026-01-01T00:00:00.000Z'),
+          ('LM-RECENTE', 'aguardando_pagamento', 'Cliente Recente', 'recente@example.com', '11988880000', 'pix', 'mock', 1, 2200, 0, 2200, '01310100', '{"publicId":"token-compartilhado","lines":[{"qty":1}]}'::jsonb, '2026-06-01T00:00:00.000Z')
+      `);
+
+      await applyMigrations(db, [...chain, ...chain]);
+
+      const rows = rowsOf(
+        await db.execute(sql`select code, public_id, customer_email, total_cents, payload from orders order by code`),
+      );
+      expect(rows.map((row) => row.code)).toEqual(["LM-ANTIGO", "LM-RECENTE"]);
+      expect(rows.every((row) => row.public_id == null)).toBe(true);
+      expect(rows.find((row) => row.code === "LM-ANTIGO")?.customer_email).toBe("antigo@example.com");
+      expect(rows.find((row) => row.code === "LM-RECENTE")?.customer_email).toBe("recente@example.com");
+      expect(rows.find((row) => row.code === "LM-ANTIGO")?.total_cents).toBe(2100);
+      expect(rows.find((row) => row.code === "LM-RECENTE")?.payload).toMatchObject({
+        publicId: "token-compartilhado",
+        lines: [{ qty: 1 }],
+      });
     } finally {
       await client.close();
     }
