@@ -5,10 +5,10 @@ import { createCatalog } from "./catalog-store";
 import { createDatabase } from "./db/client";
 import { applyMigrations, publicationMigrations } from "./db/migrate";
 import { createPostgresCatalog } from "./db/postgres-catalog";
-import { loadEnvFile, memoryFallbackAllowed, productionAdminTokenError, productionDatabaseError } from "./env";
+import { adminTokenError, loadEnvFile, memoryFallbackAllowed, productionDatabaseError } from "./env";
 
 loadEnvFile();
-const refused = productionAdminTokenError() ?? productionDatabaseError();
+const refused = adminTokenError() ?? productionDatabaseError();
 if (refused) {
   console.error(JSON.stringify({ msg: "boot_recusado", message: refused }));
   process.exit(1);

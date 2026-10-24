@@ -221,7 +221,7 @@ O que cada linha significa:
 | `ADMIN_PASSWORD_HASH` | `scrypt$...$...` | Hash scrypt da senha única de admin. A senha não entra no git. Sem este valor, `POST /v1/admin/login` responde 503. |
 | `BLOB_READ_WRITE_TOKEN` | token do Blob | Token de escrita do Vercel Blob. Só no servidor. Sem ele, o upload de foto responde 503. O caminho aceito é `lume/<arquivo>`. |
 | `TRUSTED_PROXIES` | vazio | IPs que podem informar o cliente. Sem isso, o limite usa o socket e ignora `x-forwarded-for`. Na Vercel, `VERCEL=1` faz a API ler `x-vercel-forwarded-for`. |
-| `ADMIN_TOKEN` | `troque-este-token` | Cabeçalho `x-admin-token` fora de produção. Em desenvolvimento, se esta linha não existir, a API aceita `dev-admin-token`. Em produção o cabeçalho não autentica, e a API não sobe se o valor faltar, tiver menos de 24 caracteres ou for `dev-admin-token`. |
+| `ADMIN_TOKEN` | 32+ caracteres aleatórios | Obrigatório. Cabeçalho `x-admin-token` fora de produção. Em produção o cabeçalho não autentica. Sem a variável, ou com menos de 32 caracteres, a API não sobe. |
 | `CORS_ORIGINS` | `http://127.0.0.1:43123` | Substitui `STOREFRONT_ORIGIN`. Origens da vitrine, separadas por vírgula. O browser só passa se a origem estiver na lista. Sem a variável o CORS fica fechado, em desenvolvimento e em produção. |
 | `LUME_ENABLE_SANDBOX` | comentada | `1` ou `true` liga o botão “Avançar no sandbox” da página do pedido. Sem a linha a rota responde 404. |
 | `LUME_SANDBOX` | comentada | `1` ou `true` aceita o código de login `LUME-SANDBOX`. Sem a linha o código não entra, em teste nem em produção. |
@@ -405,7 +405,7 @@ Repita para `8787` se a API não sobe.
 
 **Pedido some depois de reiniciar.** Sem Postgres, o pedido está na memória. Com Postgres desligado e `DATABASE_URL` preenchido, o log da API mostra `postgres_indisponivel` ou `pedido_nao_gravado` e o pedido também fica só na memória.
 
-**Admin responde “Senha inválida” ou pede `ADMIN_PASSWORD_HASH`.** A tela `/admin` envia a senha para `POST /v1/admin/login`. O valor no ambiente é o hash scrypt, não a senha. Fora de produção, um cliente que mande `x-admin-token` ainda entra com `dev-admin-token` quando `ADMIN_TOKEN` não foi definido.
+**Admin responde “Senha inválida” ou pede `ADMIN_PASSWORD_HASH`.** A tela `/admin` envia a senha para `POST /v1/admin/login`. O valor no ambiente é o hash scrypt, não a senha. Fora de produção, `x-admin-token` entra só com o `ADMIN_TOKEN` definido, de 32 caracteres ou mais.
 
 **CEP `00000-000` ou com menos de 8 dígitos.** A cotação recusa. Use um CEP real de formato, por exemplo `01310-100`.
 

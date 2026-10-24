@@ -31,7 +31,7 @@ API:
 | `DATABASE_URL` | Obrigatória. Sem ela, ou se o Postgres não conectar, o processo sai com `boot_recusado` e não escuta porta. Senha fora do repositório. |
 | `ADMIN_PASSWORD_HASH` | Obrigatório para o login. Hash scrypt no formato `scrypt$<sal hex>$<hash hex>`. Gere com `hashAdminPassword` em `apps/commerce/src/auth.ts`. Não commite a senha nem o hash de produção. |
 | `BLOB_READ_WRITE_TOKEN` | Token de escrita do Vercel Blob, store da LUME. Só no servidor. O admin recebe um token de cliente, com JPG/PNG/WebP e teto de 5 MB. |
-| `ADMIN_TOKEN` | Fora de produção, cabeçalho `x-admin-token`. Em produção o cabeçalho não autentica, mas o processo recusa subir se o valor faltar, tiver menos de 24 caracteres ou for `dev-admin-token`. |
+| `ADMIN_TOKEN` | Obrigatório, 32 caracteres ou mais, aleatório. Sem ele, ou mais curto, o processo não sobe. Fora de produção o cabeçalho `x-admin-token` usa esse valor. Em produção o cabeçalho não autentica. |
 | `CORS_ORIGINS` | Origens da vitrine, com esquema e sem caminho, separadas por vírgula. O CORS só reflete uma origem dessa lista, em qualquer `NODE_ENV`. Lista vazia não libera browser e a API não devolve `*`. |
 | `LUME_ENABLE_SANDBOX` | `1` ou `true` liga `POST /v1/orders/:ref/sandbox`. Ausente, a rota responde 404 e o pedido não muda. Deixe desligada em produção. |
 | `MAILER_URL` | POST JSON do código de acesso (`to`, `subject`, `text`). Em produção, sem essa URL, `POST /v1/auth/request` responde 503. |
@@ -48,7 +48,7 @@ Pix de demonstração continua prefixado com `LUME-MOCK-PIX`. Não troque esse p
 1. `pnpm install --frozen-lockfile`
 2. `pnpm lint && pnpm typecheck && pnpm test`
 3. `pnpm --filter @lume/storefront build`
-4. Subir a API com `NODE_ENV=production`, `ADMIN_TOKEN` de pelo menos 24 caracteres e `CORS_ORIGINS` com a origem pública da vitrine. `CORS_ORIGINS` substitui `STOREFRONT_ORIGIN`. Não defina `LUME_ENABLE_SANDBOX`, `LUME_SANDBOX` nem `LUME_ALLOW_MEMORY_FALLBACK`.
+4. Subir a API com `NODE_ENV=production`, `ADMIN_TOKEN` de pelo menos 32 caracteres e `CORS_ORIGINS` com a origem pública da vitrine. `CORS_ORIGINS` substitui `STOREFRONT_ORIGIN`. Não defina `LUME_ENABLE_SANDBOX`, `LUME_SANDBOX` nem `LUME_ALLOW_MEMORY_FALLBACK`.
 5. Subir a vitrine apontando `COMMERCE_API_URL` para essa API.
 6. Abrir `/health` na API e a home na URL pública.
 7. Confirmar que `/admin` sem o token de produção não lista pedido.

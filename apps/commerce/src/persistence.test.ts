@@ -142,7 +142,6 @@ describe("persistência da operação", () => {
       if (typeof value === "string") env[key] = value;
     }
     env.NODE_ENV = "production";
-    env.ADMIN_TOKEN = "a".repeat(24);
     delete env.DATABASE_URL;
     env.PORT = "0";
     let failed: { code?: number | string; stderr?: string; stdout?: string } | undefined;
@@ -455,7 +454,7 @@ describe("persistência da operação", () => {
     expect(await db.select().from(exchanges)).not.toHaveLength(0);
     expect(await db.select().from(serviceBookings)).not.toHaveLength(0);
 
-    const overview = await createApp({ db }).request("/v1/admin/overview", { headers: { "x-admin-token": "dev-admin-token" } });
+    const overview = await createApp({ db }).request("/v1/admin/overview", { headers: { "x-admin-token": process.env.ADMIN_TOKEN ?? "" } });
     const listed = await overview.json();
     expect(listed.bookings).toBeGreaterThanOrEqual(1);
     expect(listed.recentTradeIns.some((item: { brand: string }) => item.brand === "Usada")).toBe(true);
@@ -464,7 +463,7 @@ describe("persistência da operação", () => {
 
   it("grava o estoque da cor e duas escritas simultâneas deixam uma linha", async () => {
     const app = createApp({ db });
-    const headers = { "content-type": "application/json", "x-admin-token": "dev-admin-token" };
+    const headers = { "content-type": "application/json", "x-admin-token": process.env.ADMIN_TOKEN ?? "" };
     const patch = (stock: number) =>
       app.request("/v1/admin/stock", {
         method: "PATCH",
@@ -479,7 +478,7 @@ describe("persistência da operação", () => {
     expect(obsidiana).toHaveLength(1);
     expect([4, 11]).toContain(obsidiana[0]?.stock);
 
-    const seen = await createApp({ db }).request("/v1/admin/overview", { headers: { "x-admin-token": "dev-admin-token" } });
+    const seen = await createApp({ db }).request("/v1/admin/overview", { headers: { "x-admin-token": process.env.ADMIN_TOKEN ?? "" } });
     const body = await seen.json();
     const product = body.products.find((item: { id: string }) => item.id === "lume-s");
     const color = product.colors.find((item: { id: string }) => item.id === "obsidiana");

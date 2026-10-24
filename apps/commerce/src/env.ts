@@ -15,23 +15,18 @@ export function loadEnvFile() {
   }
 }
 
-const DEV_ADMIN_TOKEN = "dev-admin-token";
+const MIN_ADMIN_TOKEN = 32;
 
 export function adminToken(): string | null {
-  const token = process.env.ADMIN_TOKEN;
-  if (token) return token;
-  if (process.env.NODE_ENV === "production") return null;
-  return DEV_ADMIN_TOKEN;
+  const token = process.env.ADMIN_TOKEN?.trim() ?? "";
+  if (token.length < MIN_ADMIN_TOKEN) return null;
+  return token;
 }
 
-/** Em produção a API não sobe com token ausente, curto ou igual ao de desenvolvimento. */
-export function productionAdminTokenError(): string | null {
-  if (process.env.NODE_ENV !== "production") return null;
-  const token = process.env.ADMIN_TOKEN?.trim() ?? "";
-  if (token.length < 24 || token === DEV_ADMIN_TOKEN) {
-    return "ADMIN_TOKEN ausente ou fraco. A API não sobe em produção.";
-  }
-  return null;
+/** Sem token, ou com menos de 32 caracteres, o processo não escuta porta. */
+export function adminTokenError(): string | null {
+  if (adminToken()) return null;
+  return "ADMIN_TOKEN ausente ou fraco. A API não sobe.";
 }
 
 /** Em produção a semente em memória não substitui o Postgres. */

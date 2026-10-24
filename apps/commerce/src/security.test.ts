@@ -3,7 +3,7 @@ import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { clearRateLimit, createApp } from "./app";
-import { productionAdminTokenError, resolveCorsOrigin, sandboxEnabled } from "./env";
+import { adminTokenError, resolveCorsOrigin, sandboxEnabled } from "./env";
 import { clearLoginCodes, LOGIN_TTL_MS, storedLoginHash } from "./login-code";
 import type { OutboundMail } from "./mailer";
 import { rateLimit, type RateCounter } from "./rate-limit";
@@ -470,26 +470,26 @@ describe("segurança", () => {
     expect(legacy.headers.get("access-control-allow-origin")).toBeNull();
   });
 
-  it("recusa o arranque em produção sem ADMIN_TOKEN forte", async () => {
-    process.env.NODE_ENV = "production";
+  it("recusa o arranque sem ADMIN_TOKEN de 32 caracteres", async () => {
+    process.env.NODE_ENV = "development";
     delete process.env.ADMIN_TOKEN;
-    expect(productionAdminTokenError()).toBe("ADMIN_TOKEN ausente ou fraco. A API não sobe em produção.");
-    process.env.ADMIN_TOKEN = "dev-admin-token";
-    expect(productionAdminTokenError()).toMatch(/não sobe/);
-    process.env.ADMIN_TOKEN = "troque-este-token";
-    expect(productionAdminTokenError()).toMatch(/não sobe/);
-    process.env.ADMIN_TOKEN = "a".repeat(24);
-    expect(productionAdminTokenError()).toBeNull();
+    expect(adminTokenError()).toBe("ADMIN_TOKEN ausente ou fraco. A API não sobe.");
+    process.env.ADMIN_TOKEN = "a".repeat(31);
+    expect(adminTokenError()).toMatch(/não sobe/);
+    process.env.NODE_ENV = "production";
+    expect(adminTokenError()).toMatch(/não sobe/);
+    process.env.ADMIN_TOKEN = "a".repeat(32);
+    expect(adminTokenError()).toBeNull();
     process.env.NODE_ENV = "test";
     delete process.env.ADMIN_TOKEN;
-    expect(productionAdminTokenError()).toBeNull();
+    expect(adminTokenError()).toMatch(/não sobe/);
 
     const env: Record<string, string> = {};
     for (const [key, value] of Object.entries(process.env)) {
       if (typeof value === "string") env[key] = value;
     }
-    env.NODE_ENV = "production";
-    env.ADMIN_TOKEN = "dev-admin-token";
+    delete env.ADMIN_TOKEN;
+    env.NODE_ENV = "development";
     env.PORT = "0";
     let failed: { code?: number | string; stderr?: string; stdout?: string } | undefined;
     try {
@@ -503,6 +503,7 @@ describe("segurança", () => {
     }
     expect(failed?.code).toBe(1);
     expect(`${failed?.stderr ?? ""}${failed?.stdout ?? ""}`).toContain("boot_recusado");
+    expect(`${failed?.stderr ?? ""}${failed?.stdout ?? ""}`).toContain("ADMIN_TOKEN ausente ou fraco");
   }, 30_000);
 
   it("usa o contador injetado e cai para a memória se o Redis falha", async () => {

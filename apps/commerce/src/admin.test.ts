@@ -55,7 +55,7 @@ describe("admin", { timeout: 20_000 }, () => {
     const previous = process.env.NODE_ENV;
     process.env.NODE_ENV = "production";
     try {
-      const headerOnly = await app.request("/v1/admin/overview", { headers: { "x-admin-token": "dev-admin-token" } });
+      const headerOnly = await app.request("/v1/admin/overview", { headers: { "x-admin-token": process.env.ADMIN_TOKEN ?? "" } });
       expect(headerOnly.status).toBe(401);
 
       const login = await app.request("/v1/admin/login", {
@@ -299,7 +299,7 @@ describe("admin", { timeout: 20_000 }, () => {
     expect(body.product.description).toContain("Peso e medidas de exemplo.");
     expect(body.product.description.toLowerCase()).not.toContain("a confirmar");
 
-    const headers = { "content-type": "application/json", "x-admin-token": "dev-admin-token" };
+    const headers = { "content-type": "application/json", "x-admin-token": process.env.ADMIN_TOKEN ?? "" };
     const created = await app.request("/v1/admin/banners", {
       method: "POST",
       headers,
@@ -350,7 +350,7 @@ describe("admin", { timeout: 20_000 }, () => {
     });
     expect(anonymous.status).toBe(401);
 
-    const headers = { "content-type": "application/json", "x-admin-token": "dev-admin-token" };
+    const headers = { "content-type": "application/json", "x-admin-token": process.env.ADMIN_TOKEN ?? "" };
     const rejected = await app.request("/v1/admin/uploads", {
       method: "POST",
       headers,

@@ -179,7 +179,7 @@ describe("API de commerce", () => {
     expect(response.status).toBe(200);
     expect(body.tradeIn.id).toBeTruthy();
     expect(body.message).toContain("Nenhum valor");
-    const overview = await app.request("/v1/admin/overview", { headers: { "x-admin-token": "dev-admin-token" } });
+    const overview = await app.request("/v1/admin/overview", { headers: { "x-admin-token": process.env.ADMIN_TOKEN ?? "" } });
     const listed = await overview.json();
     expect(listed.recentTradeIns.some((item: { brand: string }) => item.brand === "Usada")).toBe(true);
   });
@@ -201,7 +201,7 @@ describe("API de commerce", () => {
     expect(response.status).toBe(200);
     const body = await response.json();
     expect(body.booking.id).toBeTruthy();
-    const overview = await app.request("/v1/admin/overview", { headers: { "x-admin-token": "dev-admin-token" } });
+    const overview = await app.request("/v1/admin/overview", { headers: { "x-admin-token": process.env.ADMIN_TOKEN ?? "" } });
     const listed = await overview.json();
     expect(listed.serviceBookings).toBeGreaterThanOrEqual(1);
     expect(listed.recentService.some((item: { productId: string }) => item.productId === "apex")).toBe(true);
@@ -227,7 +227,7 @@ describe("API de commerce", () => {
     const hidden = await app.request("/v1/admin/dealers");
     expect(hidden.status).toBe(401);
     const admin = await app.request("/v1/admin/dealers?cidade=Sao%20Paulo", {
-      headers: { "x-admin-token": "dev-admin-token" },
+      headers: { "x-admin-token": process.env.ADMIN_TOKEN ?? "" },
     });
     const body = await admin.json();
     expect(admin.status).toBe(200);
@@ -352,7 +352,7 @@ describe("API de commerce", () => {
   });
 
   it("o quiz usa o catálogo ativo, respeita o teto e muda com o estilo", async () => {
-    const headers = { "content-type": "application/json", "x-admin-token": "dev-admin-token" };
+    const headers = { "content-type": "application/json", "x-admin-token": process.env.ADMIN_TOKEN ?? "" };
     for (const [slug, style] of [
       ["quiz-retro", "retro"],
       ["quiz-esporte", "esportivo"],
@@ -424,7 +424,7 @@ describe("API de commerce", () => {
   });
 
   it("esconde da vitrine o produto ativo que está desabilitado", async () => {
-    const headers = { "content-type": "application/json", "x-admin-token": "dev-admin-token" };
+    const headers = { "content-type": "application/json", "x-admin-token": process.env.ADMIN_TOKEN ?? "" };
     const created = await app.request("/v1/admin/products", {
       method: "POST",
       headers,
@@ -490,7 +490,7 @@ describe("API de commerce", () => {
   it("protege o admin", async () => {
     const denied = await app.request("/v1/admin/overview");
     expect(denied.status).toBe(401);
-    const allowed = await app.request("/v1/admin/overview", { headers: { "x-admin-token": "dev-admin-token" } });
+    const allowed = await app.request("/v1/admin/overview", { headers: { "x-admin-token": process.env.ADMIN_TOKEN ?? "" } });
     expect(allowed.status).toBe(200);
     const overview = await allowed.json();
     expect(overview.coupons.map((item: { code: string }) => item.code)).toEqual(["LUME10", "OFICINA"]);
@@ -521,7 +521,7 @@ describe("API de commerce", () => {
     expect(listed.products.find((item: { slug: string }) => item.slug === "apex").isEnabled).toBe(true);
     expect(listed.products.find((item: { slug: string }) => item.slug === "watts-w1").rangeKm).toBeNull();
 
-    const headers = { "content-type": "application/json", "x-admin-token": "dev-admin-token" };
+    const headers = { "content-type": "application/json", "x-admin-token": process.env.ADMIN_TOKEN ?? "" };
     const created = await app.request("/v1/admin/products", {
       method: "POST",
       headers,

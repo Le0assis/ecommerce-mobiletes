@@ -7,7 +7,7 @@ import { seedCatalog } from "./db/seed-catalog";
 import { orders, products } from "./db/schema";
 import { openTestDatabase } from "./db/test-database";
 
-const headers = { "content-type": "application/json", "x-admin-token": "dev-admin-token" };
+const headers = { "content-type": "application/json", "x-admin-token": process.env.ADMIN_TOKEN ?? "" };
 const customer = { name: "Cliente Teste", email: "cliente@example.com", phone: "11999990000" };
 
 describe("fase 5: cadastro no Postgres", () => {
