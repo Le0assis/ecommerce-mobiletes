@@ -100,7 +100,7 @@ Depois do sucesso, `rememberOrder` grava o `publicId` e `clear` esvazia o carrin
 
 `app/admin/page.tsx`, `components/admin-panel.tsx` e `components/admin-catalog.tsx`. A entrada é uma senha só: `POST /v1/admin/login` com `{ password }`. O cookie `lume_admin` é httpOnly. `POST /v1/admin/logout` apaga a sessão. Sem nome de usuário. Se o servidor ainda não tem `ADMIN_PASSWORD_HASH`, a tela mostra a mensagem da API e abre o campo do token vazio. O valor fica só na memória da página: não entra em `sessionStorage` e a tela não preenche `dev-admin-token`. Recarregar pede o token de novo. Em produção o cabeçalho não autentica.
 
-`GET /v1/admin/overview` lista o catálogo de demonstração, pedido, cupom, guia, troca e serviço. `PATCH /v1/admin/stock` altera só a memória da API. Não muda a vitrine.
+`GET /v1/admin/overview` lista o catálogo de demonstração, pedido, cupom, guia, troca e serviço. `PATCH /v1/admin/stock` altera só a memória da API. Campo vazio não vira zero. Fora de 0 a 999, a tela mostra “O estoque deve ser um número inteiro de 0 a 999.”, também quando a API responde “Revise os campos.”. Não muda a vitrine.
 
 O cadastro novo lê `GET /v1/admin/products`, `/accessories`, `/damages` e `/banners`. A lista traz ativo, rascunho ou arquivado, exemplo ou confirmado, habilitado ou desabilitado, e o estoque somado das variantes. O botão Habilitar/Desabilitar manda `PATCH` com `{ isEnabled }`. O mesmo campo está no formulário de dados. Criar é `POST /v1/admin/products`. Duplicar é `POST /v1/admin/products/:id/duplicate`. Arquivar é `DELETE` e não apaga a linha. Produto, ficha, variante, foto, acessório e avaria gravam no Postgres. Sem o banco, a API responde 503. O carrossel continua na memória do processo.
 

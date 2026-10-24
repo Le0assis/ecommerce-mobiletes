@@ -7,8 +7,8 @@ Revisão da vitrine e do admin em 24 de outubro de 2026, na `feat/lume-mutirao-f
 - O FAQ “Preciso de CNH?” cita o registro do ciclomotor no CTB art. 141, junto com placa e ACC ou CNH A.
 - O motivo do capacete no quiz atribui a dispensa de habilitação ao autopropelido.
 - O token de admin só abre a tela depois que `GET /v1/admin/overview` aceita.
-- Salvar estoque no admin mostra o erro da API e recusa número quebrado. O estoque desta tela continua sem mudar a vitrine.
-- A sessão de sandbox deixa de gravar o token em `localStorage`. Nada lia essa chave; o valor fica na memória da página.
+- Salvar estoque no admin recusa campo vazio antes de converter para número e mostra “O estoque deve ser um número inteiro de 0 a 999.” quando o valor sai de 0 a 999. O estoque desta tela continua sem mudar a vitrine.
+- A sessão de sandbox deixa de gravar o token em `localStorage` e apaga a chave antiga `lume-session` ao abrir a conta. O valor da visita fica na memória da página.
 - O JSON-LD escapa `<` antes de entrar no HTML.
 
 ## Segurança

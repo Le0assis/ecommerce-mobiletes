@@ -190,6 +190,13 @@ export function AdminPanel() {
   );
 }
 
+const stockLimitMessage = "O estoque deve ser um número inteiro de 0 a 999.";
+
+function stockApiMessage(body: { message?: string; error?: string }) {
+  if (body.error === "payload_invalido" || body.message === "Revise os campos.") return stockLimitMessage;
+  return body.message?.trim() || "O estoque não foi salvo.";
+}
+
 function StockEditor({
   productId,
   productName,
@@ -208,16 +215,23 @@ function StockEditor({
   onSaved: () => Promise<void>;
 }) {
   const [message, setMessage] = useState("");
+  const errorId = `stock-error-${productId}-${colorId}`;
 
   return (
     <form
       className="flex flex-wrap items-center gap-2"
+      noValidate
       onSubmit={async (event) => {
         event.preventDefault();
         setMessage("");
-        const next = Number(new FormData(event.currentTarget).get("stock"));
-        if (!Number.isInteger(next) || next < 0) {
-          setMessage("Informe um estoque inteiro a partir de zero.");
+        const raw = String(new FormData(event.currentTarget).get("stock") ?? "").trim();
+        if (raw === "") {
+          setMessage("Informe o estoque.");
+          return;
+        }
+        const next = Number(raw);
+        if (!Number.isInteger(next) || next < 0 || next > 999) {
+          setMessage(stockLimitMessage);
           return;
         }
         const response = await fetch("/api/commerce/v1/admin/stock", {
@@ -227,18 +241,31 @@ function StockEditor({
           body: JSON.stringify({ productId, colorId, stock: next }),
         });
         if (!response.ok) {
-          const body = (await response.json().catch(() => ({}))) as { message?: string };
-          setMessage(body.message ?? "O estoque não foi salvo.");
+          const body = (await response.json().catch(() => ({}))) as { message?: string; error?: string };
+          setMessage(stockApiMessage(body));
           return;
         }
         await onSaved();
       }}
     >
-      <Input name="stock" type="number" min={0} step={1} defaultValue={stock} key={stock} className="h-10 w-24 rounded-full px-3" aria-label={`Estoque de ${productName} ${colorName}`} />
+      <Input
+        name="stock"
+        type="number"
+        required
+        min={0}
+        max={999}
+        step={1}
+        defaultValue={stock}
+        key={stock}
+        className="h-10 w-24 rounded-full px-3"
+        aria-label={`Estoque de ${productName} ${colorName}`}
+        aria-invalid={message ? true : undefined}
+        aria-describedby={message ? errorId : undefined}
+      />
       <Button type="submit" variant="outline" className="rounded-full">
         Salvar
       </Button>
-      {message ? <p className="w-full text-sm text-signal">{message}</p> : null}
+      {message ? <p id={errorId} className="w-full text-sm text-signal">{message}</p> : null}
     </form>
   );
 }
