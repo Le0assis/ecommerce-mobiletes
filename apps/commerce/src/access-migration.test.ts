@@ -300,6 +300,197 @@ describe("0004 a 0009 no token repetido", () => {
   });
 });
 
+const migration0010 = "0010_public_id_gatilho_seguro.sql";
+
+describe("0010 gatilho seguro de public_id", () => {
+  it("não entrega o token de um par nulo a um insert novo", async () => {
+    const client = new PGlite();
+    const db = drizzle(client, { schema }) as unknown as Database;
+    try {
+      await applyMigrations(db, migrationFiles);
+      await insertOrders(db, [
+        row("LM-PAR-A", "token-par", null, "par-a@example.com", 3100),
+        row("LM-PAR-B", "token-par", null, "par-b@example.com", 3200),
+      ]);
+
+      await applyMigrations(db, ["0009_public_id_gatilho.sql", migration0010, migration0010]);
+
+      await insertOrders(db, [
+        row("LM-TERCEIRO", "token-par", null, "terceiro@example.com", 3300),
+        row("LM-LIVRE", "token-livre", null, "livre@example.com", 3400),
+      ]);
+      await applyMigrations(db, ["0009_public_id_gatilho.sql"]);
+      await insertOrders(db, [row("LM-DEPOIS", "token-par", null, "depois@example.com", 3500)]);
+
+      const rows = rowsOf(
+        await db.execute(sql`select code, public_id, customer_email, total_cents from orders order by code`),
+      );
+      const byCode = new Map(rows.map((entry) => [String(entry.code), entry]));
+      expect(byCode.get("LM-PAR-A")?.public_id).toBeNull();
+      expect(byCode.get("LM-PAR-B")?.public_id).toBeNull();
+      expect(byCode.get("LM-TERCEIRO")?.public_id).toBeNull();
+      expect(byCode.get("LM-DEPOIS")?.public_id).toBeNull();
+      expect(byCode.get("LM-TERCEIRO")?.customer_email).toBe("terceiro@example.com");
+      expect(byCode.get("LM-LIVRE")?.public_id).toBe("token-livre");
+      expect(byCode.get("LM-LIVRE")?.total_cents).toBe(3400);
+      expect(await triggerDef(db)).toMatch(/before insert or update of payload, public_id/i);
+      const column = rowsOf(
+        await db.execute(sql`
+          select column_default, is_nullable
+          from information_schema.columns
+          where table_schema = 'public' and table_name = 'orders' and column_name = 'public_id'
+        `),
+      );
+      expect(column[0]?.column_default).toBeNull();
+      expect(column[0]?.is_nullable).toBe("YES");
+    } finally {
+      await client.close();
+    }
+  });
+
+  it("grava NULL quando o token já está em outro pedido e não estoura o índice", async () => {
+    const client = new PGlite();
+    const db = drizzle(client, { schema }) as unknown as Database;
+    try {
+      await applyMigrations(db, [...migrationFiles, "0009_public_id_gatilho.sql", migration0010]);
+      await insertOrders(db, [row("LM-USADO", "token-usado", "token-usado", "usado@example.com", 4100)]);
+
+      await expect(
+        insertOrders(db, [
+          row("LM-REPETE", "token-usado", null, "repete@example.com", 4200),
+          row("LM-BRANCO", "   ", null, "branco@example.com", 4300),
+        ]),
+      ).resolves.toBeUndefined();
+
+      const rows = rowsOf(await db.execute(sql`select code, public_id from orders order by code`));
+      const byCode = new Map(rows.map((entry) => [String(entry.code), entry]));
+      expect(byCode.get("LM-USADO")?.public_id).toBe("token-usado");
+      expect(byCode.get("LM-REPETE")?.public_id).toBeNull();
+      expect(byCode.get("LM-BRANCO")?.public_id).toBeNull();
+    } finally {
+      await client.close();
+    }
+  });
+
+  it("no update preenche token livre e não reescreve public_id já definido", async () => {
+    const client = new PGlite();
+    const db = drizzle(client, { schema }) as unknown as Database;
+    try {
+      await applyMigrations(db, migrationFiles);
+      await insertOrders(db, [
+        row("LM-VAZIO", "", null, "vazio@example.com", 5100),
+        row("LM-FIXO", "token-fixo", "token-fixo", "fixo@example.com", 5200),
+        row("LM-PAR-A", "token-par", null, "par-a@example.com", 5300),
+        row("LM-PAR-B", "token-par", null, "par-b@example.com", 5400),
+      ]);
+      await applyMigrations(db, ["0009_public_id_gatilho.sql", migration0010]);
+
+      await db.execute(sql`
+        update orders
+        set payload = '{"publicId":"token-livre-upd"}'::jsonb
+        where code = 'LM-VAZIO'
+      `);
+      await db.execute(sql`
+        update orders
+        set payload = '{"publicId":"token-outro"}'::jsonb
+        where code = 'LM-FIXO'
+      `);
+      await db.execute(sql`
+        update orders
+        set payload = '{"publicId":"token-par","lines":[{"qty":2}]}'::jsonb
+        where code = 'LM-PAR-A'
+      `);
+
+      let rows = rowsOf(
+        await db.execute(sql`select code, public_id, payload, total_cents from orders order by code`),
+      );
+      let byCode = new Map(rows.map((entry) => [String(entry.code), entry]));
+      expect(byCode.get("LM-VAZIO")?.public_id).toBe("token-livre-upd");
+      expect(byCode.get("LM-VAZIO")?.total_cents).toBe(5100);
+      expect(byCode.get("LM-FIXO")?.public_id).toBe("token-fixo");
+      expect(byCode.get("LM-FIXO")?.payload).toMatchObject({ publicId: "token-outro" });
+      expect(byCode.get("LM-PAR-A")?.public_id).toBeNull();
+      expect(byCode.get("LM-PAR-B")?.public_id).toBeNull();
+      expect(byCode.get("LM-PAR-A")?.payload).toMatchObject({ publicId: "token-par", lines: [{ qty: 2 }] });
+
+      await applyMigrations(db, ["0009_public_id_gatilho.sql"]);
+      await db.execute(sql`
+        update orders
+        set payload = '{"publicId":"token-fixo"}'::jsonb
+        where code = 'LM-PAR-B'
+      `);
+      await insertOrders(db, [row("LM-UPD2", "", null, "upd2@example.com", 5500)]);
+      await db.execute(sql`
+        update orders
+        set payload = '{"publicId":"token-livre-2"}'::jsonb
+        where code = 'LM-UPD2'
+      `);
+
+      rows = rowsOf(await db.execute(sql`select code, public_id from orders order by code`));
+      byCode = new Map(rows.map((entry) => [String(entry.code), entry]));
+      expect(byCode.get("LM-PAR-B")?.public_id).toBeNull();
+      expect(byCode.get("LM-FIXO")?.public_id).toBe("token-fixo");
+      expect(byCode.get("LM-UPD2")?.public_id).toBe("token-livre-2");
+      expect(await triggerDef(db)).toMatch(/before insert or update of payload, public_id/i);
+      expect(await triggerDef(db)).toMatch(/when \(\(+new\.public_id is null\)+\)/i);
+    } finally {
+      await client.close();
+    }
+  });
+});
+
+function row(
+  code: string,
+  publicIdInPayload: string,
+  publicId: string | null,
+  email: string,
+  totalCents: number,
+) {
+  return { code, publicIdInPayload, publicId, email, totalCents };
+}
+
+async function insertOrders(
+  db: Database,
+  orders: Array<ReturnType<typeof row>>,
+) {
+  for (const order of orders) {
+    await db.execute(sql`
+      insert into orders (
+        code, status, customer_name, customer_email, customer_phone, method, provider,
+        installments, subtotal_cents, shipping_cents, total_cents, cep, payload, public_id, created_at
+      ) values (
+        ${order.code},
+        'aguardando_pagamento',
+        'Cliente Teste',
+        ${order.email},
+        '11999990000',
+        'pix',
+        'mock',
+        1,
+        ${order.totalCents},
+        0,
+        ${order.totalCents},
+        '01310100',
+        ${JSON.stringify({ publicId: order.publicIdInPayload })}::jsonb,
+        ${order.publicId},
+        '2026-08-01T00:00:00.000Z'
+      )
+    `);
+  }
+}
+
+async function triggerDef(db: Database) {
+  const rows = rowsOf(await db.execute(sql`
+    select pg_get_triggerdef(tg.oid) as def
+    from pg_trigger as tg
+    join pg_class as rel on rel.oid = tg.tgrelid
+    where tg.tgname = 'orders_public_id_from_payload'
+      and rel.relname = 'orders'
+      and not tg.tgisinternal
+  `));
+  return String(rows[0]?.def ?? "");
+}
+
 async function applyWithNotices(client: PGlite, name: string) {
   const notices: string[] = [];
   for (const statement of migrationStatements(readMigration(name))) {

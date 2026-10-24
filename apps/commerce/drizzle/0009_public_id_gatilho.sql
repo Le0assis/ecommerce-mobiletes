@@ -1,19 +1,43 @@
--- BEFORE INSERT: se public_id vem nulo, copia payload->>'publicId' quando o texto não é vazio.
--- Não cria DEFAULT e não torna a coluna NOT NULL. Não reescreve linha já gravada.
+-- Gatilho de public_id. Não cria DEFAULT e não torna a coluna NOT NULL.
+-- Esta migration já pode ter rodado com a cópia cega. Reaplicar o arquivo não
+-- pode desfazer a 0010: a função e o gatilho só nascem se ainda não existem.
+-- O corpo inicial não copia token. A 0010 substitui a função e o gatilho.
 -- Pode rodar de novo.
-CREATE OR REPLACE FUNCTION orders_public_id_from_payload()
-RETURNS trigger
-LANGUAGE plpgsql
-AS $$
+DO $migration$
 BEGIN
-  IF NEW.public_id IS NULL AND nullif(btrim(NEW.payload->>'publicId'), '') IS NOT NULL THEN
-    NEW.public_id := NEW.payload->>'publicId';
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_proc AS proc
+    JOIN pg_namespace AS ns ON ns.oid = proc.pronamespace
+    WHERE proc.proname = 'orders_public_id_from_payload'
+      AND ns.nspname = 'public'
+  ) THEN
+    EXECUTE $fn$
+      CREATE FUNCTION orders_public_id_from_payload()
+      RETURNS trigger
+      LANGUAGE plpgsql
+      SET search_path = public
+      AS $body$
+      BEGIN
+        RETURN NEW;
+      END;
+      $body$;
+    $fn$;
   END IF;
-  RETURN NEW;
-END;
-$$;--> statement-breakpoint
-DROP TRIGGER IF EXISTS orders_public_id_from_payload ON "orders";--> statement-breakpoint
-CREATE TRIGGER orders_public_id_from_payload
-BEFORE INSERT ON "orders"
-FOR EACH ROW
-EXECUTE FUNCTION orders_public_id_from_payload();
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_trigger
+    WHERE tgname = 'orders_public_id_from_payload'
+      AND tgrelid = '"orders"'::regclass
+      AND NOT tgisinternal
+  ) THEN
+    EXECUTE $tg$
+      CREATE TRIGGER orders_public_id_from_payload
+      BEFORE INSERT ON "orders"
+      FOR EACH ROW
+      EXECUTE FUNCTION orders_public_id_from_payload();
+    $tg$;
+  END IF;
+END
+$migration$;

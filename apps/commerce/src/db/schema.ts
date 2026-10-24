@@ -317,7 +317,7 @@ export const orders = pgTable(
     totalCents: integer("total_cents").notNull(),
     cep: text("cep").notNull(),
     payload: jsonb("payload").notNull(),
-    /** Token longo. NULL se o payload não traz valor utilizável, se outro pedido já usa o token, ou se mais de um pedido nulo repete o mesmo valor. */
+    /** Token longo. NULL se o payload não traz valor utilizável, se outro pedido já usa o token, ou se mais de um pedido nulo repete o mesmo valor. A 0010 copia o token no gatilho só quando ele está livre. */
     publicId: text("public_id"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
