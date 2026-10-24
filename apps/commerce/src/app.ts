@@ -43,7 +43,7 @@ import { createMemoryStore, createPostgresStore, type ExchangeRecord, type Servi
 import { resolveCorsOrigin, adminToken } from "./env";
 import { LoginError, requestLoginCode, verifyLoginCode } from "./login-code";
 import { createMailer, MailUnavailable, type Mailer } from "./mailer";
-import { publicCatalogProduct, publicDomainProduct } from "./public-product";
+import { publicCatalogProduct, publicDomainProduct, withColorStock } from "./public-product";
 import { quoteCatalogProduct, type CatalogLine } from "./quote-catalog";
 import { rateLimit, type RateCounter } from "./rate-limit";
 import type { UploadRequest } from "./uploads";
@@ -189,6 +189,7 @@ export function createApp(deps: CommerceDeps = {}) {
       brand: c.req.query("marca") ?? undefined,
     });
     const accessories = await catalog.listAccessories();
+    const stocks = await store.colorStockMap();
     const managed = await catalog.publicList({
       q: c.req.query("q"),
       category: c.req.query("categoria") ?? undefined,
@@ -197,8 +198,8 @@ export function createApp(deps: CommerceDeps = {}) {
     });
     return c.json({
       products: [
-        ...result.products.map(publicDomainProduct),
-        ...managed.map((product) => publicCatalogProduct(product, accessories)),
+        ...result.products.map((product) => withColorStock(publicDomainProduct(product), stocks)),
+        ...managed.map((product) => withColorStock(publicCatalogProduct(product, accessories), stocks)),
       ],
     });
   });
@@ -209,14 +210,15 @@ export function createApp(deps: CommerceDeps = {}) {
     if (stored && (stored.status !== "ativo" || !stored.isEnabled)) {
       return c.json({ error: "produto_inexistente", message: "Modelo não encontrado." }, 404);
     }
+    const stocks = await store.colorStockMap();
     const managed = await catalog.publicBySlug(slug);
     if (managed) {
-      const product = publicCatalogProduct(managed, await catalog.listAccessories());
+      const product = withColorStock(publicCatalogProduct(managed, await catalog.listAccessories()), stocks);
       return c.json({ product, accessories: product.accessories, reviews: [] });
     }
     const found = getMotorcycle(c.req.param("slug"));
     if (!found) return c.json({ error: "produto_inexistente", message: "Modelo não encontrado." }, 404);
-    const product = publicDomainProduct(found);
+    const product = withColorStock(publicDomainProduct(found), stocks);
     return c.json({
       product,
       accessories: product.accessories,

@@ -9,7 +9,8 @@ import * as schema from "./db/schema";
 
 const migration = "0007_acesso_operacao.sql";
 
-describe("0007 acesso e operação", () => {
+// PGlite sobe 0000–0008. Com o turbo em paralelo isso passa de 5s.
+describe("0007 acesso e operação", { timeout: 20_000 }, () => {
   it("preenche public_id sem apagar duplicata e pode rodar de novo", async () => {
     const client = new PGlite();
     const db = drizzle(client, { schema }) as unknown as Database;
@@ -204,7 +205,8 @@ describe("0007 acesso e operação", () => {
   });
 });
 
-describe("0008 public_id restante", () => {
+// Mesmo motivo da 0007: a suíte paralela estoura o limite de 5s do Vitest.
+describe("0008 public_id restante", { timeout: 20_000 }, () => {
   it("preenche só o token livre e pode rodar de novo", async () => {
     const client = new PGlite();
     const db = drizzle(client, { schema }) as unknown as Database;
@@ -254,7 +256,8 @@ describe("0008 public_id restante", () => {
   });
 });
 
-describe("0004 a 0009 no token repetido", () => {
+// PGlite sobe várias migrações. Com o turbo em paralelo isso passa de 5s.
+describe("0004 a 0009 no token repetido", { timeout: 20_000 }, () => {
   it("deixa o par duplicado com public_id nulo depois de rodar duas vezes", async () => {
     const client = new PGlite();
     const db = drizzle(client, { schema }) as unknown as Database;
@@ -302,7 +305,8 @@ describe("0004 a 0009 no token repetido", () => {
 
 const migration0010 = "0010_public_id_gatilho_seguro.sql";
 
-describe("0010 gatilho seguro de public_id", () => {
+// O gatilho sobe em PGlite junto com 0000–0008. Em paralelo com o turbo passa de 5s.
+describe("0010 gatilho seguro de public_id", { timeout: 20_000 }, () => {
   it("não entrega o token de um par nulo a um insert novo", async () => {
     const client = new PGlite();
     const db = drizzle(client, { schema }) as unknown as Database;

@@ -106,7 +106,8 @@ async function marker(db: Awaited<ReturnType<typeof openTestDatabase>>["db"], ta
   return String(found[0]?.ctid ?? "");
 }
 
-describe("upsert do catálogo", () => {
+// openTestDatabase aplica 0000–0008. Com o turbo em paralelo o teste passa de 5s.
+describe("upsert do catálogo", { timeout: 20_000 }, () => {
   it("mantém id e não mexe nas outras linhas; erro desfaz a transação", async () => {
     const database = await openTestDatabase();
     try {

@@ -19,7 +19,8 @@ function cookiePair(response: Response) {
   return header.split(";")[0] ?? "";
 }
 
-describe("admin", () => {
+// O teste que abre PGlite aplica 0000–0008. Em paralelo com o turbo passa de 5s.
+describe("admin", { timeout: 20_000 }, () => {
   it("recusa login sem hash e limita tentativas", async () => {
     const app = createApp();
     const denied = await app.request("/v1/admin/products");

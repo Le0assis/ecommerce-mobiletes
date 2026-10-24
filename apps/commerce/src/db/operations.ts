@@ -7,7 +7,7 @@ import { colorStock, exchanges, loginCodes, orders, serviceBookings, sessions, t
 
 export type StoredOrder = {
   code: string;
-  publicId: string;
+  publicId: string | null;
   status: string;
   method: string;
   provider: string;
@@ -97,13 +97,47 @@ function millis(value: Date | string | number | null | undefined) {
   return Number.isNaN(parsed) ? null : parsed;
 }
 
-function asOrder(row: { code: string; status: string; publicId: string | null; payload: unknown }): StoredOrder {
-  const payload = typeof row.payload === "string" ? (JSON.parse(row.payload) as StoredOrder) : (row.payload as StoredOrder);
+function asOrder(row: {
+  code: string;
+  status: string;
+  publicId: string | null;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  method: string;
+  provider: string;
+  installments: number;
+  subtotalCents: number;
+  shippingCents: number;
+  totalCents: number;
+  cep: string;
+  payload: unknown;
+  createdAt: Date | string;
+}): StoredOrder {
+  const payload = (typeof row.payload === "string" ? JSON.parse(row.payload) : row.payload) as Partial<StoredOrder>;
+  const createdAt = payload.createdAt ?? (row.createdAt instanceof Date ? row.createdAt.toISOString() : new Date(row.createdAt).toISOString());
   return {
+    installmentCents: 0,
+    couponCode: payload.couponCode,
+    couponCents: payload.couponCents,
+    pix: payload.pix,
+    boleto: payload.boleto,
     ...payload,
     code: row.code,
     status: row.status,
-    publicId: row.publicId ?? payload.publicId,
+    publicId: row.publicId,
+    method: payload.method ?? row.method,
+    provider: payload.provider ?? row.provider,
+    installments: payload.installments ?? row.installments,
+    subtotalCents: payload.subtotalCents ?? row.subtotalCents,
+    shippingCents: payload.shippingCents ?? row.shippingCents,
+    totalCents: payload.totalCents ?? row.totalCents,
+    cep: payload.cep ?? row.cep,
+    customer: payload.customer?.name
+      ? payload.customer
+      : { name: row.customerName, email: row.customerEmail, phone: row.customerPhone },
+    lines: payload.lines ?? [],
+    createdAt,
   };
 }
 

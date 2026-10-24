@@ -186,6 +186,32 @@ describe("persistência da operação", () => {
     expect(legacy?.publicId).toBeNull();
   });
 
+  it("avança o sandbox de pedido antigo com public_id nulo e não preenche a coluna", async () => {
+    await db.insert(orders).values({
+      code: "LM260099",
+      status: "aguardando_pagamento",
+      customerName: "Gustavo Teste",
+      customerEmail: "antigo@example.com",
+      customerPhone: "11999990000",
+      method: "pix",
+      provider: "mock",
+      installments: 1,
+      subtotalCents: 1000,
+      shippingCents: 0,
+      totalCents: 1000,
+      cep: "01310100",
+      payload: { publicId: "token-antigo", lines: [] },
+      publicId: null,
+    });
+    const response = await createApp({ db }).request("/v1/orders/LM260099/sandbox", { method: "POST" });
+    expect(response.status).toBe(200);
+    expect((await response.json()).order.status).toBe("pago");
+    const [row] = await db.select({ publicId: orders.publicId, status: orders.status, payload: orders.payload }).from(orders).where(eq(orders.code, "LM260099"));
+    expect(row?.status).toBe("pago");
+    expect(row?.publicId).toBeNull();
+    expect(row?.payload).toMatchObject({ publicId: "token-antigo", status: "pago" });
+  });
+
   it("mantém a sessão do cliente e a do admin, apaga no logout e expira em 12 horas", async () => {
     const now = Date.parse("2026-06-01T12:00:00.000Z");
     const box = inbox();
@@ -382,6 +408,16 @@ describe("persistência da operação", () => {
     const product = body.products.find((item: { id: string }) => item.id === "lume-s");
     const color = product.colors.find((item: { id: string }) => item.id === "obsidiana");
     expect(color.stock).toBe(obsidiana[0]?.stock);
+
+    const sheet = await createApp({ db }).request("/v1/products/s");
+    const publicProduct = (await sheet.json()).product;
+    const publicColor = publicProduct.colors.find((item: { id: string }) => item.id === "obsidiana");
+    const publicVariant = publicProduct.variants.find((item: { id: string }) => item.id === "obsidiana");
+    expect(publicColor.stock).toBe(obsidiana[0]?.stock);
+    expect(publicVariant.stock).toBe(obsidiana[0]?.stock);
+    const listed = await (await createApp({ db }).request("/v1/products")).json();
+    const fromList = listed.products.find((item: { id: string }) => item.id === "lume-s");
+    expect(fromList.colors.find((item: { id: string }) => item.id === "obsidiana").stock).toBe(obsidiana[0]?.stock);
 
     await db.insert(colorStock).values({ productId: "p-concorrencia", colorId: "cor", stock: 0 });
     await Promise.all(

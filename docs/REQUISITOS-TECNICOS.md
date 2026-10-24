@@ -139,7 +139,7 @@ Identificadores estáveis para o backlog. O que está marcado como vitrine já e
 
 ### Admin e conteúdo
 
-- RF-ADM-01. Visão de estoque por cor, variantes de bateria, banners, cupons, guias, pedidos recentes, trocas e serviços, com token. Etapa 6. O ajuste de estoque desta versão vale para a memória do processo. A vitrine lê `GET /v1/products`, então o card dos produtos dessa memória acompanha o estoque. O catálogo de domínio continua com o estoque do código. Serviço e troca ficam na mesma memória até o processo cair.
+- RF-ADM-01. Visão de estoque por cor, variantes de bateria, banners, cupons, guias, pedidos recentes, trocas e serviços, com token. Etapa 6. O ajuste de estoque grava `color_stock` (Postgres quando conecta; memória fora de produção). A vitrine lê `GET /v1/products`, então o card acompanha esse número. Sem a linha, o catálogo de domínio continua com o estoque do código. Serviço e troca ficam na mesma memória até o processo cair.
 - RF-ADM-02. CRUD de produto, preço, cor, acessório, banner e pedido, com papel de operador. v1.
 - RF-CMS-01. Páginas de campanha e filme editáveis no Payload, no mesmo Postgres. v1, depois que a compra funcionar. Não usar Sanity: o conteúdo ficaria fora da conta e o time passaria a operar outro idioma de conteúdo.
 

@@ -159,6 +159,15 @@ function publicDamage(damage: CatalogDamage): PublicDamage {
   };
 }
 
+export function withColorStock(product: PublicProduct, stocks: ReadonlyMap<string, number>): PublicProduct {
+  const stockOf = (id: string, fallback: number) => stocks.get(`${product.id}:${id}`) ?? fallback;
+  return {
+    ...product,
+    colors: product.colors.map((color) => ({ ...color, stock: stockOf(color.id, color.stock) })),
+    variants: product.variants.map((variant) => ({ ...variant, stock: stockOf(variant.id, variant.stock) })),
+  };
+}
+
 export function publicDomainProduct(product: Motorcycle): PublicProduct {
   const specs: PublicSpecs = {
     ...emptySpecs(),

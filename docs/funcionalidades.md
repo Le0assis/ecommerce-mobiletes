@@ -100,7 +100,7 @@ Depois do sucesso, `rememberOrder` grava o `publicId` e `clear` esvazia o carrin
 
 `app/admin/page.tsx`, `components/admin-panel.tsx` e `components/admin-catalog.tsx`. A entrada é uma senha só: `POST /v1/admin/login` com `{ password }`. O cookie `lume_admin` é httpOnly. `POST /v1/admin/logout` apaga a sessão. Sem nome de usuário. Se o servidor ainda não tem `ADMIN_PASSWORD_HASH`, a tela mostra a mensagem da API e aceita o token antigo (`x-admin-token`, `lume-admin-token` no `sessionStorage`, desenvolvimento `dev-admin-token`). Em produção esse cabeçalho não autentica.
 
-`GET /v1/admin/overview` lista o catálogo de demonstração, pedido, cupom, guia, troca e serviço. `PATCH /v1/admin/stock` altera só a memória da API. Não muda a vitrine.
+`GET /v1/admin/overview` lista o catálogo de demonstração, pedido, cupom, guia, troca e serviço. `PATCH /v1/admin/stock` grava `color_stock`. A ficha pública e o card usam esse número. A variante do Postgres e o código de `@lume/domain` não mudam.
 
 O cadastro novo lê `GET /v1/admin/products`, `/accessories`, `/damages` e `/banners`. A lista traz ativo, rascunho ou arquivado, exemplo ou confirmado, habilitado ou desabilitado, e o estoque somado das variantes. O botão Habilitar/Desabilitar manda `PATCH` com `{ isEnabled }`. O mesmo campo está no formulário de dados. Criar é `POST /v1/admin/products`. Duplicar é `POST /v1/admin/products/:id/duplicate`. Arquivar é `DELETE` e não apaga a linha. Produto, ficha, variante, foto, acessório e avaria gravam no Postgres. Sem o banco, a API responde 503. O carrossel continua na memória do processo.
 

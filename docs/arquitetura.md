@@ -30,7 +30,7 @@ A vitrine lê modelos em `GET /v1/products` por `apps/storefront/lib/catalog.ts`
 
 ## De onde vem o catálogo
 
-`GET /v1/products` junta o catálogo de `@lume/domain` com os produtos `ativo` e habilitados do cadastro. Com Postgres, o CRUD do admin grava esse cadastro e o checkout usa o `basePriceCents` e a variante. Sem banco, a escrita do cadastro responde 503 e a leitura pública fica na semente do processo. O modelo que só existe em `@lume/domain` continua com o preço e o estoque do código. `PATCH /v1/admin/stock` não altera a variante do Postgres.
+`GET /v1/products` junta o catálogo de `@lume/domain` com os produtos `ativo` e habilitados do cadastro. Com Postgres, o CRUD do admin grava esse cadastro e o checkout usa o `basePriceCents` e a variante. Sem banco, a escrita do cadastro responde 503 e a leitura pública fica na semente do processo. O modelo que só existe em `@lume/domain` continua com o preço do código. O estoque da ficha vem de `color_stock` quando a linha existe. `PATCH /v1/admin/stock` não altera a variante do Postgres.
 
 ## O que fica no navegador
 

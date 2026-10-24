@@ -5,7 +5,7 @@ import { orders } from "./schema";
 /** Pedido que o checkout já calculou. `publicId` entra na coluna; a API não faz backfill. */
 export type OrderWrite = {
   code: string;
-  publicId: string;
+  publicId: string | null;
   status: string;
   method: string;
   provider: string;
@@ -26,12 +26,32 @@ export type OrderWrite = {
 
 /**
  * Insert ou atualização pela chave `code`.
- * O conflito do código reescreve a linha, inclusive `public_id`.
+ * O conflito do código reescreve a linha, inclusive `public_id`, quando o token vem preenchido.
+ * Sem token, o update não mexe na coluna `public_id` e só grava o status novo dentro do payload.
  * O índice único de `public_id` não entra no ON CONFLICT: outro pedido com o mesmo token é rejeitado.
  */
 export async function persistOrder(db: Database, order: OrderWrite) {
-  const publicId = order.publicId.trim();
-  if (!publicId) throw new Error("public_id ausente");
+  const publicId = order.publicId?.trim() ?? "";
+  if (!publicId) {
+    await db
+      .update(orders)
+      .set({
+        status: order.status,
+        customerName: order.customer.name,
+        customerEmail: order.customer.email,
+        customerPhone: order.customer.phone,
+        method: order.method,
+        provider: order.provider,
+        installments: order.installments,
+        subtotalCents: order.subtotalCents,
+        shippingCents: order.shippingCents,
+        totalCents: order.totalCents,
+        cep: order.cep,
+        payload: sql`jsonb_set(${orders.payload}, '{status}', to_jsonb(${order.status}::text))`,
+      })
+      .where(sql`${orders.code} = ${order.code}`);
+    return;
+  }
   const row = { ...order, publicId };
   await db
     .insert(orders)

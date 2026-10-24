@@ -22,7 +22,7 @@ A vitrine está completa como experiência, com dado e pagamento simulados:
 
 ## O que esta versão não entrega
 
-Pagamento real, webhook, ViaCEP, Melhor Envio, NF-e, CMS, busca Meilisearch, glTF e conta com link mágico. O estoque da variante do Postgres aparece no card e no checkout; `PATCH /v1/admin/stock` continua só no catálogo de domínio. A lista fechada está no [roadmap](roadmap.md).
+Pagamento real, webhook, ViaCEP, Melhor Envio, NF-e, CMS, busca Meilisearch, glTF e conta com link mágico. O estoque da variante do Postgres aparece no card e no checkout. `PATCH /v1/admin/stock` entra na ficha pelo `color_stock` e não reescreve essa variante. A lista fechada está no [roadmap](roadmap.md).
 
 ## Como a loja deve parecer
 
