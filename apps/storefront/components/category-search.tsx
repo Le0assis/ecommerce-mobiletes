@@ -1,61 +1,76 @@
 import { Button } from "@/components/ui/button";
-import { categoryLabel, cities, type CatalogOrder, type Category } from "@/lib/catalog";
+import type { CatalogOrder } from "@/lib/catalog";
 
-const categories = Object.keys(categoryLabel) as Category[];
+const labelClass = "grid gap-2 text-[11px] tracking-normal text-muted-foreground";
 
-const fieldClass = "h-12 rounded-full border border-white/15 bg-transparent px-4 text-base tracking-normal text-paper normal-case";
+const fieldClass =
+  "h-12 w-full rounded-full border border-white/15 bg-transparent px-4 text-base tracking-normal text-paper normal-case";
+
+const selectClass = `${fieldClass} appearance-none bg-[length:1rem_1rem] bg-[position:right_1rem_center] bg-no-repeat pr-10 bg-[url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23f4f4f2' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E")]`;
 
 export function CategorySearch({
   category,
-  city,
   q,
   order = "destaque",
+  brand,
+  semCnh,
+  categories,
+  brands,
 }: {
   category?: string;
-  city?: string;
   q?: string;
   order?: CatalogOrder | string;
+  brand?: string;
+  semCnh?: string;
+  categories: { id: string; label: string }[];
+  brands: string[];
 }) {
   return (
-    <form action="/motos" className="grid gap-4 rounded-[2rem] border border-white/10 bg-[#121216]/80 p-4 shadow-2xl backdrop-blur-xl md:p-5">
-      <div className="grid gap-4 md:grid-cols-3">
-        <label className="grid gap-2 text-xs tracking-[0.16em] text-muted-foreground uppercase">
+    <form action="/motos" className="grid gap-y-5 rounded-[2rem] border border-white/10 bg-[#121216]/80 p-4 shadow-2xl backdrop-blur-xl md:p-5">
+      <div className="grid grid-cols-1 gap-x-6 gap-y-5 md:grid-cols-2 xl:grid-cols-4">
+        <label className={labelClass}>
           Categoria
-          <select name="categoria" defaultValue={category ?? ""} className={fieldClass}>
+          <select name="categoria" defaultValue={category ?? ""} className={selectClass}>
             <option value="">Todas</option>
             {categories.map((item) => (
-              <option key={item} value={item}>
-                {categoryLabel[item]}
+              <option key={item.id} value={item.id}>
+                {item.label}
               </option>
             ))}
           </select>
         </label>
-        <label className="grid gap-2 text-xs tracking-[0.16em] text-muted-foreground uppercase">
-          Cidade da loja
-          <select name="cidade" defaultValue={city ?? ""} className={fieldClass}>
-            <option value="">Onde ver de perto</option>
-            {cities().map((item) => (
+        <label className={labelClass}>
+          Marca
+          <select name="marca" defaultValue={brand ?? ""} className={selectClass}>
+            <option value="">Todas</option>
+            {brands.map((item) => (
               <option key={item} value={item}>
                 {item}
               </option>
             ))}
           </select>
         </label>
-        <label className="grid gap-2 text-xs tracking-[0.16em] text-muted-foreground uppercase">
+        <label className={labelClass}>
+          Quer andar sem CNH?
+          <select name="semCnh" defaultValue={semCnh === "sim" ? "sim" : ""} className={selectClass}>
+            <option value="">Tanto faz</option>
+            <option value="sim">Sim</option>
+          </select>
+        </label>
+        <label className={labelClass}>
           Ordem
-          <select name="ordem" defaultValue={order} className={fieldClass}>
+          <select name="ordem" defaultValue={order} className={selectClass}>
             <option value="destaque">Destaque</option>
             <option value="preco">Menor preço</option>
             <option value="preco-desc">Maior preço</option>
-            <option value="autonomia">Maior autonomia</option>
             <option value="velocidade">Maior velocidade</option>
           </select>
         </label>
       </div>
-      <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-end">
-        <label className="grid gap-2 text-xs tracking-[0.16em] text-muted-foreground uppercase">
+      <div className="grid gap-x-6 gap-y-5 md:grid-cols-[1fr_auto] md:items-end">
+        <label className={labelClass}>
           Busca
-          <input name="q" defaultValue={q ?? ""} placeholder="Nome, scooter, autonomia" className={fieldClass} />
+          <input name="q" defaultValue={q ?? ""} placeholder="Nome ou scooter" className={fieldClass} />
         </label>
         <Button type="submit" variant="outline" className="h-12 rounded-full border-white/20 px-6 text-paper">
           Buscar

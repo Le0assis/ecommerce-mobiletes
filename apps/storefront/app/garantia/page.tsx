@@ -18,8 +18,8 @@ export default function WarrantyPage() {
         <p>A intenção comercial é cobrir bateria e motor elétrico por 24 meses e itens de desgaste, como pneu e pastilha, por 12 meses, contados da entrega.</p>
         <p>A garantia não cobre queda, alagamento, abertura da bateria fora da rede, nem uso em competição. A loja que entregou a moto é o primeiro canal.</p>
         <p>
-          Assistência e dúvida de peça passam por <Link className="text-paper underline" href="/contato">contato</Link> ou pela loja em{" "}
-          <Link className="text-paper underline" href="/lojas">lojas</Link>.
+          Assistência e dúvida de peça passam por <Link className="text-paper underline" href="/contato">contato</Link> ou pelo{" "}
+          <Link className="text-paper underline" href="/servico">serviço</Link>.
         </p>
       </div>
     </PageShell>

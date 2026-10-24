@@ -4,7 +4,6 @@ import { useShop } from "@/components/shop-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { getMotorcycle } from "@/lib/catalog";
 import Link from "next/link";
 import { useSyncExternalStore } from "react";
 
@@ -26,7 +25,7 @@ function readProfile(raw: string): Profile | null {
   }
 }
 
-export function AccountForm() {
+export function AccountForm({ names = {} }: { names?: Record<string, string> }) {
   const shop = useShop();
   const raw = useSyncExternalStore(subscribe, () => localStorage.getItem("lume-profile") ?? "", () => "");
   const profile = readProfile(raw);
@@ -68,7 +67,7 @@ export function AccountForm() {
             {shop.wishlist.map((slug) => (
               <li key={slug}>
                 <Link className="underline" href={`/motos/${slug}`}>
-                  {getMotorcycle(slug)?.name ?? slug}
+                  {names[slug] ?? slug}
                 </Link>
               </li>
             ))}

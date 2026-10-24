@@ -1,4 +1,4 @@
-import { accessories, getMotorcycle, type Accessory, type ColorOption, type Motorcycle } from "./catalog";
+import { accessories, getMotorcycle, type Accessory, type BatteryOption, type ColorOption, type Motorcycle } from "./catalog";
 import { DomainError } from "./errors";
 import { applyDiscount, BOLETO_DISCOUNT_BPS, PIX_DISCOUNT_BPS } from "./money";
 
@@ -10,10 +10,12 @@ export type PriceLine = {
 export type PriceQuote = {
   product: Motorcycle;
   color: ColorOption;
+  battery: BatteryOption;
   accessories: Accessory[];
   lines: PriceLine[];
   baseCents: number;
   colorCents: number;
+  batteryCents: number;
   accessoriesCents: number;
   subtotalCents: number;
   pixCents: number;
@@ -22,10 +24,25 @@ export type PriceQuote = {
   boletoDiscountBps: number;
 };
 
+export function packsFor(product: Motorcycle): BatteryOption[] {
+  if (product.batteries && product.batteries.length > 0) return product.batteries;
+  return [
+    {
+      id: "serie",
+      name: `${product.batteryKwh} kWh`,
+      kwh: product.batteryKwh,
+      rangeKm: product.rangeKm,
+      priceDeltaCents: 0,
+      stock: 99,
+    },
+  ];
+}
+
 export function configurePrice(input: {
   productId: string;
   colorId: string;
   accessoryIds?: string[];
+  batteryId?: string;
 }): PriceQuote {
   const product = getMotorcycle(input.productId);
   if (!product) {
@@ -53,24 +70,34 @@ export function configurePrice(input: {
     chosen.push(accessory);
   }
 
+  const packs = packsFor(product);
+  const battery = packs.find((item) => item.id === (input.batteryId ?? packs[0]?.id));
+  if (!battery) {
+    throw new DomainError("bateria_invalida", "Essa bateria não existe neste modelo.");
+  }
+  if (battery.stock <= 0) {
+    throw new DomainError("bateria_sem_estoque", `${battery.name} está esgotada na ${product.name}.`);
+  }
+
   const accessoriesCents = chosen.reduce((sum, item) => sum + item.priceCents, 0);
-  const subtotalCents = product.basePriceCents + color.priceDeltaCents + accessoriesCents;
+  const subtotalCents = product.basePriceCents + color.priceDeltaCents + battery.priceDeltaCents + accessoriesCents;
 
   const lines: PriceLine[] = [
     { label: product.name, cents: product.basePriceCents },
-    ...(color.priceDeltaCents
-      ? [{ label: `Cor ${color.name}`, cents: color.priceDeltaCents }]
-      : []),
+    ...(color.priceDeltaCents ? [{ label: `Cor ${color.name}`, cents: color.priceDeltaCents }] : []),
+    ...(battery.priceDeltaCents ? [{ label: `Bateria ${battery.name}`, cents: battery.priceDeltaCents }] : []),
     ...chosen.map((item) => ({ label: item.name, cents: item.priceCents })),
   ];
 
   return {
     product,
     color,
+    battery,
     accessories: chosen,
     lines,
     baseCents: product.basePriceCents,
     colorCents: color.priceDeltaCents,
+    batteryCents: battery.priceDeltaCents,
     accessoriesCents,
     subtotalCents,
     pixCents: applyDiscount(subtotalCents, PIX_DISCOUNT_BPS),

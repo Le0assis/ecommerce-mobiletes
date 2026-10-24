@@ -45,7 +45,7 @@ export function ContactForm() {
         Assunto
         <select name="topic" className="h-12 rounded-full border border-white/15 bg-transparent px-4" defaultValue="compra">
           <option value="compra">Compra e reserva</option>
-          <option value="test-ride">Test ride</option>
+          <option value="modelo">Dúvida sobre um modelo</option>
           <option value="assistencia">Assistência</option>
           <option value="imprensa">Imprensa</option>
         </select>

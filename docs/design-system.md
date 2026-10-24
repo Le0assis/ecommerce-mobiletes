@@ -27,7 +27,7 @@ Duração curta, por volta de 350 ms, ease padrão do Motion. Nada de loop em te
 
 ## Componentes
 
-Primitivas em `components/ui`: `button`, `input`, `label`, `dialog`. O resto é específico da loja: `PageShell`, `ProductCard`, `Configurator`, `InstallmentTable`, `CategorySearch`, `LocatorMap`.
+Primitivas em `components/ui`: `button`, `input`, `label`, `dialog`. O resto é específico da loja: `PageShell`, `ProductCard`, `Configurator`, `InstallmentTable`, `CategorySearch`.
 
 Link que parece botão: `className={cn(buttonVariants(...), "h-12 rounded-full")}`. Não use `render={<Link>}` no Button.
 
@@ -35,6 +35,6 @@ Foco visível: contorno vermelho de 2 px, offset 3 px. Há um link “Pular para
 
 ## Layout
 
-Largura `max-w-6xl`, padding `px-5`, topo `pt-28` por causa do menu flutuante. Rodapé com `pb-32` para não esconder texto atrás da barra de test ride. Na PDP, a barra móvel de reservar ocupa a base e a de test ride sai.
+Largura `max-w-6xl`, padding `px-5`, topo `pt-28` por causa do menu flutuante. Rodapé com `pb-32` para não esconder texto atrás da faixa de WhatsApp. Na PDP, a barra móvel de reservar ocupa a base e a faixa sai.
 
-Menu desktop: Motos, Comparar, Quiz, Lojas, Carrinho, Reservar. O restante mora no rodapé.
+Menu desktop: Motos, Comparar, Quiz, Carrinho, Reservar. O restante mora no rodapé. A busca do catálogo é uma grade de três colunas, com `gap-x-6` e `gap-y-5`.

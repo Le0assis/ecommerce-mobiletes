@@ -1,11 +1,12 @@
 "use client";
 
-import { createContext, useContext, useMemo, useSyncExternalStore, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 
 export type CartLine = {
   productId: string;
   colorId: string;
   accessoryIds: string[];
+  batteryId?: string;
   qty: number;
 };
 
@@ -23,6 +24,7 @@ type ShopContextValue = {
   addLine: (line: Omit<CartLine, "qty">) => void;
   setQty: (index: number, qty: number) => void;
   removeLine: (index: number) => void;
+  retainLines: (productIds: readonly string[]) => void;
   clear: () => void;
   rememberOrder: (code: string) => void;
   toggleWish: (slug: string) => void;
@@ -54,21 +56,30 @@ function subscribe(listener: () => void) {
   return () => listeners.delete(listener);
 }
 
-function snapshot() {
-  return localStorage.getItem(storageKey) ?? "";
-}
-
 function publish(next: ShopState) {
   localStorage.setItem(storageKey, JSON.stringify(next));
   for (const listener of listeners) listener();
 }
 
 function sameLine(a: Omit<CartLine, "qty">, b: CartLine) {
-  return a.productId === b.productId && a.colorId === b.colorId && a.accessoryIds.join("|") === b.accessoryIds.join("|");
+  return (
+    a.productId === b.productId &&
+    a.colorId === b.colorId &&
+    (a.batteryId ?? "serie") === (b.batteryId ?? "serie") &&
+    a.accessoryIds.join("|") === b.accessoryIds.join("|")
+  );
 }
 
 export function ShopProvider({ children }: { children: ReactNode }) {
-  const raw = useSyncExternalStore(subscribe, snapshot, () => "");
+  const [raw, setRaw] = useState("");
+  useEffect(() => {
+    const read = () => setRaw(localStorage.getItem(storageKey) ?? "");
+    read();
+    const stop = subscribe(read);
+    return () => {
+      stop();
+    };
+  }, []);
   const state = useMemo(() => parse(raw), [raw]);
 
   const api = useMemo<ShopContextValue>(() => {
@@ -102,6 +113,11 @@ export function ShopProvider({ children }: { children: ReactNode }) {
           }),
         })),
       removeLine: (index) => commit((current) => ({ ...current, lines: current.lines.filter((_, itemIndex) => itemIndex !== index) })),
+      retainLines: (productIds) =>
+        commit((current) => ({
+          ...current,
+          lines: current.lines.filter((line) => productIds.includes(line.productId)),
+        })),
       clear: () => commit((current) => ({ ...current, lines: [] })),
       rememberOrder: (code) =>
         commit((current) => ({
@@ -126,4 +142,34 @@ export function useShop() {
   const value = useContext(ShopContext);
   if (!value) throw new Error("useShop precisa do ShopProvider.");
   return value;
+}
+
+export function DisabledCartNotice({
+  products,
+  active,
+}: {
+  products: { id: string; isEnabled?: boolean }[];
+  active: boolean;
+}) {
+  const shop = useShop();
+  const [notice, setNotice] = useState("");
+  useEffect(() => {
+    if (!active) return;
+    const allowed = products.filter((item) => item.isEnabled !== false).map((item) => item.id);
+    const dropped = shop.lines.filter((line) => !allowed.includes(line.productId)).length;
+    if (dropped === 0) return;
+    shop.retainLines(allowed);
+    const text =
+      dropped === 1
+        ? "Esse modelo não está habilitado. Tiramos do carrinho um modelo desabilitado."
+        : `Esses modelos não estão habilitados. Tiramos do carrinho ${dropped} modelos desabilitados.`;
+    const mark = () => setNotice(text);
+    mark();
+  }, [active, products, shop]);
+  if (!notice) return null;
+  return (
+    <p className="mt-4 text-sm text-signal" role="status">
+      {notice}
+    </p>
+  );
 }

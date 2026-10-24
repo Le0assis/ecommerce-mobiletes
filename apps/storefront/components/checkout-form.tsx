@@ -1,10 +1,12 @@
 "use client";
 
-import { useShop } from "@/components/shop-provider";
+import { DisabledCartNotice, useShop } from "@/components/shop-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { amountForMethod, configurePrice, formatBRL, formatCep, installmentByCount, quoteShipping } from "@/lib/catalog";
+import { amountForMethod, assertShippingWeight, formatBRL, formatCep, installmentByCount, priceProduct, quoteShipping, type StoreProduct } from "@/lib/catalog";
+import { track } from "@/lib/analytics";
+import { commerceCode, pesoInvalidoMessage, produtoDesabilitadoMessage } from "@/lib/commerce";
 import { placeOrder } from "@/lib/shop-api";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -12,35 +14,47 @@ import { useMemo, useState } from "react";
 
 type Method = "pix" | "boleto" | "cartao";
 
-export function CheckoutForm() {
+export function CheckoutForm({ products, catalogMessage }: { products: StoreProduct[]; catalogMessage: string | null }) {
   const shop = useShop();
   const router = useRouter();
   const [cep, setCep] = useState("01310-100");
   const [method, setMethod] = useState<Method>("pix");
   const [installments, setInstallments] = useState(21);
-  const [serviceId, setServiceId] = useState<"retirada" | "dedicado">("dedicado");
+  const [serviceId, setServiceId] = useState("dedicado");
+  const [couponCode, setCouponCode] = useState("");
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
 
+  const blocked = shop.lines.some((line) => !products.some((item) => item.id === line.productId && item.isEnabled !== false));
   const preview = useMemo(() => {
-    if (shop.lines.length === 0) return null;
+    const lines = shop.lines.filter((line) => products.some((item) => item.id === line.productId && item.isEnabled !== false));
+    if (lines.length === 0) return null;
     try {
-      const quotes = shop.lines.map((line) => ({
-        line,
-        quote: configurePrice(line),
-      }));
-      const weight = quotes.reduce((sum, item) => sum + item.quote.product.weightKg * item.line.qty, 0);
+      const quotes = lines.map((line) => {
+        const product = products.find((item) => item.id === line.productId && item.isEnabled !== false);
+        if (!product) throw new Error("Um modelo do carrinho saiu do catálogo.");
+        const priced = priceProduct(product, { colorId: line.colorId, batteryId: line.batteryId, accessoryIds: line.accessoryIds });
+        if ("error" in priced) throw new Error(priced.error);
+        return { line, quote: priced.quote };
+      });
+      for (const item of quotes) assertShippingWeight(item.quote.weightKg ?? Number.NaN);
+      const weight = quotes.reduce((sum, item) => sum + (item.quote.weightKg ?? 0) * item.line.qty, 0);
       const shipping = quoteShipping(cep, weight);
       return { quotes, shipping };
     } catch (cause) {
+      if (commerceCode(cause) === "peso_invalido") return { error: pesoInvalidoMessage };
       return { error: cause instanceof Error ? cause.message : "CEP inválido." };
     }
-  }, [shop.lines, cep]);
+  }, [shop.lines, cep, products]);
 
   const shipping = (preview && "shipping" in preview ? preview.shipping : null) ?? null;
   const service = shipping?.services.find((item) => item.id === serviceId) ?? shipping?.services[0];
 
   async function onSubmit(formData: FormData) {
+    if (shop.lines.some((line) => !products.some((item) => item.id === line.productId && item.isEnabled !== false))) {
+      setError(produtoDesabilitadoMessage);
+      return;
+    }
     setPending(true);
     setError("");
     try {
@@ -50,26 +64,36 @@ export function CheckoutForm() {
         shippingServiceId: service?.id ?? "dedicado",
         method,
         installments: method === "cartao" ? installments : 1,
+        couponCode: couponCode.trim() || undefined,
         customer: {
           name: String(formData.get("name")),
           email: String(formData.get("email")),
           phone: String(formData.get("phone")),
         },
       });
-      shop.rememberOrder(order.code);
+      const ref = order.publicId || order.code;
+      track("checkout", { method, code: order.code });
+      shop.rememberOrder(ref);
       shop.clear();
-      router.push(`/pedido/${order.code}`);
+      router.push(`/pedido/${encodeURIComponent(ref)}`);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Falha no checkout.");
+      setError(commerceCode(cause) === "peso_invalido" ? pesoInvalidoMessage : cause instanceof Error ? cause.message : "Falha no checkout.");
       setPending(false);
     }
   }
 
+  if (catalogMessage) {
+    return <p className="mt-8 text-sm text-signal">{catalogMessage}</p>;
+  }
+
   if (shop.lines.length === 0) {
     return (
-      <p className="mt-8 text-muted-foreground">
-        O carrinho está vazio. <Link href="/motos" className="underline">Escolha uma moto</Link>.
-      </p>
+      <div className="mt-8">
+        <DisabledCartNotice products={products} active />
+        <p className="text-muted-foreground">
+          O carrinho está vazio. <Link href="/motos" className="underline">Escolha uma moto</Link>.
+        </p>
+      </div>
     );
   }
 
@@ -79,7 +103,9 @@ export function CheckoutForm() {
   const plan = totalCents > 0 ? installmentByCount(totalCents, method === "cartao" ? installments : 1) : null;
 
   return (
-    <form action={onSubmit} className="mt-8 grid gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:items-start">
+    <div className="mt-8">
+    <DisabledCartNotice products={products} active />
+    <form action={onSubmit} className="grid gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:items-start">
       <div className="grid gap-5">
       <div className="grid gap-3 rounded-[1.5rem] border border-white/10 p-4">
         <p className="text-xs tracking-[0.16em] text-muted-foreground uppercase">Como pagar</p>
@@ -120,6 +146,11 @@ export function CheckoutForm() {
         ) : null}
       </div>
       <div className="grid gap-2">
+        <Label htmlFor="coupon">Cupom</Label>
+        <Input id="coupon" value={couponCode} onChange={(event) => setCouponCode(event.target.value)} placeholder="LUME10 ou OFICINA" className="h-12 rounded-full px-4" />
+        <p className="text-xs text-muted-foreground">O cupom sai da moto configurada, antes do Pix. O frete não entra.</p>
+      </div>
+      <div className="grid gap-2">
         <Label htmlFor="name">Nome</Label>
         <Input id="name" name="name" required minLength={3} className="h-12 rounded-full px-4" />
       </div>
@@ -132,7 +163,7 @@ export function CheckoutForm() {
         <Input id="phone" name="phone" required minLength={10} className="h-12 rounded-full px-4" />
       </div>
       {error ? <p className="text-sm text-signal">{error}</p> : null}
-      <Button type="submit" disabled={pending || !service} className="h-12 rounded-full">
+      <Button type="submit" disabled={pending || !service || blocked} className="h-12 rounded-full">
         {pending ? "Reservando…" : method === "pix" ? "Gerar Pix" : "Confirmar pedido"}
       </Button>
       </div>
@@ -145,7 +176,7 @@ export function CheckoutForm() {
                 <span>
                   {item.quote.product.name}
                   <span className="mt-1 block text-muted-foreground">
-                    {item.quote.color.name} · {item.line.qty}
+                    {item.quote.color?.name ?? "Sem cor"} · {item.line.qty}
                   </span>
                 </span>
                 <span className="nums">{formatBRL(amountForMethod(method, item.quote) * item.line.qty)}</span>
@@ -172,6 +203,7 @@ export function CheckoutForm() {
         <p className="mt-4 text-xs text-muted-foreground">O servidor recalcula este total. O que está aqui é a prévia.</p>
       </aside>
     </form>
+    </div>
   );
 }
 

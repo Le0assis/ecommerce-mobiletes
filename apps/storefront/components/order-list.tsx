@@ -19,8 +19,8 @@ export function OrderList() {
     Promise.all(
       orderCodes.map(async (code) => {
         try {
-          const order = await fetchOrder(code);
-          return { code, order };
+          const body = await fetchOrder(code);
+          return { code, order: body.order };
         } catch (cause) {
           return { code, error: cause instanceof Error ? cause.message : "Não encontrado." };
         }
@@ -55,7 +55,7 @@ export function OrderList() {
       {rows.map((row) => (
         <li key={row.code} className="rounded-[1.5rem] border border-white/10 p-5">
           <div className="flex flex-wrap items-baseline justify-between gap-3">
-            <h2 className="nums text-2xl font-light">{row.code}</h2>
+            <h2 className="nums text-2xl font-light">{row.order?.code ?? (/^LM\d{6}$/i.test(row.code) ? row.code.toUpperCase() : "Pedido")}</h2>
             {row.order ? <p className="nums">{formatBRL(row.order.totalCents)}</p> : null}
           </div>
           {row.order ? (
@@ -66,7 +66,7 @@ export function OrderList() {
           ) : (
             <p className="mt-2 text-sm text-muted-foreground">{row.error} Se a API reiniciou sem Postgres, o pedido de memória se perde.</p>
           )}
-          <Link href={`/pedido/${row.code}`} className="mt-3 inline-block text-sm underline">
+          <Link href={`/pedido/${encodeURIComponent(row.code)}`} className="mt-3 inline-block text-sm underline">
             Abrir acompanhamento
           </Link>
         </li>

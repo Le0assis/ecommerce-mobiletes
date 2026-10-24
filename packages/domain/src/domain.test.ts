@@ -1,12 +1,15 @@
 import { describe, expect, it } from "vitest";
+import { autopropelidoBadge } from "./autopropelido";
 import { getMotorcycle } from "./catalog";
 import { DomainError } from "./errors";
 import { installmentByCount } from "./financing";
 import { applyDiscount, formatBRL } from "./money";
+import { couponDiscount } from "./coupons";
 import { configurePrice } from "./pricing";
-import { recommendMotorcycles } from "./quiz";
 import { estimateRange } from "./range";
+import { estimateFuelSavings } from "./savings";
 import { formatCep, normalizeCep, quoteShipping } from "./shipping";
+import { faq } from "./guides";
 import { filterShowroom } from "./showroom";
 
 describe("preço do configurador", () => {
@@ -23,7 +26,15 @@ describe("preço do configurador", () => {
     expect(quote.subtotalCents).toBe(6_290_000 + 180_000 + 188_000);
     expect(quote.pixCents).toBe(applyDiscount(quote.subtotalCents, 500));
     expect(quote.boletoCents).toBe(applyDiscount(quote.subtotalCents, 300));
+    expect(quote.batteryCents).toBe(0);
     expect(quote.accessories).toHaveLength(1 + 1);
+  });
+
+  it("soma a bateria longa da Apex sem mexer na de série", () => {
+    const quote = configurePrice({ productId: "apex", colorId: "obsidiana", batteryId: "longa" });
+    expect(quote.batteryCents).toBe(240_000);
+    expect(quote.subtotalCents).toBe(6_290_000 + 240_000);
+    expect(quote.battery.rangeKm).toBe(320);
   });
 
   it("recusa cor esgotada e acessório de outro modelo", () => {
@@ -69,14 +80,28 @@ describe("frete por CEP", () => {
     expect(() => quoteShipping("00000-000", 100)).toThrow(DomainError);
   });
 
-  it("cobra menos e oferece retirada em São Paulo", () => {
+  it("responde peso_invalido quando o peso falta, é zero ou passa de 400 kg", () => {
+    for (const weight of [0, -1, 400.01, Number.NaN, Number.POSITIVE_INFINITY]) {
+      expect(() => quoteShipping("01310-100", weight)).toThrow(DomainError);
+      try {
+        quoteShipping("01310-100", weight);
+      } catch (error) {
+        expect(error).toBeInstanceOf(DomainError);
+        expect((error as DomainError).code).toBe("peso_invalido");
+        expect((error as DomainError).message).toBe("Peso fora da faixa de transporte.");
+      }
+    }
+    expect(quoteShipping("01310-100", 400).services[0]?.priceCents).toBe(29_000 + 400 * 180);
+  });
+
+  it("cobra menos no frete de São Paulo do que no Norte", () => {
     const sp = quoteShipping("01310-100", 120);
     const north = quoteShipping("66000-000", 120);
     const spShip = sp.services.find((item) => item.id === "dedicado");
     const northShip = north.services.find((item) => item.id === "dedicado");
 
-    expect(sp.services.some((item) => item.id === "retirada")).toBe(true);
-    expect(north.services.some((item) => item.id === "retirada")).toBe(false);
+    expect(sp.services.map((item) => item.id)).toEqual(["dedicado"]);
+    expect(north.services.map((item) => item.id)).toEqual(["dedicado"]);
     expect(spShip && northShip && spShip.priceCents < northShip.priceCents).toBe(true);
     expect(spShip && northShip && spShip.days < northShip.days).toBe(true);
   });
@@ -115,6 +140,29 @@ describe("autonomia", () => {
   });
 });
 
+describe("cupom", () => {
+  it("tira 10% do subtotal e recusa código inventado", () => {
+    expect(couponDiscount(1_490_000, "lume10")?.discountCents).toBe(149_000);
+    expect(() => couponDiscount(1_490_000, "naoexiste")).toThrow(DomainError);
+    expect(couponDiscount(1_490_000, "")).toBeNull();
+  });
+});
+
+describe("economia contra gasolina", () => {
+  it("gasta menos energia do que gasolina num uso urbano", () => {
+    const savings = estimateFuelSavings({
+      kmPerMonth: 800,
+      batteryKwh: 14.6,
+      rangeKm: 280,
+      electricityCentsPerKwh: 95,
+      gasolineCentsPerLiter: 649,
+      gasolineKmPerLiter: 12,
+    });
+    expect(savings.electricMonthCents).toBeLessThan(savings.gasolineMonthCents);
+    expect(savings.savedMonthCents).toBe(savings.gasolineMonthCents - savings.electricMonthCents);
+  });
+});
+
 describe("vitrine por categoria e cidade", () => {
   it("cruza adventure com a loja de Curitiba", () => {
     const result = filterShowroom({ category: "adventure", city: "Curitiba" });
@@ -122,35 +170,27 @@ describe("vitrine por categoria e cidade", () => {
     expect(result.dealers).toHaveLength(1);
   });
 
+  it("filtra a marca parceira sem misturar a casa", () => {
+    const result = filterShowroom({ brand: "voltis" });
+    expect(result.products.map((item) => item.slug)).toEqual(["pico"]);
+    expect(result.products[0]?.registrationClass).toBe("autopropelido");
+  });
+
+  it("sem CNH segue o selo calculado", () => {
+    const result = filterShowroom({ semCnh: "sim", brand: "voltis" });
+    expect(result.products.every((item) => autopropelidoBadge(item).eligible)).toBe(true);
+    expect(result.products.map((item) => item.slug)).not.toContain("pico");
+  });
+
+  it("o FAQ de CNH cita o registro do ciclomotor", () => {
+    const item = faq.find((entry) => entry.question === "Preciso de CNH?");
+    expect(item?.answer).toContain("O ciclomotor também exige registro (CTB art. 141).");
+    expect(item?.answer).toContain("placa e ACC ou CNH A");
+  });
+
   it("não inventa loja em cidade sem operação", () => {
     const result = filterShowroom({ city: "Recife" });
     expect(result.dealers).toHaveLength(0);
     expect(result.products).toHaveLength(0);
-  });
-});
-
-describe("quiz", () => {
-  it("manda a mobilete para o uso curto e barato", () => {
-    const [first] = recommendMotorcycles({
-      use: "cidade",
-      dailyKm: "ate30",
-      pace: "ate50",
-      budgetCents: 1_800_000,
-      outlet: true,
-      passenger: "sozinho",
-    });
-    expect(first?.product.slug).toBe("s");
-  });
-
-  it("manda a Serra ou a Apex para estrada longa", () => {
-    const result = recommendMotorcycles({
-      use: "estrada",
-      dailyKm: "mais150",
-      pace: "livre",
-      budgetCents: 7_000_000,
-      outlet: true,
-      passenger: "garupa",
-    });
-    expect(result.map((item) => item.product.slug)).toContain("serra");
   });
 });

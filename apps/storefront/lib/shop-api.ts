@@ -1,7 +1,7 @@
 /**
  * Escritas da vitrine.
  *
- * Tudo que muda pedido, test ride ou review passa por aqui e chega na API
+ * Tudo que muda pedido ou review passa por aqui e chega na API
  * em `/api/commerce` (rewrite para o Hono). A API recalcula preço, frete e
  * parcela. Se o review não alcançar a API, o relato fica só neste navegador,
  * marcado como pendente, para a página não fingir que publicou.
@@ -10,6 +10,7 @@ import { commerce } from "@/lib/commerce";
 
 export type PlacedOrder = {
   code: string;
+  publicId?: string;
   status: string;
   method: string;
   provider: string;
@@ -28,6 +29,7 @@ export type CheckoutInput = {
   shippingServiceId: string;
   method: "pix" | "boleto" | "cartao";
   installments: number;
+  couponCode?: string;
   customer: { name: string; email: string; phone: string };
 };
 
@@ -84,24 +86,26 @@ export async function placeOrder(input: CheckoutInput): Promise<PlacedOrder> {
   return body.order;
 }
 
-export async function fetchOrder(code: string): Promise<PlacedOrder> {
-  const body = await commerce<{ order: PlacedOrder }>(`/v1/orders/${encodeURIComponent(code)}`);
-  return body.order;
+export type TrackingStep = { id: string; done: boolean; current: boolean };
+
+export async function fetchOrder(code: string): Promise<{ order: PlacedOrder; tracking: TrackingStep[] }> {
+  return commerce<{ order: PlacedOrder; tracking: TrackingStep[] }>(`/v1/orders/${encodeURIComponent(code)}`);
 }
 
-export async function bookTestRide(input: {
-  productId: string;
-  dealerId: string;
-  name: string;
-  email: string;
-  phone: string;
-  preferredDate: string;
-}): Promise<{ id: string }> {
-  const body = await commerce<{ booking: { id: string } }>("/v1/test-rides", {
-    method: "POST",
-    body: JSON.stringify(input),
-  });
-  return body.booking;
+export async function advanceSandbox(code: string): Promise<{ order: PlacedOrder; tracking: TrackingStep[]; message: string }> {
+  return commerce(`/v1/orders/${encodeURIComponent(code)}/sandbox`, { method: "POST", body: "{}" });
+}
+
+export async function requestSandboxCode(email: string): Promise<{ email: string; message: string }> {
+  return commerce("/v1/auth/request", { method: "POST", body: JSON.stringify({ email }) });
+}
+
+export async function verifySandboxCode(email: string, code: string): Promise<{ token: string; email: string }> {
+  return commerce("/v1/auth/verify", { method: "POST", body: JSON.stringify({ email, code }) });
+}
+
+export async function accountOrders(token: string): Promise<{ email: string; orders: PlacedOrder[] }> {
+  return commerce("/v1/account/orders", { headers: { authorization: `Bearer ${token}` } });
 }
 
 export async function submitReview(input: {

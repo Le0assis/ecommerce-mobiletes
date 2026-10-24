@@ -3,7 +3,7 @@
 - Interface e documentação de produto em português do Brasil. Identificadores de código em inglês, rotas em português.
 - Dinheiro em centavos inteiros. Formate com `formatBRL`.
 - Não recalcule Pix, boleto, parcela, frete ou autonomia fora de `@lume/domain`.
-- A vitrine importa catálogo por `@/lib/catalog` e mutação por `@/lib/shop-api`. `lib/commerce.ts` fica atrás da shop-api.
+- A vitrine importa a ficha por `@/lib/catalog` (`GET /v1/products`) e mutação por `@/lib/shop-api`. `lib/commerce.ts` fica atrás da shop-api. Sem a API, mostre o erro. Não reponha o array de motos do domínio na página.
 - Erro de regra é `DomainError` com código estável (`cep_invalido`, `cor_sem_estoque`, `parcelas_invalidas`). A API devolve `message` para a pessoa e `error` para o cliente.
 - Estado de `localStorage` usa `useSyncExternalStore`. Não faça `setState` síncrono dentro de `useEffect` para espelhar storage: o lint `react-hooks/set-state-in-effect` recusa.
 - Página que espera `params` ou `searchParams` (são Promises) faz o await num filho dentro de `Suspense`.

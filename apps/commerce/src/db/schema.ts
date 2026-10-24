@@ -1,55 +1,279 @@
-import { boolean, integer, jsonb, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import { boolean, check, index, integer, jsonb, numeric, pgTable, primaryKey, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 
-export const customers = pgTable("customers", {
-  id: text("id").primaryKey(),
-  name: text("name").notNull(),
-  email: text("email").notNull(),
-  phone: text("phone").notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+export const customers = pgTable(
+  "customers",
+  {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    email: text("email").notNull(),
+    phone: text("phone").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("customers_email_idx").on(table.email)],
+);
 
-export const addresses = pgTable("addresses", {
-  id: text("id").primaryKey(),
-  customerId: text("customer_id").references(() => customers.id),
-  cep: text("cep").notNull(),
-  street: text("street"),
-  number: text("number"),
-  complement: text("complement"),
-  district: text("district"),
-  city: text("city"),
-  state: text("state"),
-});
+export const addresses = pgTable(
+  "addresses",
+  {
+    id: text("id").primaryKey(),
+    customerId: text("customer_id").references(() => customers.id),
+    cep: text("cep").notNull(),
+    street: text("street"),
+    number: text("number"),
+    complement: text("complement"),
+    district: text("district"),
+    city: text("city"),
+    state: text("state"),
+  },
+  (table) => [index("addresses_customer_id_idx").on(table.customerId)],
+);
 
-export const products = pgTable("products", {
-  id: text("id").primaryKey(),
-  slug: text("slug").notNull().unique(),
-  name: text("name").notNull(),
-  category: text("category").notNull(),
-  basePriceCents: integer("base_price_cents").notNull(),
-  weightKg: integer("weight_kg").notNull(),
-  active: boolean("active").notNull().default(true),
-});
+export const products = pgTable(
+  "products",
+  {
+    id: text("id").primaryKey(),
+    slug: text("slug").notNull().unique(),
+    name: text("name").notNull(),
+    brand: text("brand").notNull(),
+    category: text("category").notNull(),
+    style: text("style").notNull(),
+    tagline: text("tagline").notNull(),
+    description: text("description").notNull(),
+    basePriceCents: integer("base_price_cents").notNull(),
+    /** rascunho, ativo ou arquivado. O produto sai de linha por arquivamento. */
+    status: text("status").notNull().default("rascunho"),
+    /** Ficha e preço de exemplo, até o fabricante confirmar. A vitrine mostra a faixa. */
+    isSample: boolean("is_sample").notNull().default(false),
+    /** Independente do status editorial. A listagem pública só mostra o que está habilitado. */
+    isEnabled: boolean("is_enabled").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("products_category_idx").on(table.category),
+    index("products_status_idx").on(table.status),
+    index("products_brand_idx").on(table.brand),
+    index("products_style_idx").on(table.style),
+    index("products_is_sample_idx").on(table.isSample),
+    index("products_is_enabled_idx").on(table.isEnabled),
+    index("products_status_enabled_idx").on(table.status, table.isEnabled),
+    index("products_public_listing_idx")
+      .on(table.category, table.brand, table.basePriceCents)
+      .where(sql`${table.status} = 'ativo' and ${table.isEnabled} = true`),
+    index("products_base_price_cents_idx").on(table.basePriceCents),
+    index("products_created_at_idx").on(table.createdAt),
+    check("products_base_price_cents_non_negative", sql`${table.basePriceCents} >= 0`),
+    check("products_status_known", sql`${table.status} in ('rascunho', 'ativo', 'arquivado')`),
+    check("products_category_known", sql`${table.category} in ('scooter', 'mobilete', 'citycoco')`),
+  ],
+);
+
+/**
+ * Ficha do autopropelido. O selo não é coluna: só existe quando potência nominal,
+ * velocidade, largura e entre-eixos estão preenchidos e cabem na CONTRAN 996/2023.
+ */
+export const productSpecs = pgTable(
+  "product_specs",
+  {
+    productId: text("product_id")
+      .primaryKey()
+      .references(() => products.id, { onDelete: "cascade" }),
+    powerNominalW: numeric("power_nominal_w", { precision: 12, scale: 2, mode: "number" }),
+    powerPeakW: numeric("power_peak_w", { precision: 12, scale: 2, mode: "number" }),
+    topSpeedKmh: numeric("top_speed_kmh", { precision: 12, scale: 2, mode: "number" }),
+    widthCm: numeric("width_cm", { precision: 12, scale: 2, mode: "number" }),
+    wheelbaseCm: numeric("wheelbase_cm", { precision: 12, scale: 2, mode: "number" }),
+    weightKg: numeric("weight_kg", { precision: 12, scale: 2, mode: "number" }),
+    seatHeightMm: numeric("seat_height_mm", { precision: 12, scale: 2, mode: "number" }),
+    batteryV: numeric("battery_v", { precision: 12, scale: 2, mode: "number" }),
+    batteryAh: numeric("battery_ah", { precision: 12, scale: 2, mode: "number" }),
+    batteryChem: text("battery_chem"),
+    batteryRemovable: boolean("battery_removable"),
+    chargeHours: numeric("charge_hours", { precision: 12, scale: 2, mode: "number" }),
+    rangeKmDeclared: numeric("range_km_declared", { precision: 12, scale: 2, mode: "number" }),
+    hasSpeedLimiter: boolean("has_speed_limiter"),
+    hasBell: boolean("has_bell"),
+    hasLights: boolean("has_lights"),
+  },
+  (table) => [
+    check(
+      "product_specs_power_nominal_w_bounds",
+      sql`${table.powerNominalW} is null or (${table.powerNominalW} >= 0 and ${table.powerNominalW} <= 20000)`,
+    ),
+    check(
+      "product_specs_power_peak_w_bounds",
+      sql`${table.powerPeakW} is null or (${table.powerPeakW} >= 0 and ${table.powerPeakW} <= 20000)`,
+    ),
+    check(
+      "product_specs_top_speed_kmh_bounds",
+      sql`${table.topSpeedKmh} is null or (${table.topSpeedKmh} >= 0 and ${table.topSpeedKmh} <= 150)`,
+    ),
+    check("product_specs_width_cm_bounds", sql`${table.widthCm} is null or (${table.widthCm} >= 0 and ${table.widthCm} <= 300)`),
+    check(
+      "product_specs_wheelbase_cm_bounds",
+      sql`${table.wheelbaseCm} is null or (${table.wheelbaseCm} >= 0 and ${table.wheelbaseCm} <= 400)`,
+    ),
+    check("product_specs_weight_kg_bounds", sql`${table.weightKg} is null or (${table.weightKg} >= 0 and ${table.weightKg} <= 1000)`),
+    check(
+      "product_specs_seat_height_mm_bounds",
+      sql`${table.seatHeightMm} is null or (${table.seatHeightMm} >= 0 and ${table.seatHeightMm} <= 1500)`,
+    ),
+    check("product_specs_battery_v_bounds", sql`${table.batteryV} is null or (${table.batteryV} >= 0 and ${table.batteryV} <= 200)`),
+    check("product_specs_battery_ah_bounds", sql`${table.batteryAh} is null or (${table.batteryAh} >= 0 and ${table.batteryAh} <= 500)`),
+    check(
+      "product_specs_charge_hours_bounds",
+      sql`${table.chargeHours} is null or (${table.chargeHours} >= 0 and ${table.chargeHours} <= 48)`,
+    ),
+    check(
+      "product_specs_range_km_declared_bounds",
+      sql`${table.rangeKmDeclared} is null or (${table.rangeKmDeclared} >= 0 and ${table.rangeKmDeclared} <= 1000)`,
+    ),
+  ],
+);
 
 export const productColors = pgTable(
   "product_colors",
   {
     productId: text("product_id")
       .notNull()
-      .references(() => products.id),
+      .references(() => products.id, { onDelete: "cascade" }),
     colorId: text("color_id").notNull(),
     name: text("name").notNull(),
     hex: text("hex").notNull(),
     priceDeltaCents: integer("price_delta_cents").notNull(),
     stock: integer("stock").notNull(),
   },
-  (table) => [uniqueIndex("product_colors_pk").on(table.productId, table.colorId)],
+  (table) => [
+    uniqueIndex("product_colors_pk").on(table.productId, table.colorId),
+    check("product_colors_price_delta_non_negative", sql`${table.priceDeltaCents} >= 0`),
+    check("product_colors_stock_non_negative", sql`${table.stock} >= 0`),
+  ],
 );
 
-export const accessories = pgTable("accessories", {
-  id: text("id").primaryKey(),
-  name: text("name").notNull(),
-  priceCents: integer("price_cents").notNull(),
-});
+export const productVariants = pgTable(
+  "product_variants",
+  {
+    id: text("id").primaryKey(),
+    productId: text("product_id")
+      .notNull()
+      .references(() => products.id, { onDelete: "cascade" }),
+    sku: text("sku").notNull().unique(),
+    colorName: text("color_name").notNull(),
+    colorHex: text("color_hex").notNull(),
+    batteryLabel: text("battery_label"),
+    priceDeltaCents: integer("price_delta_cents").notNull().default(0),
+    stock: integer("stock").notNull().default(0),
+    active: boolean("active").notNull().default(true),
+  },
+  (table) => [
+    index("product_variants_product_id_idx").on(table.productId),
+    index("product_variants_active_idx").on(table.active),
+    check("product_variants_price_delta_non_negative", sql`${table.priceDeltaCents} >= 0`),
+    check("product_variants_stock_non_negative", sql`${table.stock} >= 0`),
+  ],
+);
+
+export const productImages = pgTable(
+  "product_images",
+  {
+    id: text("id").primaryKey(),
+    productId: text("product_id")
+      .notNull()
+      .references(() => products.id, { onDelete: "cascade" }),
+    variantId: text("variant_id").references(() => productVariants.id, { onDelete: "set null" }),
+    url: text("url").notNull(),
+    alt: text("alt").notNull().default(""),
+    position: integer("position").notNull().default(0),
+    isCover: boolean("is_cover").notNull().default(false),
+  },
+  (table) => [
+    index("product_images_product_position_idx").on(table.productId, table.position),
+    index("product_images_variant_id_idx").on(table.variantId),
+    uniqueIndex("product_images_one_cover").on(table.productId).where(sql`${table.isCover} = true`),
+    check("product_images_position_non_negative", sql`${table.position} >= 0`),
+  ],
+);
+
+export const accessories = pgTable(
+  "accessories",
+  {
+    id: text("id").primaryKey(),
+    slug: text("slug").notNull().unique(),
+    name: text("name").notNull(),
+    /** bau, cesta, cadeirinha, retrovisor, capacete, capa, suporte, gaiola, ou o grupo já cadastrado. */
+    kind: text("kind").notNull(),
+    priceCents: integer("price_cents").notNull(),
+    stock: integer("stock").notNull().default(0),
+    imageUrl: text("image_url"),
+  },
+  (table) => [
+    index("accessories_kind_idx").on(table.kind),
+    check("accessories_price_cents_non_negative", sql`${table.priceCents} >= 0`),
+    check("accessories_stock_non_negative", sql`${table.stock} >= 0`),
+  ],
+);
+
+export const productAccessories = pgTable(
+  "product_accessories",
+  {
+    productId: text("product_id")
+      .notNull()
+      .references(() => products.id, { onDelete: "cascade" }),
+    accessoryId: text("accessory_id")
+      .notNull()
+      .references(() => accessories.id, { onDelete: "cascade" }),
+    recommended: boolean("recommended").notNull().default(false),
+  },
+  (table) => [
+    primaryKey({ columns: [table.productId, table.accessoryId] }),
+    index("product_accessories_accessory_id_idx").on(table.accessoryId),
+  ],
+);
+
+export const damages = pgTable(
+  "damages",
+  {
+    id: text("id").primaryKey(),
+    productId: text("product_id")
+      .notNull()
+      .references(() => products.id, { onDelete: "cascade" }),
+    variantId: text("variant_id").references(() => productVariants.id, { onDelete: "set null" }),
+    description: text("description").notNull(),
+    /** leve, moderada ou grave. Uma linha é uma unidade avariada. */
+    severity: text("severity").notNull(),
+    discountCents: integer("discount_cents").notNull().default(0),
+    isPublic: boolean("public").notNull().default(false),
+    resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("damages_product_id_idx").on(table.productId),
+    index("damages_variant_id_idx").on(table.variantId),
+    index("damages_created_at_idx").on(table.createdAt),
+    index("damages_public_open_idx")
+      .on(table.productId)
+      .where(sql`${table.isPublic} = true and ${table.resolvedAt} is null`),
+    check("damages_discount_cents_non_negative", sql`${table.discountCents} >= 0`),
+    check("damages_severity_known", sql`${table.severity} in ('leve', 'moderada', 'grave')`),
+  ],
+);
+
+export const damageImages = pgTable(
+  "damage_images",
+  {
+    id: text("id").primaryKey(),
+    damageId: text("damage_id")
+      .notNull()
+      .references(() => damages.id, { onDelete: "cascade" }),
+    url: text("url").notNull(),
+    position: integer("position").notNull().default(0),
+  },
+  (table) => [
+    index("damage_images_damage_position_idx").on(table.damageId, table.position),
+    check("damage_images_position_non_negative", sql`${table.position} >= 0`),
+  ],
+);
 
 export const dealers = pgTable("dealers", {
   id: text("id").primaryKey(),
@@ -59,58 +283,191 @@ export const dealers = pgTable("dealers", {
   cep: text("cep").notNull(),
 });
 
-export const testRideBookings = pgTable("test_ride_bookings", {
-  id: text("id").primaryKey(),
-  productId: text("product_id").notNull(),
-  dealerId: text("dealer_id").notNull(),
-  name: text("name").notNull(),
-  email: text("email").notNull(),
-  phone: text("phone").notNull(),
-  preferredDate: text("preferred_date").notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+export const testRideBookings = pgTable(
+  "test_ride_bookings",
+  {
+    id: text("id").primaryKey(),
+    productId: text("product_id").notNull(),
+    dealerId: text("dealer_id").notNull(),
+    name: text("name").notNull(),
+    email: text("email").notNull(),
+    phone: text("phone").notNull(),
+    preferredDate: text("preferred_date").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("test_ride_bookings_dealer_id_idx").on(table.dealerId),
+    index("test_ride_bookings_product_id_idx").on(table.productId),
+  ],
+);
 
-export const orders = pgTable("orders", {
-  code: text("code").primaryKey(),
-  status: text("status").notNull(),
-  customerName: text("customer_name").notNull(),
-  customerEmail: text("customer_email").notNull(),
-  customerPhone: text("customer_phone").notNull(),
-  method: text("method").notNull(),
-  provider: text("provider").notNull(),
-  installments: integer("installments").notNull(),
-  subtotalCents: integer("subtotal_cents").notNull(),
-  shippingCents: integer("shipping_cents").notNull(),
-  totalCents: integer("total_cents").notNull(),
-  cep: text("cep").notNull(),
-  payload: jsonb("payload").notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+export const orders = pgTable(
+  "orders",
+  {
+    code: text("code").primaryKey(),
+    status: text("status").notNull(),
+    customerName: text("customer_name").notNull(),
+    customerEmail: text("customer_email").notNull(),
+    customerPhone: text("customer_phone").notNull(),
+    method: text("method").notNull(),
+    provider: text("provider").notNull(),
+    installments: integer("installments").notNull(),
+    subtotalCents: integer("subtotal_cents").notNull(),
+    shippingCents: integer("shipping_cents").notNull(),
+    totalCents: integer("total_cents").notNull(),
+    cep: text("cep").notNull(),
+    payload: jsonb("payload").notNull(),
+    /** Token longo. NULL se o payload não traz valor utilizável, se outro pedido já usa o token, ou se mais de um pedido nulo repete o mesmo valor. A 0010 copia o token no gatilho só quando ele está livre. */
+    publicId: text("public_id"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("orders_created_at_idx").on(table.createdAt),
+    index("orders_status_created_at_idx").on(table.status, table.createdAt),
+    index("orders_customer_email_idx").on(table.customerEmail),
+    uniqueIndex("orders_public_id_idx").on(table.publicId),
+    check(
+      "orders_money_non_negative",
+      sql`${table.subtotalCents} >= 0 and ${table.shippingCents} >= 0 and ${table.totalCents} >= 0`,
+    ),
+  ],
+);
 
-export const reviews = pgTable("reviews", {
-  id: text("id").primaryKey(),
-  productSlug: text("product_slug").notNull(),
-  city: text("city").notNull(),
-  rating: integer("rating").notNull(),
-  title: text("title").notNull(),
-  body: text("body").notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+export const reviews = pgTable(
+  "reviews",
+  {
+    id: text("id").primaryKey(),
+    productSlug: text("product_slug").notNull(),
+    city: text("city").notNull(),
+    rating: integer("rating").notNull(),
+    title: text("title").notNull(),
+    body: text("body").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("reviews_product_slug_created_at_idx").on(table.productSlug, table.createdAt)],
+);
 
-export const banners = pgTable("banners", {
-  id: text("id").primaryKey(),
-  slot: text("slot").notNull(),
-  eyebrow: text("eyebrow").notNull(),
-  title: text("title").notNull(),
-  href: text("href").notNull(),
-  active: boolean("active").notNull().default(true),
-});
+export const banners = pgTable(
+  "banners",
+  {
+    id: text("id").primaryKey(),
+    slot: text("slot").notNull(),
+    eyebrow: text("eyebrow").notNull(),
+    title: text("title").notNull(),
+    subtitle: text("subtitle").notNull().default(""),
+    href: text("href").notNull(),
+    imageUrl: text("image_url"),
+    position: integer("position").notNull().default(0),
+    active: boolean("active").notNull().default(true),
+  },
+  (table) => [
+    index("banners_position_idx").on(table.position),
+    index("banners_slot_active_idx").on(table.slot, table.active),
+    check("banners_position_non_negative", sql`${table.position} >= 0`),
+  ],
+);
 
 /** Reservado para a NF-e. O MVP não emite documento fiscal. */
-export const fiscalDocuments = pgTable("fiscal_documents", {
-  id: text("id").primaryKey(),
-  orderCode: text("order_code").references(() => orders.code),
-  status: text("status").notNull().default("nao_emitida"),
-  accessKey: text("access_key"),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+export const fiscalDocuments = pgTable(
+  "fiscal_documents",
+  {
+    id: text("id").primaryKey(),
+    orderCode: text("order_code").references(() => orders.code),
+    status: text("status").notNull().default("nao_emitida"),
+    accessKey: text("access_key"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("fiscal_documents_order_code_idx").on(table.orderCode)],
+);
+
+/** Sessão opaca. Cliente traz e-mail; admin não. O token é a chave. */
+export const sessions = pgTable(
+  "sessions",
+  {
+    token: text("token").primaryKey(),
+    kind: text("kind").notNull(),
+    email: text("email"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+  },
+  (table) => [
+    index("sessions_email_idx").on(table.email),
+    check("sessions_kind_check", sql`${table.kind} in ('customer', 'admin')`),
+    check(
+      "sessions_email_by_kind",
+      sql`(${table.kind} = 'customer' and ${table.email} is not null) or (${table.kind} = 'admin' and ${table.email} is null)`,
+    ),
+  ],
+);
+
+/** Código de uso único só como hash. Não há coluna com o código em claro. */
+export const loginCodes = pgTable(
+  "login_codes",
+  {
+    email: text("email").primaryKey(),
+    hash: text("hash").notNull(),
+    salt: text("salt").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    attempts: integer("attempts").notNull().default(0),
+    sentAt: timestamp("sent_at", { withTimezone: true }).notNull(),
+  },
+  (table) => [check("login_codes_attempts_range", sql`${table.attempts} between 0 and 5`)],
+);
+
+/** Troca de usado. Sem vínculo com pedido. */
+export const exchanges = pgTable(
+  "exchanges",
+  {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    email: text("email").notNull(),
+    phone: text("phone").notNull(),
+    brand: text("brand").notNull(),
+    model: text("model").notNull(),
+    city: text("city").notNull(),
+    year: integer("year").notNull(),
+    km: integer("km").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("exchanges_created_at_idx").on(table.createdAt),
+    check("exchanges_year_range", sql`${table.year} between 1990 and 2030`),
+    check("exchanges_km_range", sql`${table.km} between 0 and 500000`),
+  ],
+);
+
+/** Agendamento de serviço. Sem chave estrangeira: dealer_id e product_id são texto livre. */
+export const serviceBookings = pgTable(
+  "service_bookings",
+  {
+    id: text("id").primaryKey(),
+    dealerId: text("dealer_id").notNull(),
+    productId: text("product_id").notNull(),
+    name: text("name").notNull(),
+    email: text("email").notNull(),
+    phone: text("phone").notNull(),
+    preferredDate: text("preferred_date").notNull(),
+    note: text("note").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("service_bookings_dealer_id_idx").on(table.dealerId),
+    index("service_bookings_product_id_idx").on(table.productId),
+    index("service_bookings_created_at_idx").on(table.createdAt),
+    check("service_bookings_preferred_date_format", sql`${table.preferredDate} ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'`),
+  ],
+);
+
+/** Estoque por cor, à parte de product_variants e product_colors. Sem chave estrangeira. */
+export const colorStock = pgTable(
+  "color_stock",
+  {
+    productId: text("product_id").notNull(),
+    colorId: text("color_id").notNull(),
+    stock: integer("stock").notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.productId, table.colorId], name: "color_stock_pkey" }),
+    check("color_stock_stock_non_negative", sql`${table.stock} >= 0`),
+  ],
+);
