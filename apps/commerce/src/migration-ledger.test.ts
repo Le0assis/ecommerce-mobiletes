@@ -3,7 +3,7 @@ import { drizzle } from "drizzle-orm/pglite";
 import { sql } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import type { Database } from "./db/client";
-import { applyMigrations, migrationChecksum, migrationFiles, migrationStatements, readMigration } from "./db/migrate";
+import { applyMigrations, migrationChecksum, migrationFiles, migrationStatements, publicationMigrations, readMigration } from "./db/migrate";
 import * as schema from "./db/schema";
 
 // Cada arquivo sobe o PGlite do zero. Em paralelo com o turbo isso passa de 5s.
@@ -63,7 +63,82 @@ describe("livro de migrações", { timeout: 20_000 }, () => {
       await client.close();
     }
   });
+
+  it("não reaplica nada quando o arranque roda de novo", async () => {
+    const client = new PGlite();
+    const db = drizzle(client, { schema }) as unknown as Database;
+    try {
+      await applyMigrations(
+        db,
+        migrationFiles.filter((name) => name < "0004_products_habilitacao_ficha.sql"),
+      );
+      await applyMigrations(db, publicationMigrations);
+      const before = rowsOf(
+        await db.execute(sql`select name, checksum, applied_at from schema_migrations order by name`),
+      );
+      expect(before.map((row) => row.name)).toEqual([
+        ...migrationFiles.filter((name) => name < "0004_products_habilitacao_ficha.sql"),
+        ...publicationMigrations,
+      ]);
+      expect(before.find((row) => row.name === "0009_public_id_gatilho.sql")?.checksum).toBe(
+        migrationChecksum("0009_public_id_gatilho.sql"),
+      );
+
+      await db.execute(sql`drop function if exists orders_public_id_from_payload() cascade`);
+      await db.execute(sql`drop table color_stock`);
+      await applyMigrations(db, publicationMigrations);
+
+      const after = rowsOf(
+        await db.execute(sql`select name, checksum, applied_at from schema_migrations order by name`),
+      );
+      expect(after).toEqual(before);
+      const [stockTable] = rowsOf(await db.execute(sql`select to_regclass('public.color_stock') as rel`));
+      expect(stockTable?.rel).toBeNull();
+      const trigger = rowsOf(await db.execute(sql`
+        select tg.tgname
+        from pg_trigger as tg
+        join pg_class as rel on rel.oid = tg.tgrelid
+        where tg.tgname = 'orders_public_id_from_payload' and rel.relname = 'orders' and not tg.tgisinternal
+      `));
+      expect(trigger).toHaveLength(0);
+    } finally {
+      await client.close();
+    }
+  });
+
+  it("aplica de 0001 a 0009 em ordem num banco novo", async () => {
+    const client = new PGlite();
+    const db = drizzle(client, { schema }) as unknown as Database;
+    const ordered = migrationFiles.filter(
+      (name) => name >= "0001_autopropelidos_catalog.sql" && name <= "0009_public_id_gatilho.sql",
+    );
+    try {
+      await applyMigrations(db, migrationFiles);
+      const rows = rowsOf(await db.execute(sql`select name, applied_at from schema_migrations order by applied_at asc, name asc`));
+      const names = rows.map((row) => String(row.name));
+      expect(names).toEqual([...migrationFiles]);
+      expect(names.slice(names.indexOf("0001_autopropelidos_catalog.sql"))).toEqual([...ordered]);
+      for (let index = 1; index < rows.length; index += 1) {
+        expect(millis(rows[index]?.applied_at)).toBeGreaterThanOrEqual(millis(rows[index - 1]?.applied_at));
+      }
+      const trigger = rowsOf(await db.execute(sql`
+        select pg_get_triggerdef(tg.oid) as def
+        from pg_trigger as tg
+        join pg_class as rel on rel.oid = tg.tgrelid
+        where tg.tgname = 'orders_public_id_from_payload' and rel.relname = 'orders' and not tg.tgisinternal
+      `));
+      expect(String(trigger[0]?.def ?? "")).toMatch(/before insert on public\.orders/i);
+    } finally {
+      await client.close();
+    }
+  });
 });
+
+function millis(value: unknown) {
+  if (value instanceof Date) return value.getTime();
+  const parsed = Date.parse(String(value));
+  return Number.isNaN(parsed) ? 0 : parsed;
+}
 
 function rowsOf(result: unknown): Record<string, unknown>[] {
   if (Array.isArray(result)) return result as Record<string, unknown>[];

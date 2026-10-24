@@ -17,15 +17,17 @@ export const migrationFiles = [
   "0006_consultas_loja.sql",
   "0007_acesso_operacao.sql",
   "0008_public_id_restante.sql",
+  "0009_public_id_gatilho.sql",
 ] as const;
 
-/** 0004 em diante entram no arranque. Cada arquivo roda uma vez; o livro está em schema_migrations. */
+/** 0004 a 0009 entram no arranque. Cada arquivo roda uma vez; o livro está em schema_migrations. A 0010 fica de fora. */
 export const publicationMigrations = [
   "0004_products_habilitacao_ficha.sql",
   "0005_product_specs_numeric.sql",
   "0006_consultas_loja.sql",
   "0007_acesso_operacao.sql",
   "0008_public_id_restante.sql",
+  "0009_public_id_gatilho.sql",
 ] as const;
 
 export function readMigration(name: string) {
@@ -98,6 +100,17 @@ async function schemaAlreadyHas(db: SqlClient, name: string) {
         (await exists(
           db,
           sql`select 1 as ok from information_schema.columns where table_schema = 'public' and table_name = 'orders' and column_name = 'public_id'`,
+        ))
+      );
+    case "0009_public_id_gatilho.sql":
+      return (
+        (await exists(
+          db,
+          sql`select 1 as ok from pg_proc as proc join pg_namespace as ns on ns.oid = proc.pronamespace where proc.proname = 'orders_public_id_from_payload' and ns.nspname = 'public'`,
+        )) &&
+        (await exists(
+          db,
+          sql`select 1 as ok from pg_trigger where tgname = 'orders_public_id_from_payload' and tgrelid = '"orders"'::regclass and not tgisinternal`,
         ))
       );
     default:
