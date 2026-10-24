@@ -104,6 +104,14 @@ const steps: {
       { label: "Tanto faz", value: "indiferente" },
     ],
   },
+  {
+    key: "withoutCnh",
+    title: "Quer andar sem CNH?",
+    options: [
+      { label: "Sim", value: true },
+      { label: "Não", value: false },
+    ],
+  },
 ];
 
 const budgetCeiling: Record<QuizAnswers["budget"], number | null> = {
@@ -118,9 +126,10 @@ const budgetLabel: Record<QuizAnswers["budget"], string> = {
   mais10: "acima de R$ 10 mil",
 };
 
-function nearestProducts(products: StoreProduct[], budget?: QuizAnswers["budget"]) {
+function nearestProducts(products: StoreProduct[], budget?: QuizAnswers["budget"], withoutCnh?: boolean) {
+  const pool = withoutCnh ? products.filter((item) => item.autopropelido.eligible) : products;
   const ceiling = budget ? budgetCeiling[budget] : null;
-  const sorted = [...products].sort(
+  const sorted = [...pool].sort(
     (a, b) => a.basePriceCents - b.basePriceCents || a.name.localeCompare(b.name, "pt-BR"),
   );
   if (ceiling == null) return { above: false, options: sorted.slice(0, 3) };
@@ -156,7 +165,12 @@ export function Quiz({ products, catalogMessage }: { products: StoreProduct[]; c
       const body = (await response.json().catch(() => ({}))) as { message?: string; recommendations?: QuizHit[] };
       if (request.current !== id) return;
       if (!response.ok) throw new Error(body.message ?? "O quiz não respondeu.");
-      setResult(body.recommendations ?? []);
+      const hits = body.recommendations ?? [];
+      setResult(
+        payload.withoutCnh
+          ? hits.filter((item) => products.some((product) => product.slug === item.slug && product.autopropelido.eligible))
+          : hits,
+      );
     } catch (cause) {
       if (request.current !== id) return;
       setError(cause instanceof Error ? cause.message : "O quiz não respondeu.");
@@ -213,7 +227,9 @@ export function Quiz({ products, catalogMessage }: { products: StoreProduct[]; c
           {catalogMessage ? <p className="text-sm text-signal">{catalogMessage} Os nomes ainda vêm do quiz.</p> : null}
           {pending ? <p className="text-muted-foreground">Calculando os modelos…</p> : null}
           {error ? <p className="text-sm text-signal">{error}</p> : null}
-          {settled && !pending && !error && result.length === 0 ? <EmptyQuiz products={products} budget={answers.budget} /> : null}
+          {settled && !pending && !error && result.length === 0 ? (
+            <EmptyQuiz products={products} budget={answers.budget} withoutCnh={answers.withoutCnh === true} />
+          ) : null}
           {result.map((item) => {
             const product = products.find((entry) => entry.slug === item.slug);
             const savings =
@@ -283,14 +299,25 @@ export function Quiz({ products, catalogMessage }: { products: StoreProduct[]; c
   );
 }
 
-function EmptyQuiz({ products, budget }: { products: StoreProduct[]; budget?: QuizAnswers["budget"] }) {
+function EmptyQuiz({
+  products,
+  budget,
+  withoutCnh = false,
+}: {
+  products: StoreProduct[];
+  budget?: QuizAnswers["budget"];
+  withoutCnh?: boolean;
+}) {
   const label = budget ? budgetLabel[budget] : "nesse recorte";
-  const { above, options } = nearestProducts(products, budget);
-  const note = options.length === 0
-    ? "O catálogo não trouxe modelo para comparar. O WhatsApp segue aberto."
-    : above
-      ? `O teto ${label} deixa a lista vazia. Estas são as mais próximas no catálogo, com o preço da API.`
-      : "O quiz veio vazio. Estes cabem no orçamento no catálogo, com o preço da API.";
+  const { above, options } = nearestProducts(products, budget, withoutCnh);
+  let note = "O quiz veio vazio. Estes cabem no orçamento no catálogo, com o preço da API.";
+  if (options.length === 0 && withoutCnh) {
+    note = "Nenhum modelo com o selo de autopropelido entrou neste catálogo. O WhatsApp segue aberto.";
+  } else if (options.length === 0) {
+    note = "O catálogo não trouxe modelo para comparar. O WhatsApp segue aberto.";
+  } else if (above) {
+    note = `O teto ${label} deixa a lista vazia. Estas são as mais próximas no catálogo, com o preço da API.`;
+  }
   return (
     <div className="rounded-[1.8rem] border border-white/10 p-6">
       <h2 className="text-3xl font-light">Nenhum modelo cabe nessa combinação.</h2>

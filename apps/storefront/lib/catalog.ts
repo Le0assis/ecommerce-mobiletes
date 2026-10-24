@@ -319,11 +319,13 @@ export const loadReviews = cache(async (): Promise<CatalogLoad<StoreReview[]>> =
 
 export function filterProducts(
   list: StoreProduct[],
-  query: { q?: string; category?: string; brand?: string },
+  query: { q?: string; category?: string; brand?: string; semCnh?: string },
 ): StoreProduct[] {
   const q = query.q ? fold(query.q.trim()) : "";
   const brand = query.brand ? fold(query.brand.trim()) : "";
+  const semCnh = fold(query.semCnh ?? "") === "sim";
   return list.filter((item) => {
+    if (semCnh && item.autopropelido.eligible !== true) return false;
     if (query.category && item.category !== query.category) return false;
     if (brand && fold(item.brand) !== brand) return false;
     if (!q) return true;

@@ -1,3 +1,4 @@
+import { autopropelidoBadge } from "./autopropelido";
 import { isCategory, motorcycles, searchCatalog, type Category, type Motorcycle } from "./catalog";
 import { dealers, type Dealer } from "./content";
 
@@ -6,6 +7,8 @@ export type ShowroomQuery = {
   category?: string;
   city?: string;
   brand?: string;
+  /** `sim` deixa só o autopropelido calculado pelo selo. */
+  semCnh?: string;
 };
 
 export type ShowroomResult = {
@@ -45,6 +48,9 @@ export function filterShowroom(input: ShowroomQuery): ShowroomResult {
   }
   if (brandKey) {
     products = products.filter((product) => fold(product.brand) === brandKey);
+  }
+  if (fold(input.semCnh ?? "") === "sim") {
+    products = products.filter((product) => autopropelidoBadge(product).eligible);
   }
   if (cityKey) {
     const slugs = new Set(dealerHits.flatMap((dealer) => dealer.testRideSlugs));

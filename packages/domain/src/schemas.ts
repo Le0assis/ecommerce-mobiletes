@@ -53,6 +53,7 @@ export const quizBody = z.object({
   budget: z.enum(["ate6", "6a10", "mais10"]),
   style: z.enum(["retro", "citycoco", "esportivo"]),
   color: z.enum(["escura", "clara", "quente", "indiferente"]),
+  withoutCnh: z.boolean().default(false),
 });
 
 export const testRideBody = z.object({

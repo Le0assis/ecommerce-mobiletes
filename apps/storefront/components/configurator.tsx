@@ -360,7 +360,12 @@ function DamageList({ product }: { product: StoreProduct }) {
               <div className="mt-3 flex gap-2 overflow-x-auto">
                 {damage.images.map((image) => (
                   <span key={image.id} className="relative block h-20 w-28 shrink-0">
-                    <CatalogPhoto src={image.url} alt="" className="rounded-xl object-cover" sizes="112px" />
+                    <CatalogPhoto
+                      src={image.url}
+                      alt={`${product.name}, foto da avaria: ${damage.description}`}
+                      className="rounded-xl object-cover"
+                      sizes="112px"
+                    />
                   </span>
                 ))}
               </div>

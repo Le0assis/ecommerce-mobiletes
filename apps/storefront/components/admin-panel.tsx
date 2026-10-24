@@ -91,7 +91,6 @@ export function AdminPanel() {
       }
       if (result.status === 404 || result.status === 503) {
         setShowToken(true);
-        setToken(sessionStorage.getItem("lume-admin-token") || "dev-admin-token");
         setError(result.body.message ?? "O login por senha ainda não está disponível. Use o token até a sessão existir.");
         return;
       }
@@ -104,7 +103,6 @@ export function AdminPanel() {
 
   async function enterWithToken(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    sessionStorage.setItem("lume-admin-token", token);
     setMode("token");
     setSection("pedidos");
     await loadOverview(token);
@@ -112,10 +110,10 @@ export function AdminPanel() {
 
   async function logout() {
     await adminFetch("/v1/admin/logout", { method: "POST" }, mode === "token" ? token : undefined);
-    sessionStorage.removeItem("lume-admin-token");
     setMode("anon");
     setData(null);
     setPassword("");
+    setToken("");
   }
 
   const authToken = mode === "token" ? token : undefined;
@@ -143,8 +141,8 @@ export function AdminPanel() {
           </form>
           {showToken ? (
             <form className="grid gap-3" onSubmit={(event) => void enterWithToken(event)}>
-              <p className="text-sm text-muted-foreground">Fora de produção o token antigo ainda abre pedidos e o estoque em memória.</p>
-              <Input value={token} onChange={(event) => setToken(event.target.value)} className="h-12 rounded-full px-4" aria-label="Token de admin" />
+              <p className="text-sm text-muted-foreground">O token fica só nesta visita, na memória da página. Recarregar pede de novo.</p>
+              <Input value={token} onChange={(event) => setToken(event.target.value)} className="h-12 rounded-full px-4" aria-label="Token de admin" required />
               <Button type="submit" variant="outline" className="h-12 rounded-full">
                 Entrar com token
               </Button>
@@ -153,10 +151,7 @@ export function AdminPanel() {
             <button
               type="button"
               className="text-left text-sm underline"
-              onClick={() => {
-                setShowToken(true);
-                setToken(sessionStorage.getItem("lume-admin-token") || "dev-admin-token");
-              }}
+              onClick={() => setShowToken(true)}
             >
               Entrar com o token de desenvolvimento
             </button>

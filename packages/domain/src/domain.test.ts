@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { autopropelidoBadge } from "./autopropelido";
 import { getMotorcycle } from "./catalog";
 import { DomainError } from "./errors";
 import { installmentByCount } from "./financing";
@@ -172,6 +173,12 @@ describe("vitrine por categoria e cidade", () => {
     const result = filterShowroom({ brand: "voltis" });
     expect(result.products.map((item) => item.slug)).toEqual(["pico"]);
     expect(result.products[0]?.registrationClass).toBe("autopropelido");
+  });
+
+  it("sem CNH segue o selo calculado", () => {
+    const result = filterShowroom({ semCnh: "sim", brand: "voltis" });
+    expect(result.products.every((item) => autopropelidoBadge(item).eligible)).toBe(true);
+    expect(result.products.map((item) => item.slug)).not.toContain("pico");
   });
 
   it("não inventa loja em cidade sem operação", () => {

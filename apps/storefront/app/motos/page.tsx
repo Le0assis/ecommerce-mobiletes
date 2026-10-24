@@ -28,8 +28,9 @@ async function Catalog({ searchParams }: PageProps<"/motos">) {
   const category = typeof query.categoria === "string" ? query.categoria : undefined;
   const q = typeof query.q === "string" ? query.q : undefined;
   const brand = typeof query.marca === "string" ? query.marca : undefined;
+  const semCnh = typeof query.semCnh === "string" ? query.semCnh : undefined;
   const order = typeof query.ordem === "string" && isCatalogOrder(query.ordem) ? query.ordem : "destaque";
-  const products = sortProducts(filterProducts(loaded.data, { category, q, brand }), order);
+  const products = sortProducts(filterProducts(loaded.data, { category, q, brand, semCnh }), order);
   const notice = loaded.data[0]?.autopropelido.notice ?? "";
 
   return (
@@ -47,6 +48,7 @@ async function Catalog({ searchParams }: PageProps<"/motos">) {
           q={q}
           order={order}
           brand={brand}
+          semCnh={semCnh}
           categories={productCategories(loaded.data)}
           brands={productBrands(loaded.data)}
         />

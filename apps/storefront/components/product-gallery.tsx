@@ -30,10 +30,16 @@ export function ProductGallery({
   const current = photos[photo] ?? photos[0];
 
   if (current) {
+    const index = photos.indexOf(current);
     return (
       <div>
         <div className="relative grid h-[28rem] place-items-center overflow-hidden">
-          <CatalogPhoto src={current.url} alt={current.alt || name} className="object-contain" sizes="(min-width: 1024px) 50vw, 100vw" />
+          <CatalogPhoto
+            src={current.url}
+            alt={galleryAlt(current, name, index < 0 ? 0 : index, photos.length)}
+            className="object-contain"
+            sizes="(min-width: 1024px) 50vw, 100vw"
+          />
           {photos.length > 1 ? (
             <div className="absolute bottom-4 left-4 flex gap-2" role="tablist" aria-label="Fotos">
               {photos.map((item, index) => (
@@ -85,6 +91,13 @@ export function ProductGallery({
       </div>
     </div>
   );
+}
+
+function galleryAlt(image: StoreImage, name: string, index: number, total: number) {
+  const written = image.alt.trim();
+  if (written) return written;
+  const place = image.isCover ? "foto de capa" : `foto ${index + 1} de ${total}`;
+  return `${name}, ${place}`;
 }
 
 function FrontView({ color, title }: { color: string; title: string }) {

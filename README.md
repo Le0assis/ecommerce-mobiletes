@@ -461,7 +461,7 @@ pnpm install
 
 ### Limpar o que ficou no navegador
 
-O carrinho, o aviso de cookie e o perfil de demonstração ficam no navegador, não no banco. No DevTools → Application → Local Storage, apague `lume-shop-v1`, `lume-cookies` e `lume-profile`. `lume-cookies` pode ser `ok` (aceite antigo), `essential` ou `analytics`. O token do admin está em Session Storage como `lume-admin-token`.
+O carrinho, o aviso de cookie e o perfil de demonstração ficam no navegador, não no banco. No DevTools → Application → Local Storage, apague `lume-shop-v1`, `lume-cookies` e `lume-profile`. `lume-cookies` pode ser `ok` (aceite antigo), `essential` ou `analytics`. O token do admin não fica no Session Storage: ele vive só na memória da página.
 
 ## 11. Mapa do repositório
 

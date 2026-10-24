@@ -11,9 +11,9 @@ export const registrationLabel: Record<RegistrationClass, string> = {
 
 export const registrationNote: Record<RegistrationClass, string> = {
   autopropelido:
-    "Veículo de baixa velocidade. CNH, placa e capacete dependem da regra vigente para essa faixa. Confirme com o jurídico antes de uma campanha.",
+    "Resolução CONTRAN 996/2023, art. 2º, II: potência nominal máxima de até 1.000 W, velocidade máxima de fabricação de até 32 km/h, largura de até 70 cm e entre-eixos de até 130 cm. O art. 12 não sujeita esse equipamento a registro, licenciamento e emplacamento. O art. 11 manda a circulação seguir as regras das bicicletas. A resolução não menciona CNH.",
   ciclomotor:
-    "Faixa de ciclomotor: velocidade limitada, em geral ACC ou habilitação própria, emplacamento e capacete. O texto de potência contínua entra na homologação.",
+    "Resolução CONTRAN 996/2023, art. 2º, IV: duas ou três rodas, motor até 50 cm³ ou elétrico de até 4 kW, e velocidade máxima de fabricação de até 50 km/h. Os arts. 13 e 14 exigem registro e licenciamento. O art. 19, III, cita sanção para quem conduz o veículo sem placa de identificação, conforme o caso. O art. 14, § 1º, I, encerra em 31/12/2025 o prazo para incluir no RENAVAM o ciclomotor sem CAT; depois disso, ele fica impedido de circular em via pública. A resolução não nomeia CNH, ACC nem a data 01/01/2026.",
   moto: "Condução na categoria A, emplacamento e capacete. A potência de cada modelo só vale depois da homologação.",
 };
 
@@ -213,7 +213,7 @@ export const motorcycles: Motorcycle[] = [
     chargeHours: 4,
     fastChargeMin: null,
     licenseNote:
-      "Enquadramento de ciclomotor elétrico a confirmar com o jurídico antes de publicar potência e exigência de CNH.",
+      "Ciclomotor na Resolução CONTRAN 996/2023: registro e licenciamento, arts. 13 e 14. O art. 14, § 1º, I, impede a circulação em via pública de quem não incluiu no RENAVAM o ciclomotor sem CAT até 31/12/2025. A resolução não cita CNH nem ACC.",
     colors: [obsidiana(14), nevoa(9), sal(6, 20_000)],
     accessoryIds: ["bolsa", "carregador", "banco"],
     optimalSpeedKmh: 35,
@@ -346,7 +346,8 @@ export const motorcycles: Motorcycle[] = [
     seatHeightMm: 740,
     chargeHours: 3,
     fastChargeMin: null,
-    licenseNote: "Enquadramento de autopropelido a confirmar. Não publique exigência de CNH sem o jurídico.",
+    licenseNote:
+      "Autopropelido na Resolução CONTRAN 996/2023 quando a ficha fica em até 1.000 W nominais, 32 km/h, 70 cm de largura e 130 cm de entre-eixos. O art. 12 não exige registro, licenciamento nem placa. A resolução não cita CNH.",
     colors: [obsidiana(10), nevoa(6)],
     accessoryIds: ["bolsa", "carregador"],
     optimalSpeedKmh: 20,
@@ -371,7 +372,8 @@ export const motorcycles: Motorcycle[] = [
     seatHeightMm: 760,
     chargeHours: 4,
     fastChargeMin: null,
-    licenseNote: "Tratar como ciclomotor até a homologação dizer o contrário.",
+    licenseNote:
+      "Ciclomotor na Resolução CONTRAN 996/2023: registro e licenciamento, arts. 13 e 14. O art. 19, III, cita sanção para condução sem placa de identificação, conforme o caso. A resolução não cita CNH nem ACC.",
     colors: [obsidiana(7), sal(4, 20_000)],
     accessoryIds: ["bolsa", "banco", "carregador"],
     optimalSpeedKmh: 40,
