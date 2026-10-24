@@ -295,7 +295,8 @@ describe("admin", () => {
     expect(body.product.autopropelido.eligible).toBe(false);
     expect(body.product.autopropelido.label).toBeNull();
     expect(body.product.autopropelido.missing).toEqual([]);
-    expect(body.product.description).toContain("medidas de exemplo, a confirmar");
+    expect(body.product.description).toContain("Peso e medidas de exemplo.");
+    expect(body.product.description.toLowerCase()).not.toContain("a confirmar");
 
     const headers = { "content-type": "application/json", "x-admin-token": "dev-admin-token" };
     const created = await app.request("/v1/admin/banners", {

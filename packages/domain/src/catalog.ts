@@ -213,7 +213,7 @@ export const motorcycles: Motorcycle[] = [
     chargeHours: 4,
     fastChargeMin: null,
     licenseNote:
-      "Enquadramento de ciclomotor elétrico a confirmar com o jurídico antes de publicar potência e exigência de CNH.",
+      "Enquadramento de ciclomotor elétrico depende do jurídico antes de publicar potência e exigência de CNH.",
     colors: [obsidiana(14), nevoa(9), sal(6, 20_000)],
     accessoryIds: ["bolsa", "carregador", "banco"],
     optimalSpeedKmh: 35,
@@ -346,7 +346,7 @@ export const motorcycles: Motorcycle[] = [
     seatHeightMm: 740,
     chargeHours: 3,
     fastChargeMin: null,
-    licenseNote: "Enquadramento de autopropelido a confirmar. Não publique exigência de CNH sem o jurídico.",
+    licenseNote: "Enquadramento de autopropelido ainda sem parecer. Não publique exigência de CNH sem o jurídico.",
     colors: [obsidiana(10), nevoa(6)],
     accessoryIds: ["bolsa", "carregador"],
     optimalSpeedKmh: 20,
