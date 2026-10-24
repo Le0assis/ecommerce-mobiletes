@@ -4,7 +4,7 @@ import { createApp } from "./app";
 import { applyMigrations } from "./db/migrate";
 import { createPostgresCatalog } from "./db/postgres-catalog";
 import { seedCatalog } from "./db/seed-catalog";
-import { products } from "./db/schema";
+import { orders, products } from "./db/schema";
 import { openTestDatabase } from "./db/test-database";
 
 const headers = { "content-type": "application/json", "x-admin-token": "dev-admin-token" };
@@ -404,6 +404,49 @@ describe("fase 5: cadastro no Postgres", () => {
     } finally {
       await side.close();
     }
+  });
+
+  it("atualiza a cor da DT3 no mesmo id que o pedido LM269544 já gravou", async () => {
+    await database.db.insert(orders).values({
+      code: "LM269544",
+      status: "aguardando_pagamento",
+      customerName: customer.name,
+      customerEmail: customer.email,
+      customerPhone: customer.phone,
+      method: "pix",
+      provider: "mock",
+      installments: 1,
+      subtotalCents: 990_000,
+      shippingCents: 0,
+      totalCents: 990_000,
+      cep: "01310100",
+      payload: {
+        lines: [{ productId: "yadea-dt3", colorId: "yadea-dt3-padrao", accessoryIds: [], qty: 1, cents: 990_000 }],
+      },
+    });
+    await database.db.execute(sql`update product_variants set color_name = 'A confirmar' where id = 'yadea-dt3-padrao'`);
+    await seedCatalog(database.db);
+
+    const variants = rowsOf(
+      await database.db.execute(sql`select id, color_name, color_hex, stock from product_variants where product_id = 'yadea-dt3'`),
+    );
+    expect(variants).toHaveLength(1);
+    expect(variants[0]?.id).toBe("yadea-dt3-padrao");
+    expect(variants[0]?.color_name).toBe("Branco (EXEMPLO)");
+    expect(variants[0]?.color_hex).toBe("#f4f4f4");
+    expect(Number(variants[0]?.stock)).toBe(5);
+
+    const stored = rowsOf(await database.db.execute(sql`select payload from orders where code = 'LM269544'`));
+    const payload = stored[0]?.payload as { lines: { colorId: string }[] };
+    expect(payload.lines[0]?.colorId).toBe("yadea-dt3-padrao");
+
+    const quote = await app.request("/v1/pricing/configure", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ productId: "yadea-dt3", colorId: "yadea-dt3-padrao", accessoryIds: [] }),
+    });
+    expect(quote.status).toBe(200);
+    expect((await quote.json()).color.name).toBe("Branco (EXEMPLO)");
   });
 
   it("não religa is_enabled quando a semente roda de novo", async () => {

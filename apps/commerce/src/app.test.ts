@@ -268,7 +268,9 @@ describe("API de commerce", () => {
     expect(body.product.specs.rangeKmDeclared).toBe(55);
     expect(body.product.specs.batteryRemovable).toBe(true);
     expect(body.product.variants[0].sku).toBe("YADEA-DT3");
-    expect(body.product.variants[0].colorName).toBe("A confirmar");
+    expect(body.product.variants[0].id).toBe("yadea-dt3-padrao");
+    expect(body.product.variants[0].colorName).toBe("Branco (EXEMPLO)");
+    expect(body.product.variants[0].colorHex).toBe("#f4f4f4");
     expect(body.product.isSample).toBe(true);
     expect(body.product.style).toBe("esportivo");
     expect(body.product.damages).toEqual([]);
@@ -289,8 +291,7 @@ describe("API de commerce", () => {
           item.weightKg > 0 &&
           item.weightKg <= 400 &&
           item.description.includes("peso de exemplo, a confirmar") &&
-          item.variants.every((variant) => variant.stock === 5) &&
-          (item.slug === "watts-w1" || item.variants.every((variant) => variant.colorName === "A confirmar")),
+          item.variants.every((variant) => variant.stock === 5 && variant.colorName.endsWith("(EXEMPLO)")),
       ),
     ).toBe(true);
 

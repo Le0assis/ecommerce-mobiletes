@@ -77,6 +77,8 @@ export async function seedCatalog(db: Database) {
         },
       });
 
+    // Atualiza a variante pelo id estável. Não apaga nem cria outra linha, para o colorId
+    // já gravado no pedido (ex.: LM269544 na Yadea DT3, id yadea-dt3-padrao) continuar na mesma cor.
     await tx
       .insert(productVariants)
       .values(

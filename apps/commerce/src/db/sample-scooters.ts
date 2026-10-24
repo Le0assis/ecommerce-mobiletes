@@ -5,6 +5,8 @@
  * (o selo só aparece quando os quatro limites nominais existem). O preço é redondo,
  * em centavos. Cor não foi informada, salvo a Watts W1. rangeKmDeclared é a autonomia
  * declarada de exemplo; a vitrine continua no rótulo "Autonomia (declarada)".
+ * A cor de cada variante é de exemplo, no formato "Nome (EXEMPLO)". O id da variante
+ * não muda: o pedido que já gravou esse id continua na mesma linha.
  *
  * Peso em kg, inteiro, na ficha do produto. A variante não tem coluna de peso: o
  * checkout soma weightKg do produto. quoteShipping cobra por kg e recusa peso <= 0
@@ -88,13 +90,16 @@ function describe(text: string): string {
   return `${text} ${EXAMPLE_WEIGHT_NOTE}.`;
 }
 
-const placeholderColor = {
-  colorName: "A confirmar",
-  colorHex: "#8a8a8a",
-  priceDeltaCents: 0,
-  // estoque de exemplo
-  stock: 5,
-};
+// cor de exemplo, a confirmar com Léo
+function exampleColor(colorName: string, colorHex: string) {
+  return {
+    colorName,
+    colorHex,
+    priceDeltaCents: 0,
+    // estoque de exemplo
+    stock: 5,
+  };
+}
 
 export const sampleScooters: SampleScooter[] = [
   {
@@ -121,7 +126,7 @@ export const sampleScooters: SampleScooter[] = [
       id: "yadea-dt3-padrao",
       sku: "YADEA-DT3",
       batteryLabel: "48V 24Ah removível",
-      ...placeholderColor,
+      ...exampleColor("Branco (EXEMPLO)", "#f4f4f4"),
     },
   },
   {
@@ -146,7 +151,7 @@ export const sampleScooters: SampleScooter[] = [
       id: "yadea-m6-h-padrao",
       sku: "YADEA-M6H",
       batteryLabel: "60V 30Ah",
-      ...placeholderColor,
+      ...exampleColor("Cinza (EXEMPLO)", "#8a8a8a"),
     },
   },
   {
@@ -172,7 +177,7 @@ export const sampleScooters: SampleScooter[] = [
       id: "yadea-gfx6-padrao",
       sku: "YADEA-GFX6",
       batteryLabel: "LFP 60V 30Ah",
-      ...placeholderColor,
+      ...exampleColor("Azul (EXEMPLO)", "#2458a6"),
     },
   },
   {
@@ -196,7 +201,7 @@ export const sampleScooters: SampleScooter[] = [
       id: "motochefe-jet-padrao",
       sku: "MOTOCHEFE-JET",
       batteryLabel: "60V 20Ah",
-      ...placeholderColor,
+      ...exampleColor("Verde (EXEMPLO)", "#2f6b4f"),
     },
   },
   {
@@ -221,7 +226,7 @@ export const sampleScooters: SampleScooter[] = [
       id: "aima-liberty-a500-padrao",
       sku: "AIMA-A500",
       batteryLabel: "64V 30Ah",
-      ...placeholderColor,
+      ...exampleColor("Bege (EXEMPLO)", "#c4b7a6"),
     },
   },
   {
@@ -241,7 +246,7 @@ export const sampleScooters: SampleScooter[] = [
       id: "shineray-pt2xs-padrao",
       sku: "SHINERAY-PT2XS",
       batteryLabel: null,
-      ...placeholderColor,
+      ...exampleColor("Prata (EXEMPLO)", "#c0c4c8"),
     },
   },
   {
@@ -266,7 +271,7 @@ export const sampleScooters: SampleScooter[] = [
       id: "mxf-muv-e-road-padrao",
       sku: "MXF-MUV",
       batteryLabel: "48V 12Ah",
-      ...placeholderColor,
+      ...exampleColor("Amarelo (EXEMPLO)", "#e0b84a"),
     },
   },
   {
@@ -286,12 +291,7 @@ export const sampleScooters: SampleScooter[] = [
       id: "watts-w1-padrao",
       sku: "WATTS-W1",
       batteryLabel: null,
-      ...placeholderColor,
-      // cor de exemplo, a confirmar com Léo
-      colorName: "Preto (EXEMPLO)",
-      colorHex: "#111111",
-      // estoque de exemplo
-      stock: 5,
+      ...exampleColor("Preto (EXEMPLO)", "#111111"),
     },
   },
 ];
