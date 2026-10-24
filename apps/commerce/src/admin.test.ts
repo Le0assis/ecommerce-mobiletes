@@ -284,14 +284,18 @@ describe("admin", () => {
     }
   });
 
-  it("mostra o selo oculto no exemplo sem largura e publica só o banner ativo", async () => {
+  it("mantém o selo oculto na DT3 fora da medida e publica só o banner ativo", async () => {
     const app = createApp();
     const sample = await app.request("/v1/products/yadea-dt3");
     const body = await sample.json();
     expect(sample.status).toBe(200);
     expect(body.product.isSample).toBe(true);
+    expect(body.product.widthCm).toBe(78);
+    expect(body.product.wheelbaseCm).toBe(135);
     expect(body.product.autopropelido.eligible).toBe(false);
-    expect(body.product.autopropelido.missing).toEqual(expect.arrayContaining(["widthCm", "wheelbaseCm"]));
+    expect(body.product.autopropelido.label).toBeNull();
+    expect(body.product.autopropelido.missing).toEqual([]);
+    expect(body.product.description).toContain("medidas de exemplo, a confirmar");
 
     const headers = { "content-type": "application/json", "x-admin-token": "dev-admin-token" };
     const created = await app.request("/v1/admin/banners", {

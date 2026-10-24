@@ -58,7 +58,9 @@ export async function seedCatalog(db: Database) {
         },
       });
 
-    // weight_kg é kg de EXEMPLO (não ficha do fabricante). O upsert regrava o peso e a cor.
+    // medidas de exemplo, a confirmar. Não é ficha do fabricante.
+    // O selo lê potência em W, velocidade em km/h, largura e entre-eixos em cm (não mm).
+    // O upsert regrava a ficha. is_enabled continua de fora do ON CONFLICT.
     await tx
       .insert(productSpecs)
       .values(sampleScooters.map((product) => ({ productId: product.id, ...product.specs })))

@@ -237,9 +237,11 @@ describe("API de commerce", () => {
 
     const list = await app.request("/v1/products");
     const listed = await list.json();
-    expect(listed.products.every((item: { autopropelido: { eligible: boolean } }) => item.autopropelido.eligible === false)).toBe(
-      true,
-    );
+    const sealed = listed.products
+      .filter((item: { autopropelido: { eligible: boolean } }) => item.autopropelido.eligible)
+      .map((item: { slug: string }) => item.slug)
+      .sort();
+    expect(sealed).toEqual(["shineray-pt2xs", "watts-w1"]);
   });
 
   it("entrega ficha, variantes, acessórios, amostra, avaria pública, selo e autonomia", async () => {
@@ -274,7 +276,13 @@ describe("API de commerce", () => {
     expect(body.product.isSample).toBe(true);
     expect(body.product.style).toBe("esportivo");
     expect(body.product.damages).toEqual([]);
-    expect(body.product.autopropelido.missing).toEqual(expect.arrayContaining(["widthCm", "wheelbaseCm"]));
+    expect(body.product.autopropelido.eligible).toBe(false);
+    expect(body.product.autopropelido.label).toBeNull();
+    expect(body.product.autopropelido.missing).toEqual([]);
+    expect(body.product.powerNominalW).toBe(1000);
+    expect(body.product.widthCm).toBe(78);
+    expect(body.product.wheelbaseCm).toBe(135);
+    expect(body.product.description).toContain("medidas de exemplo, a confirmar");
     expect(body.accessories).toEqual(body.product.accessories);
     expect(body.reviews).toEqual([]);
 
@@ -287,10 +295,22 @@ describe("API de commerce", () => {
     expect(samples).toHaveLength(8);
     expect(
       samples.every(
-        (item: { weightKg: number; description: string; slug: string; variants: { stock: number; colorName: string }[] }) =>
+        (item: {
+          weightKg: number;
+          widthCm: number;
+          wheelbaseCm: number;
+          description: string;
+          slug: string;
+          variants: { stock: number; colorName: string }[];
+        }) =>
           item.weightKg > 0 &&
           item.weightKg <= 400 &&
+          item.widthCm > 0 &&
+          item.widthCm <= 300 &&
+          item.wheelbaseCm > 0 &&
+          item.wheelbaseCm <= 400 &&
           item.description.includes("peso de exemplo, a confirmar") &&
+          item.description.includes("medidas de exemplo, a confirmar") &&
           item.variants.every((variant) => variant.stock === 5 && variant.colorName.endsWith("(EXEMPLO)")),
       ),
     ).toBe(true);
@@ -298,9 +318,27 @@ describe("API de commerce", () => {
     const watts = await app.request("/v1/products/watts-w1");
     const wattsBody = await watts.json();
     expect(wattsBody.product.weightKg).toBe(51);
+    expect(wattsBody.product.powerNominalW).toBe(350);
+    expect(wattsBody.product.topSpeedKmh).toBe(32);
+    expect(wattsBody.product.widthCm).toBe(64);
+    expect(wattsBody.product.wheelbaseCm).toBe(110);
+    expect(wattsBody.product.autopropelido.eligible).toBe(true);
+    expect(wattsBody.product.autopropelido.label).toBe("Autopropelido, sem CNH");
+    expect(wattsBody.product.autopropelido.missing).toEqual([]);
     expect(wattsBody.product.variants[0].colorName).toBe("Preto (EXEMPLO)");
     expect(wattsBody.product.variants[0].stock).toBe(5);
     expect(wattsBody.product.colors[0].stock).toBe(5);
+
+    const shineray = await app.request("/v1/products/shineray-pt2xs");
+    const shinerayBody = await shineray.json();
+    expect(shinerayBody.product.powerNominalW).toBe(450);
+    expect(shinerayBody.product.topSpeedKmh).toBe(32);
+    expect(shinerayBody.product.widthCm).toBe(68);
+    expect(shinerayBody.product.wheelbaseCm).toBe(122);
+    expect(shinerayBody.product.rangeKm).toBeNull();
+    expect(shinerayBody.product.autopropelido.eligible).toBe(true);
+    expect(shinerayBody.product.autopropelido.label).toBe("Autopropelido, sem CNH");
+    expect(shinerayBody.product.autopropelido.missing).toEqual([]);
   });
 
   it("o quiz usa o catálogo ativo, respeita o teto e muda com o estilo", async () => {
