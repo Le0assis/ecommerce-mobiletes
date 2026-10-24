@@ -11,11 +11,14 @@ export const registrationLabel: Record<RegistrationClass, string> = {
 
 export const registrationNote: Record<RegistrationClass, string> = {
   autopropelido:
-    "Veículo de baixa velocidade. CNH, placa e capacete dependem da regra vigente para essa faixa. Confirme com o jurídico antes de uma campanha.",
+    "Resolução CONTRAN 996/2023, art. 2º, II: potência nominal máxima de até 1.000 W, velocidade máxima de fabricação de até 32 km/h, largura de até 70 cm e entre-eixos de até 130 cm. O art. 12 não sujeita esse equipamento a registro, licenciamento e emplacamento. O art. 11 manda a circulação seguir as regras das bicicletas. O autopropelido dispensa registro e habilitação.",
   ciclomotor:
-    "Faixa de ciclomotor: velocidade limitada, em geral ACC ou habilitação própria, emplacamento e capacete. O texto de potência contínua entra na homologação.",
+    "Ciclomotor: placa e ACC ou CNH A (CTB art. 162, I; Res. 996/2023, Anexo I). O ciclomotor também exige registro (CTB art. 141). O prazo de 31/12/2025 era só para o registro no RENAVAM.",
   moto: "Condução na categoria A, emplacamento e capacete. A potência de cada modelo só vale depois da homologação.",
 };
+
+const ciclomotorLicenseNote = "Ciclomotor: placa e ACC ou CNH A (CTB art. 162, I; Res. 996/2023, Anexo I).";
+const autopropelidoLicenseNote = "Autopropelido: dispensa registro e habilitação.";
 
 const categoryIds: Category[] = ["mobilete", "scooter", "naked", "adventure", "sport"];
 
@@ -212,8 +215,7 @@ export const motorcycles: Motorcycle[] = [
     seatHeightMm: 770,
     chargeHours: 4,
     fastChargeMin: null,
-    licenseNote:
-      "Enquadramento de ciclomotor elétrico depende do jurídico antes de publicar potência e exigência de CNH.",
+    licenseNote: ciclomotorLicenseNote,
     colors: [obsidiana(14), nevoa(9), sal(6, 20_000)],
     accessoryIds: ["bolsa", "carregador", "banco"],
     optimalSpeedKmh: 35,
@@ -346,7 +348,7 @@ export const motorcycles: Motorcycle[] = [
     seatHeightMm: 740,
     chargeHours: 3,
     fastChargeMin: null,
-    licenseNote: "Enquadramento de autopropelido ainda sem parecer. Não publique exigência de CNH sem o jurídico.",
+    licenseNote: autopropelidoLicenseNote,
     colors: [obsidiana(10), nevoa(6)],
     accessoryIds: ["bolsa", "carregador"],
     optimalSpeedKmh: 20,
@@ -371,7 +373,7 @@ export const motorcycles: Motorcycle[] = [
     seatHeightMm: 760,
     chargeHours: 4,
     fastChargeMin: null,
-    licenseNote: "Tratar como ciclomotor até a homologação dizer o contrário.",
+    licenseNote: ciclomotorLicenseNote,
     colors: [obsidiana(7), sal(4, 20_000)],
     accessoryIds: ["bolsa", "banco", "carregador"],
     optimalSpeedKmh: 40,

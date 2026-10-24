@@ -5,7 +5,7 @@ import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Legislação e CNH",
-  description: "Referência de autopropelido, ciclomotor e moto. Não é parecer jurídico.",
+  description: "Autopropelido dispensa registro e habilitação. Ciclomotor pede placa e ACC ou CNH A. Moto pede a categoria A.",
 };
 
 const classes: RegistrationClass[] = ["autopropelido", "ciclomotor", "moto"];
@@ -15,7 +15,7 @@ export default function LegislationPage() {
     <PageShell
       eyebrow="Referência"
       title="CNH."
-      lede="Três enquadramentos para ler antes de reservar. O jurídico confirma a regra vigente antes de qualquer campanha."
+      lede="Autopropelido dispensa registro e habilitação. Ciclomotor pede placa e ACC ou CNH A. Moto pede a categoria A."
     >
       <div className="grid gap-4">
         {classes.map((item) => (

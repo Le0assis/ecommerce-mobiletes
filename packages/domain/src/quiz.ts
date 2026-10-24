@@ -1,3 +1,4 @@
+import { autopropelidoBadge } from "./autopropelido";
 import { motorcycles, type Motorcycle } from "./catalog";
 
 export type QuizUse = "trabalho" | "entregas" | "passeio" | "crianca";
@@ -19,6 +20,8 @@ export type QuizAnswers = {
   budget: QuizBudget;
   style: QuizStyle;
   color: QuizColor;
+  /** Sim filtra quem o selo marca como autopropelido. Ausente equivale a não. */
+  withoutCnh?: boolean;
 };
 
 export type QuizProduct = {
@@ -34,6 +37,10 @@ export type QuizProduct = {
   torqueNm?: number;
   batteryKwh?: number;
   style?: QuizStyle | null;
+  widthCm?: number | null;
+  wheelbaseCm?: number | null;
+  /** Quando a vitrine já calculou o selo. Sem o campo, vale `autopropelidoBadge`. */
+  autopropelido?: boolean;
   batteryRemovable?: boolean | null;
   carries?: Array<"passageiro" | "crianca" | "pet">;
   accessoryIds?: string[];
@@ -81,7 +88,7 @@ const accessoryCopy: Record<QuizAccessoryKind, { name: string; reason: string }>
   cesta: { name: "Cesta dianteira", reason: "Deixa a compra à vista, sem baú." },
   cadeirinha: { name: "Cadeirinha", reason: "Para levar criança com o encaixe do modelo." },
   retrovisor: { name: "Retrovisor", reason: "Par para ver o corredor." },
-  capacete: { name: "Capacete", reason: "Proteção, mesmo quando a cidade dispensa CNH." },
+  capacete: { name: "Capacete", reason: "Proteção, mesmo no autopropelido, que dispensa habilitação." },
   capa: { name: "Capa", reason: "Cobre o banco na chuva." },
   "suporte-celular": { name: "Suporte de celular", reason: "Mapa e pedido na altura do olhar." },
   "gaiola-pet": { name: "Gaiola pet", reason: "Espaço fechado para o animal." },
@@ -127,6 +134,16 @@ function colorTone(color: { id: string; name: string; hex: string }): Exclude<Qu
   return luminance < 110 ? "escura" : "clara";
 }
 
+function isAutopropelido(product: QuizProduct) {
+  if (typeof product.autopropelido === "boolean") return product.autopropelido;
+  return autopropelidoBadge({
+    powerNominalW: product.powerNominalW,
+    topSpeedKmh: product.topSpeedKmh,
+    widthCm: product.widthCm,
+    wheelbaseCm: product.wheelbaseCm,
+  }).eligible;
+}
+
 function hillPower(product: QuizProduct) {
   return (product.powerNominalW ?? 0) >= 800 || (product.powerKw ?? 0) >= 1 || (product.torqueNm ?? 0) >= 40;
 }
@@ -143,7 +160,8 @@ export function recommendMotorcycles<T extends QuizProduct>(
   answers: QuizAnswers,
   catalog?: readonly T[],
 ): QuizRecommendation<T>[] {
-  const source = catalog ?? (motorcycles as unknown as readonly T[]);
+  const listed = catalog ?? (motorcycles as unknown as readonly T[]);
+  const source = answers.withoutCnh ? listed.filter((product) => isAutopropelido(product)) : listed;
   const distance = dailyTarget[answers.dailyKm];
   const ceiling = budgetCeiling[answers.budget];
   const accessories = suggestAccessories(answers);
@@ -156,6 +174,8 @@ export function recommendMotorcycles<T extends QuizProduct>(
       score += points;
       if (points > 0 && reason) reasons.push(reason);
     };
+
+    if (answers.withoutCnh) add(1, "O selo marca este modelo como autopropelido.");
 
     if (ceiling == null) {
       add(product.basePriceCents >= 1_000_000 ? 4 : 2, product.basePriceCents >= 1_000_000 ? "Está na faixa acima de R$ 10 mil." : "Cabe no orçamento informado.");

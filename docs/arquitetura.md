@@ -36,7 +36,7 @@ A vitrine lê modelos em `GET /v1/products` por `apps/storefront/lib/catalog.ts`
 
 Chave `lume-shop-v1`: linhas do carrinho, slugs da lista de desejos e códigos de pedido. Carrinho antigo, sem `orderCodes`, continua válido: o parse assume lista vazia.
 
-Também locais: perfil (`lume-profile`), aviso de cookie (`lume-cookies`: `ok`, `essential` ou `analytics`), reviews pendentes (`lume-reviews-pending`), mensagens de contato (`lume-messages`) e, só enquanto o login por senha não existe, o token de admin na `sessionStorage` (`lume-admin-token`). A senha não fica no navegador. A sessão prevista é cookie httpOnly.
+Também locais: perfil (`lume-profile`), aviso de cookie (`lume-cookies`: `ok`, `essential` ou `analytics`), reviews pendentes (`lume-reviews-pending`) e mensagens de contato (`lume-messages`). O token de admin não vai para `sessionStorage`: fica na memória da página e some no recarregamento. A senha não fica no navegador. A sessão prevista é cookie httpOnly.
 
 Nada disso é conta. Não há CPF.
 

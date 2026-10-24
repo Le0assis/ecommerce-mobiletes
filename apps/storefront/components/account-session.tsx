@@ -6,9 +6,9 @@ import { Label } from "@/components/ui/label";
 import { formatBRL } from "@/lib/catalog";
 import { accountOrders, requestSandboxCode, verifySandboxCode, type PlacedOrder } from "@/lib/shop-api";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-const tokenKey = "lume-session";
+const legacySessionKey = "lume-session";
 
 export function AccountSession() {
   const [email, setEmail] = useState("");
@@ -17,6 +17,10 @@ export function AccountSession() {
   const [token, setToken] = useState("");
   const [orders, setOrders] = useState<PlacedOrder[] | null>(null);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    localStorage.removeItem(legacySessionKey);
+  }, []);
 
   async function askCode() {
     setError("");
@@ -32,7 +36,6 @@ export function AccountSession() {
     setError("");
     try {
       const session = await verifySandboxCode(email, code);
-      localStorage.setItem(tokenKey, session.token);
       setToken(session.token);
       const mine = await accountOrders(session.token);
       setOrders(mine.orders);

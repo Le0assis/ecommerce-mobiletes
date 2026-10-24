@@ -11,7 +11,7 @@ function canOptimize(src: string) {
   }
 }
 
-/** Foto do catálogo. Blob e caminho local passam pelo otimizador. Host solto fica em img: o Next não busca URL arbitrária. */
+/** Foto do catálogo. Blob e caminho local passam pelo otimizador. Outro host usa `unoptimized`, sem alargar `remotePatterns`. */
 export function CatalogPhoto({
   src,
   alt,
@@ -23,11 +23,14 @@ export function CatalogPhoto({
   className?: string;
   sizes: string;
 }) {
-  if (canOptimize(src)) {
-    return <Image src={src} alt={alt} fill className={className} sizes={sizes} />;
-  }
   return (
-    // eslint-disable-next-line @next/next/no-img-element -- host fora do Blob; remotePatterns não cobre URL arbitrária
-    <img src={src} alt={alt} className={cn("absolute inset-0 h-full w-full", className)} />
+    <Image
+      src={src}
+      alt={alt}
+      fill
+      sizes={sizes}
+      className={cn("absolute inset-0 h-full w-full", className)}
+      unoptimized={!canOptimize(src)}
+    />
   );
 }

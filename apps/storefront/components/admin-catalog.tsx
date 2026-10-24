@@ -875,7 +875,7 @@ function emptyProduct() {
     brand: "LUME",
     category: "scooter",
     style: "citycoco",
-    tagline: "Linha de exemplo",
+    tagline: "",
     description: "Rascunho criado no admin.",
     basePriceCents: 0,
     status: "rascunho",

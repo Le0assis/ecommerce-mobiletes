@@ -13,6 +13,7 @@ export function CategorySearch({
   q,
   order = "destaque",
   brand,
+  semCnh,
   categories,
   brands,
 }: {
@@ -20,12 +21,13 @@ export function CategorySearch({
   q?: string;
   order?: CatalogOrder | string;
   brand?: string;
+  semCnh?: string;
   categories: { id: string; label: string }[];
   brands: string[];
 }) {
   return (
     <form action="/motos" className="grid gap-y-5 rounded-[2rem] border border-white/10 bg-[#121216]/80 p-4 shadow-2xl backdrop-blur-xl md:p-5">
-      <div className="grid grid-cols-1 gap-x-6 gap-y-5 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-x-6 gap-y-5 md:grid-cols-2 xl:grid-cols-4">
         <label className={labelClass}>
           Categoria
           <select name="categoria" defaultValue={category ?? ""} className={selectClass}>
@@ -46,6 +48,13 @@ export function CategorySearch({
                 {item}
               </option>
             ))}
+          </select>
+        </label>
+        <label className={labelClass}>
+          Quer andar sem CNH?
+          <select name="semCnh" defaultValue={semCnh === "sim" ? "sim" : ""} className={selectClass}>
+            <option value="">Tanto faz</option>
+            <option value="sim">Sim</option>
           </select>
         </label>
         <label className={labelClass}>

@@ -65,12 +65,14 @@ export function AdminPanel() {
       if (!response.ok) {
         setData(null);
         setError(body.message ?? "Não autorizado.");
-        return;
+        return false;
       }
       setData(body);
+      return true;
     } catch {
       setData(null);
       setError("A API não respondeu.");
+      return false;
     }
   }
 
@@ -91,7 +93,6 @@ export function AdminPanel() {
       }
       if (result.status === 404 || result.status === 503) {
         setShowToken(true);
-        setToken(sessionStorage.getItem("lume-admin-token") || "dev-admin-token");
         setError(result.body.message ?? "O login por senha ainda não está disponível. Use o token até a sessão existir.");
         return;
       }
@@ -104,18 +105,18 @@ export function AdminPanel() {
 
   async function enterWithToken(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    sessionStorage.setItem("lume-admin-token", token);
+    const accepted = await loadOverview(token);
+    if (!accepted) return;
     setMode("token");
     setSection("pedidos");
-    await loadOverview(token);
   }
 
   async function logout() {
     await adminFetch("/v1/admin/logout", { method: "POST" }, mode === "token" ? token : undefined);
-    sessionStorage.removeItem("lume-admin-token");
     setMode("anon");
     setData(null);
     setPassword("");
+    setToken("");
   }
 
   const authToken = mode === "token" ? token : undefined;
@@ -143,8 +144,8 @@ export function AdminPanel() {
           </form>
           {showToken ? (
             <form className="grid gap-3" onSubmit={(event) => void enterWithToken(event)}>
-              <p className="text-sm text-muted-foreground">Fora de produção o token antigo ainda abre pedidos e o estoque em memória.</p>
-              <Input value={token} onChange={(event) => setToken(event.target.value)} className="h-12 rounded-full px-4" aria-label="Token de admin" />
+              <p className="text-sm text-muted-foreground">O token fica só nesta visita, na memória da página. Recarregar pede de novo.</p>
+              <Input value={token} onChange={(event) => setToken(event.target.value)} className="h-12 rounded-full px-4" aria-label="Token de admin" required />
               <Button type="submit" variant="outline" className="h-12 rounded-full">
                 Entrar com token
               </Button>
@@ -153,10 +154,7 @@ export function AdminPanel() {
             <button
               type="button"
               className="text-left text-sm underline"
-              onClick={() => {
-                setShowToken(true);
-                setToken(sessionStorage.getItem("lume-admin-token") || "dev-admin-token");
-              }}
+              onClick={() => setShowToken(true)}
             >
               Entrar com o token de desenvolvimento
             </button>
@@ -186,9 +184,89 @@ export function AdminPanel() {
         </div>
       )}
       {error ? <p className="text-sm text-signal">{error}</p> : null}
-      {mode !== "anon" && section === "pedidos" ? <Orders data={data} token={authToken} onSaved={() => loadOverview(authToken)} /> : null}
+      {mode !== "anon" && section === "pedidos" ? <Orders data={data} token={authToken} onSaved={async () => { await loadOverview(authToken); }} /> : null}
       {mode !== "anon" && section !== "pedidos" ? <AdminCatalog token={authToken} section={section} /> : null}
     </div>
+  );
+}
+
+const stockLimitMessage = "O estoque deve ser um número inteiro de 0 a 999.";
+
+function stockApiMessage(body: { message?: string; error?: string }) {
+  if (body.error === "payload_invalido" || body.message === "Revise os campos.") return stockLimitMessage;
+  return body.message?.trim() || "O estoque não foi salvo.";
+}
+
+function StockEditor({
+  productId,
+  productName,
+  colorId,
+  colorName,
+  stock,
+  token,
+  onSaved,
+}: {
+  productId: string;
+  productName: string;
+  colorId: string;
+  colorName: string;
+  stock: number;
+  token?: string;
+  onSaved: () => Promise<void>;
+}) {
+  const [message, setMessage] = useState("");
+  const errorId = `stock-error-${productId}-${colorId}`;
+
+  return (
+    <form
+      className="flex flex-wrap items-center gap-2"
+      noValidate
+      onSubmit={async (event) => {
+        event.preventDefault();
+        setMessage("");
+        const raw = String(new FormData(event.currentTarget).get("stock") ?? "").trim();
+        if (raw === "") {
+          setMessage("Informe o estoque.");
+          return;
+        }
+        const next = Number(raw);
+        if (!Number.isInteger(next) || next < 0 || next > 999) {
+          setMessage(stockLimitMessage);
+          return;
+        }
+        const response = await fetch("/api/commerce/v1/admin/stock", {
+          method: "PATCH",
+          headers: { "content-type": "application/json", ...(token ? { "x-admin-token": token } : {}) },
+          credentials: "include",
+          body: JSON.stringify({ productId, colorId, stock: next }),
+        });
+        if (!response.ok) {
+          const body = (await response.json().catch(() => ({}))) as { message?: string; error?: string };
+          setMessage(stockApiMessage(body));
+          return;
+        }
+        await onSaved();
+      }}
+    >
+      <Input
+        name="stock"
+        type="number"
+        required
+        min={0}
+        max={999}
+        step={1}
+        defaultValue={stock}
+        key={stock}
+        className="h-10 w-24 rounded-full px-3"
+        aria-label={`Estoque de ${productName} ${colorName}`}
+        aria-invalid={message ? true : undefined}
+        aria-describedby={message ? errorId : undefined}
+      />
+      <Button type="submit" variant="outline" className="rounded-full">
+        Salvar
+      </Button>
+      {message ? <p id={errorId} className="w-full text-sm text-signal">{message}</p> : null}
+    </form>
   );
 }
 
@@ -291,25 +369,15 @@ function Orders({ data, token, onSaved }: { data: Overview | null; token?: strin
                   <td className="py-3">{product.name}</td>
                   <td>{color.name}</td>
                   <td>
-                    <form
-                      className="flex gap-2"
-                      onSubmit={async (event) => {
-                        event.preventDefault();
-                        const stock = Number(new FormData(event.currentTarget).get("stock"));
-                        await fetch("/api/commerce/v1/admin/stock", {
-                          method: "PATCH",
-                          headers: { "content-type": "application/json", ...(token ? { "x-admin-token": token } : {}) },
-                          credentials: "include",
-                          body: JSON.stringify({ productId: product.id, colorId: color.id, stock }),
-                        });
-                        await onSaved();
-                      }}
-                    >
-                      <Input name="stock" type="number" min={0} defaultValue={color.stock} key={color.stock} className="h-10 w-24 rounded-full px-3" aria-label={`Estoque de ${product.name} ${color.name}`} />
-                      <Button type="submit" variant="outline" className="rounded-full">
-                        Salvar
-                      </Button>
-                    </form>
+                    <StockEditor
+                      productId={product.id}
+                      productName={product.name}
+                      colorId={color.id}
+                      colorName={color.name}
+                      stock={color.stock}
+                      token={token}
+                      onSaved={onSaved}
+                    />
                   </td>
                 </tr>
               )),

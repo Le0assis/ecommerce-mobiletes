@@ -40,7 +40,8 @@ export const faq: { question: string; answer: string }[] = [
   },
   {
     question: "Preciso de CNH?",
-    answer: "Depende da classe: autopropelido, ciclomotor ou moto. A página de legislação explica a referência e avisa que não é parecer.",
+    answer:
+      "Autopropelido dispensa registro e habilitação. Ciclomotor: placa e ACC ou CNH A (CTB art. 162, I; Res. 996/2023, Anexo I). O ciclomotor também exige registro (CTB art. 141). Moto pede categoria A. O prazo de 31/12/2025 era só para o registro do ciclomotor no RENAVAM.",
   },
   {
     question: "A troca do usado tem preço na hora?",

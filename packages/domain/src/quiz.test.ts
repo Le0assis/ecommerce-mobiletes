@@ -131,6 +131,12 @@ describe("quiz de autopropelidos", () => {
     expect(result[0]?.accessories.map((item) => item.name)).toContain("Baú 29–41 L");
   });
 
+  it("atribui a dispensa de habilitação ao autopropelido", () => {
+    const result = recommendMotorcycles(answers({ use: "passeio", budget: "mais10" }), catalog);
+    const helmet = result.flatMap((item) => item.accessories).find((item) => item.kind === "capacete");
+    expect(helmet?.reason).toBe("Proteção, mesmo no autopropelido, que dispensa habilitação.");
+  });
+
   it("não deixa bateria desconhecida passar na frente da removível", () => {
     const withUnknown = [
       ...catalog,
@@ -208,6 +214,37 @@ describe("quiz de autopropelidos", () => {
     expect(recommendMotorcycles(answers({ budget: "ate6", style: "retro" }), pair).map((item) => item.product.slug)).not.toContain(
       "cara-demais",
     );
+  });
+
+  it("com sem CNH só devolve autopropelido e descarta o resto", () => {
+    const pair = [
+      bike({
+        id: "livre",
+        slug: "livre",
+        name: "Livre",
+        basePriceCents: 400_000,
+        rangeKm: 25,
+        powerNominalW: 800,
+        topSpeedKmh: 25,
+        widthCm: 60,
+        wheelbaseCm: 110,
+      }),
+      bike({
+        id: "placa",
+        slug: "placa",
+        name: "Placa",
+        basePriceCents: 400_000,
+        rangeKm: 40,
+        powerNominalW: 2_000,
+        topSpeedKmh: 45,
+        widthCm: 70,
+        wheelbaseCm: 120,
+      }),
+    ];
+    const result = recommendMotorcycles(answers({ withoutCnh: true, budget: "ate6", dailyKm: "ate20" }), pair);
+    expect(result.map((item) => item.product.slug)).toEqual(["livre"]);
+    expect(result[0]?.reasons.some((reason) => reason.includes("autopropelido"))).toBe(true);
+    expect(recommendMotorcycles(answers({ withoutCnh: true, budget: "mais10" }))).toEqual([]);
   });
 
   it("ainda responde com o catálogo de demonstração", () => {
