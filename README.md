@@ -222,7 +222,8 @@ O que cada linha significa:
 | `BLOB_READ_WRITE_TOKEN` | token do Blob | Token de escrita do Vercel Blob. Só no servidor. Sem ele, o upload de foto responde 503. O caminho aceito é `lume/<arquivo>`. |
 | `TRUSTED_PROXIES` | vazio | IPs que podem informar o cliente. Sem isso, o limite usa o socket e ignora `x-forwarded-for`. Na Vercel, `VERCEL=1` faz a API ler `x-vercel-forwarded-for`. |
 | `ADMIN_TOKEN` | `troque-este-token` | Cabeçalho `x-admin-token` fora de produção. Em desenvolvimento, se esta linha não existir, a API aceita `dev-admin-token`. Em produção o cabeçalho não autentica, e a API não sobe se o valor faltar, tiver menos de 24 caracteres ou for `dev-admin-token`. |
-| `STOREFRONT_ORIGIN` | `http://127.0.0.1:43123` | Origens da vitrine, separadas por vírgula. Em produção o browser só passa se a origem estiver na lista. Em desenvolvimento, sem a variável, o CORS continua aberto. |
+| `CORS_ORIGINS` | `http://127.0.0.1:43123` | Origens da vitrine, separadas por vírgula. O browser só passa se a origem estiver na lista. Sem a variável o CORS fica fechado, em desenvolvimento e em produção. |
+| `LUME_ENABLE_SANDBOX` | comentada | `1` ou `true` liga o botão “Avançar no sandbox” da página do pedido. Sem a linha a rota responde 404. |
 | `MAILER_URL` | vazio | Para onde a API manda o código de acesso. Vazio em desenvolvimento: o código sai no log da API. Em produção, vazio faz o pedido de código responder 503. |
 
 Se for rodar **sem Docker**, não deixe o `DATABASE_URL` apontando para um Postgres desligado. Apague ou comente (coloque `#` no começo) as linhas `DATABASE_URL`, `REDIS_URL`, `MEILI_HOST` e `MEILI_MASTER_KEY`. A API sobe do mesmo jeito. A loja lê a semente em memória. Criar ou editar produto no admin responde 503 até o banco existir.
@@ -398,7 +399,7 @@ Repita para `8787` se a API não sobe.
 
 **O checkout diz que a loja não respondeu.** A API não está no ar, ou `COMMERCE_API_URL` não é `http://127.0.0.1:8787`. Olhe o terminal do `pnpm dev`.
 
-**O navegador bloqueia o checkout por CORS.** Você abriu a vitrine por um endereço diferente de `STOREFRONT_ORIGIN` (por exemplo `localhost` no lugar de `127.0.0.1`). Use o mesmo endereço nos dois. Em desenvolvimento, apagar `STOREFRONT_ORIGIN` deixa o CORS aberto. Em produção a lista vazia não libera origem nenhuma.
+**O navegador bloqueia o checkout por CORS.** Você abriu a vitrine por um endereço diferente de `CORS_ORIGINS` (por exemplo `localhost` no lugar de `127.0.0.1`). Use o mesmo endereço nos dois. Sem a lista, o CORS fica fechado em qualquer ambiente. A vitrine no mesmo host passa por `/api/commerce` e não precisa desse cabeçalho.
 
 **Pedido some depois de reiniciar.** Sem Postgres, o pedido está na memória. Com Postgres desligado e `DATABASE_URL` preenchido, o log da API mostra `postgres_indisponivel` ou `pedido_nao_gravado` e o pedido também fica só na memória.
 
@@ -507,7 +508,7 @@ O passo a passo de hospedagem, variáveis e o que continua simulado está em [do
 1. Rode `pnpm lint`, `pnpm typecheck` e `pnpm test` na raiz. Os três precisam terminar sem erro.
 2. Rode `pnpm --filter @lume/storefront build`.
 3. Na API, defina `NODE_ENV=production` e `ADMIN_PASSWORD_HASH`. Sem o hash o login responde 503. O cabeçalho `x-admin-token` não autentica em produção.
-4. Aponte `STOREFRONT_ORIGIN` para o endereço exato da vitrine e `COMMERCE_API_URL` para a API.
+4. Aponte `CORS_ORIGINS` para o endereço exato da vitrine e `COMMERCE_API_URL` para a API. Deixe `LUME_ENABLE_SANDBOX` desligada.
 5. Deixe `NEXT_PUBLIC_ANALYTICS` vazio. Pix de demonstração continua começando com `LUME-MOCK-PIX`.
 
 Não há conta de Mercado Pago nem de Pagar.me neste repositório. Publicar não passa a cobrar.

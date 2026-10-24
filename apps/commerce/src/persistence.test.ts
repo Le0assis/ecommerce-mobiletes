@@ -64,14 +64,18 @@ const checkout = {
 describe("persistência da operação", () => {
   let db: Awaited<ReturnType<typeof openTestDatabase>>["db"];
   let close: () => Promise<void>;
+  const previousSandbox = process.env.LUME_ENABLE_SANDBOX;
 
   beforeAll(async () => {
+    process.env.LUME_ENABLE_SANDBOX = "1";
     const opened = await openTestDatabase();
     db = opened.db;
     close = opened.close;
   });
 
   afterAll(async () => {
+    if (previousSandbox === undefined) delete process.env.LUME_ENABLE_SANDBOX;
+    else process.env.LUME_ENABLE_SANDBOX = previousSandbox;
     await close();
   });
 

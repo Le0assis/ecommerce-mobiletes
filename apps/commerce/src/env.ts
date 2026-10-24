@@ -41,22 +41,27 @@ export function productionDatabaseError(): string | null {
   return null;
 }
 
-export function storefrontOrigins() {
-  return (process.env.STOREFRONT_ORIGIN ?? "")
+function flagOn(value: string | undefined) {
+  const flag = value?.trim().toLowerCase();
+  return flag === "1" || flag === "true";
+}
+
+/** O avanço de rastreio só existe com a flag. NODE_ENV não liga nem desliga a rota. */
+export function sandboxEnabled() {
+  return flagOn(process.env.LUME_ENABLE_SANDBOX);
+}
+
+export function corsOrigins() {
+  return (process.env.CORS_ORIGINS ?? "")
     .split(",")
     .map((item) => item.trim())
     .filter(Boolean);
 }
 
-/** Lê a allowlist a cada pedido. Produção sem origem listada não devolve CORS. */
+/** Lê a allowlist a cada pedido. Sem CORS_ORIGINS, ou fora da lista, não devolve CORS. */
 export function resolveCorsOrigin(requestOrigin: string): string | null {
   const origin = requestOrigin.trim();
-  const allowed = storefrontOrigins();
-  if (process.env.NODE_ENV === "production") {
-    if (!origin || !allowed.includes(origin)) return null;
-    return origin;
-  }
-  if (allowed.length === 0) return origin || "*";
-  if (!origin) return "*";
-  return allowed.includes(origin) ? origin : null;
+  const allowed = corsOrigins();
+  if (!origin || !allowed.includes(origin)) return null;
+  return origin;
 }

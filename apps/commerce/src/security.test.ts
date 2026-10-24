@@ -3,7 +3,7 @@ import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { clearRateLimit, createApp } from "./app";
-import { productionAdminTokenError } from "./env";
+import { productionAdminTokenError, resolveCorsOrigin, sandboxEnabled } from "./env";
 import { clearLoginCodes, LOGIN_TTL_MS, storedLoginHash } from "./login-code";
 import type { OutboundMail } from "./mailer";
 import { rateLimit, type RateCounter } from "./rate-limit";
@@ -12,6 +12,8 @@ const exec = promisify(execFile);
 const saved = {
   NODE_ENV: process.env.NODE_ENV,
   STOREFRONT_ORIGIN: process.env.STOREFRONT_ORIGIN,
+  CORS_ORIGINS: process.env.CORS_ORIGINS,
+  LUME_ENABLE_SANDBOX: process.env.LUME_ENABLE_SANDBOX,
   SANDBOX: process.env.SANDBOX,
   MAILER_URL: process.env.MAILER_URL,
   ADMIN_TOKEN: process.env.ADMIN_TOKEN,
@@ -371,7 +373,7 @@ describe("segurança", () => {
     expect(listed.orders[0].code).toBe(order.code);
   });
 
-  it("limita a consulta do pedido e esconde o sandbox em produção", async () => {
+  it("limita a consulta do pedido e só avança o sandbox com a flag", async () => {
     const app = createApp();
     const order = await place(app, "limite@example.com");
     for (let hit = 0; hit < 20; hit += 1) {
@@ -383,33 +385,61 @@ describe("segurança", () => {
     expect((await limited.json()).error).toBe("limite");
 
     clearRateLimit();
+    delete process.env.LUME_ENABLE_SANDBOX;
+    expect(sandboxEnabled()).toBe(false);
+    const closed = await app.request(`/v1/orders/${order.publicId}/sandbox`, { method: "POST" });
+    expect(closed.status).toBe(404);
+    expect((await closed.json()).error).toBe("nao_encontrado");
+    const waiting = await app.request(`/v1/orders/${order.publicId}`);
+    expect((await waiting.json()).order.status).toBe("aguardando_pagamento");
+
+    process.env.NODE_ENV = "production";
+    process.env.LUME_ENABLE_SANDBOX = "1";
+    expect(sandboxEnabled()).toBe(true);
     const moved = await app.request(`/v1/orders/${order.publicId}/sandbox`, { method: "POST" });
     expect(moved.status).toBe(200);
     expect((await moved.json()).order.status).toBe("pago");
 
-    process.env.NODE_ENV = "production";
+    process.env.LUME_ENABLE_SANDBOX = " TRUE ";
+    expect(sandboxEnabled()).toBe(true);
+    const again = await app.request(`/v1/orders/${order.code}/sandbox`, { method: "POST" });
+    expect(again.status).toBe(200);
+    expect((await again.json()).order.status).toBe("em_preparo");
+
+    delete process.env.LUME_ENABLE_SANDBOX;
+    process.env.NODE_ENV = "development";
     const blockedCode = await app.request(`/v1/orders/${order.code}/sandbox`, { method: "POST" });
     const blockedId = await app.request(`/v1/orders/${order.publicId}/sandbox`, { method: "POST" });
     expect(blockedCode.status).toBe(404);
     expect((await blockedCode.json()).error).toBe("nao_encontrado");
     expect(blockedId.status).toBe(404);
     const still = await app.request(`/v1/orders/${order.publicId}`);
-    expect((await still.json()).order.status).toBe("pago");
+    expect((await still.json()).order.status).toBe("em_preparo");
   });
 
-  it("fecha o CORS em produção numa allowlist explícita", async () => {
+  it("fecha o CORS sem CORS_ORIGINS e reflete só a lista", async () => {
     const app = createApp();
+    delete process.env.CORS_ORIGINS;
+    process.env.STOREFRONT_ORIGIN = "https://legado.test";
+    process.env.NODE_ENV = "development";
+    expect(resolveCorsOrigin("https://legado.test")).toBeNull();
+    expect(resolveCorsOrigin("")).toBeNull();
+    const devClosed = await app.request("/health", { headers: { origin: "https://qualquer.test" } });
+    expect(devClosed.headers.get("access-control-allow-origin")).toBeNull();
+    expect(devClosed.status).toBe(200);
+
     process.env.NODE_ENV = "production";
-    delete process.env.STOREFRONT_ORIGIN;
     const closed = await app.request("/health", { headers: { origin: "https://evil.test" } });
     expect(closed.headers.get("access-control-allow-origin")).toBeNull();
-    expect(closed.status).toBe(200);
 
-    process.env.STOREFRONT_ORIGIN = "https://loja.test, https://www.loja.test";
+    process.env.NODE_ENV = "test";
+    process.env.CORS_ORIGINS = "https://loja.test, https://www.loja.test";
     const allowed = await app.request("/health", { headers: { origin: "https://www.loja.test" } });
     expect(allowed.headers.get("access-control-allow-origin")).toBe("https://www.loja.test");
     const foreign = await app.request("/health", { headers: { origin: "https://evil.test" } });
     expect(foreign.headers.get("access-control-allow-origin")).toBeNull();
+    const star = await app.request("/health", { headers: { origin: "*" } });
+    expect(star.headers.get("access-control-allow-origin")).toBeNull();
     const preflight = await app.request("/health", {
       method: "OPTIONS",
       headers: {
@@ -419,11 +449,12 @@ describe("segurança", () => {
       },
     });
     expect(preflight.headers.get("access-control-allow-headers")?.toLowerCase()).toContain("authorization");
+    expect(preflight.headers.get("access-control-allow-origin")).toBe("https://loja.test");
 
-    process.env.NODE_ENV = "test";
-    delete process.env.STOREFRONT_ORIGIN;
-    const open = await app.request("/health", { headers: { origin: "https://qualquer.test" } });
-    expect(open.headers.get("access-control-allow-origin")).toBe("https://qualquer.test");
+    delete process.env.CORS_ORIGINS;
+    process.env.NODE_ENV = "production";
+    const legacy = await app.request("/health", { headers: { origin: "https://legado.test" } });
+    expect(legacy.headers.get("access-control-allow-origin")).toBeNull();
   });
 
   it("recusa o arranque em produção sem ADMIN_TOKEN forte", async () => {

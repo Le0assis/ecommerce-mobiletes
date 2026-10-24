@@ -184,7 +184,7 @@ Identificadores estáveis para o backlog. O que está marcado como vitrine já e
 - Zod na borda. Erro de domínio vira 400 com código estável. Erro inesperado vira 500 sem stack para o cliente.
 - Fora de produção o admin ainda aceita `x-admin-token`. Em produção o cabeçalho não autentica, e o processo não sobe sem `ADMIN_TOKEN` de pelo menos 24 caracteres, diferente de `dev-admin-token`.
 - Limite de checkout, test ride, consulta de pedido e login de admin. Redis quando `REDIS_URL` existe; memória do processo no resto, inclusive se o Redis falhar.
-- CORS em produção só para origens listadas em `STOREFRONT_ORIGIN`. Sem a lista, nenhuma origem de browser é liberada.
+- CORS só para origens listadas em `CORS_ORIGINS`. Sem a lista, nenhuma origem de browser é liberada, em qualquer ambiente. `POST /v1/orders/:ref/sandbox` só avança com `LUME_ENABLE_SANDBOX=1` ou `true`.
 - Log em JSON com `requestId`, método, caminho, status e duração. Sem e-mail, telefone ou corpo do pedido no log.
 - Segredo fora do git. `.env` e `.env.local` não sobem. Exemplo sim.
 

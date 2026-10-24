@@ -40,7 +40,7 @@ import { clientAddress } from "./client-address";
 import { CatalogUnavailable, createCatalog, type Catalog } from "./catalog-store";
 import type { Database } from "./db/client";
 import { createMemoryStore, createPostgresStore, type ExchangeRecord, type ServiceRecord, type StoredOrder, type TestRideRecord } from "./db/operations";
-import { resolveCorsOrigin, adminToken } from "./env";
+import { resolveCorsOrigin, adminToken, sandboxEnabled } from "./env";
 import { LoginError, requestLoginCode, verifyLoginCode } from "./login-code";
 import { createMailer, MailUnavailable, type Mailer } from "./mailer";
 import { publicCatalogProduct, publicDomainProduct, withColorStock } from "./public-product";
@@ -399,7 +399,7 @@ export function createApp(deps: CommerceDeps = {}) {
   });
 
   app.post("/v1/orders/:code/sandbox", async (c) => {
-    if (process.env.NODE_ENV === "production") {
+    if (!sandboxEnabled()) {
       return c.json({ error: "nao_encontrado", message: "Não encontrado." }, 404);
     }
     const order = await loadOrder(store, c.req.param("code"));

@@ -57,7 +57,7 @@ Todos POST com JSON.
 
 A resposta traz `order` recalculado e a frase de que nenhum pagamento foi ao Mercado Pago ou à Pagar.me. `order.code` é `LM` + ano + 4 dígitos, só para mostrar. `order.publicId` é o token longo que a vitrine guarda e abre. Com Postgres, o checkout grava esse token em `orders.public_id` no insert/upsert pela chave `code`. O índice único rejeita o mesmo token em outro pedido. A API não faz backfill. A leitura do token é `where public_id = $1`; se a requisição traz e-mail ou sessão, a query também exige esse dono. Sem e-mail, o token abre sozinho. Pix: `order.pix.copyPaste` começa com `LUME-MOCK-PIX-` seguido do código `LM`.
 
-`POST /v1/orders/:ref/sandbox` avança um passo do rastreio fora de produção. `:ref` aceita `publicId` ou o código `LM`. A mensagem contém `LUME-SANDBOX`. Com `NODE_ENV=production` a rota responde 404 `{ error: "nao_encontrado", message: "Não encontrado." }` e não muda o pedido.
+`POST /v1/orders/:ref/sandbox` avança um passo do rastreio só com `LUME_ENABLE_SANDBOX=1` ou `true`. A flag não depende de `NODE_ENV`: com ela a rota avança até em produção; sem ela responde 404 em desenvolvimento e em produção. `:ref` aceita `publicId` ou o código `LM`. A mensagem contém `LUME-SANDBOX`. Sem a flag a rota responde 404 `{ error: "nao_encontrado", message: "Não encontrado." }` e não muda o pedido. O botão “Avançar no sandbox” da página do pedido chama essa rota e fica em 404 enquanto a API não tiver a flag.
 
 `POST /v1/auth/request` com `{ email }` responde `{ email, message: "Código enviado." }`. O código tem 6 dígitos, vale 10 minutos, aceita no máximo 5 tentativas e só serve uma vez. Um novo pedido antes de 60 segundos responde 429 `{ error: "limite", message: "Espere um minuto para pedir outro código." }`. A resposta não traz o código. O envio passa por um mailer: `MAILER_URL` recebe um POST JSON `{ to, subject, text }`. Sem provedor e fora de produção, a API escreve o código no log (`mail_log`). Em produção, sem `MAILER_URL`, a rota responde 503 `{ error: "email_indisponivel", message: "Não foi possível enviar o código." }` e não grava nem loga o código.
 
@@ -65,7 +65,7 @@ A resposta traz `order` recalculado e a frase de que nenhum pagamento foi ao Mer
 
 `GET /v1/account/orders` exige `Authorization: Bearer` e devolve os pedidos daquele e-mail, cada um com `code` e `publicId`.
 
-Em produção o CORS só reflete uma origem presente em `STOREFRONT_ORIGIN` (lista separada por vírgula). Sem a lista, ou com origem de fora, a resposta não traz `Access-Control-Allow-Origin`. Fora de produção, lista vazia continua aberta. `Authorization` entra nos cabeçalhos permitidos.
+O CORS reflete só uma origem presente em `CORS_ORIGINS` (lista separada por vírgula, com esquema e sem caminho). Sem a lista, com lista vazia ou com origem de fora, a resposta não traz `Access-Control-Allow-Origin`, em qualquer `NODE_ENV`. A API não devolve `*`. `STOREFRONT_ORIGIN` não abre o CORS. A vitrine no mesmo host passa pelo rewrite `/api/commerce` e não depende desse cabeçalho. `Authorization` entra nos cabeçalhos permitidos.
 
 `ADMIN_TOKEN` em produção precisa existir, ter pelo menos 24 caracteres e ser diferente de `dev-admin-token`. Sem isso o processo sai com `boot_recusado` e não escuta porta. O cabeçalho `x-admin-token` continua sem autenticar em produção. Sem `DATABASE_URL`, ou se o Postgres não conectar, produção também sai com `boot_recusado`. A semente em memória fica só em dev e teste.
 

@@ -66,9 +66,9 @@ A semente de exemplo usa Yadea, Aima, MotoChefe, Shineray, MXF e Watts. A Watts 
 
 O login do cliente gera um código de 6 dígitos por e-mail. Em repouso fica o hash SHA-256 com sal. Vale 10 minutos, cinco tentativas e um uso. Novo envio antes de 60 segundos responde 429 e mantém o código anterior. `MAILER_URL` recebe o texto. Sem provedor, fora de produção, o log `mail_log` carrega o código; em produção a rota responde 503 e não loga. `LUME-SANDBOX` só passa em `NODE_ENV=test` ou com `SANDBOX=1`/`true` fora de produção.
 
-O código `LM` continua na tela e no Pix de demonstração. A URL e a lista local usam `publicId`. `GET /v1/orders/:LM` exige o e-mail do pedido na query ou na sessão. O identificador longo abre sozinho. A consulta tem limite. `POST /v1/orders/:ref/sandbox` responde 404 em produção.
+O código `LM` continua na tela e no Pix de demonstração. A URL e a lista local usam `publicId`. `GET /v1/orders/:LM` exige o e-mail do pedido na query ou na sessão. O identificador longo abre sozinho. A consulta tem limite. `POST /v1/orders/:ref/sandbox` responde 404 sem `LUME_ENABLE_SANDBOX=1` ou `true`, em qualquer `NODE_ENV`.
 
-`STOREFRONT_ORIGIN` é allowlist. Produção sem origem listada não devolve CORS. `ADMIN_TOKEN` fraco ou ausente impede o processo de escutar. O limite usa Redis em `REDIS_URL` e cai para a memória se o comando falhar. O contrato está em `docs/api.md`.
+`CORS_ORIGINS` é a allowlist. Sem origem listada a API não devolve CORS e não usa `STOREFRONT_ORIGIN` nem `*`. `ADMIN_TOKEN` fraco ou ausente impede o processo de escutar. O limite usa Redis em `REDIS_URL` e cai para a memória se o comando falhar. O contrato está em `docs/api.md`.
 
 ## ADR 17 — Operação no Postgres
 
