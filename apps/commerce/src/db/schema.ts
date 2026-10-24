@@ -317,12 +317,15 @@ export const orders = pgTable(
     totalCents: integer("total_cents").notNull(),
     cep: text("cep").notNull(),
     payload: jsonb("payload").notNull(),
+    /** Token longo. NULL quando o payload não tem publicId ou quando ele está repetido e esta não é a linha mais antiga. */
+    publicId: text("public_id"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     index("orders_created_at_idx").on(table.createdAt),
     index("orders_status_created_at_idx").on(table.status, table.createdAt),
     index("orders_customer_email_idx").on(table.customerEmail),
+    uniqueIndex("orders_public_id_idx").on(table.publicId),
     check(
       "orders_money_non_negative",
       sql`${table.subtotalCents} >= 0 and ${table.shippingCents} >= 0 and ${table.totalCents} >= 0`,
@@ -375,4 +378,96 @@ export const fiscalDocuments = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [index("fiscal_documents_order_code_idx").on(table.orderCode)],
+);
+
+/** Sessão opaca. Cliente traz e-mail; admin não. O token é a chave. */
+export const sessions = pgTable(
+  "sessions",
+  {
+    token: text("token").primaryKey(),
+    kind: text("kind").notNull(),
+    email: text("email"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+  },
+  (table) => [
+    index("sessions_email_idx").on(table.email),
+    check("sessions_kind_check", sql`${table.kind} in ('customer', 'admin')`),
+    check(
+      "sessions_email_by_kind",
+      sql`(${table.kind} = 'customer' and ${table.email} is not null) or (${table.kind} = 'admin' and ${table.email} is null)`,
+    ),
+  ],
+);
+
+/** Código de uso único só como hash. Não há coluna com o código em claro. */
+export const loginCodes = pgTable(
+  "login_codes",
+  {
+    email: text("email").primaryKey(),
+    hash: text("hash").notNull(),
+    salt: text("salt").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    attempts: integer("attempts").notNull().default(0),
+    sentAt: timestamp("sent_at", { withTimezone: true }).notNull(),
+  },
+  (table) => [check("login_codes_attempts_range", sql`${table.attempts} between 0 and 5`)],
+);
+
+/** Troca de usado. Sem vínculo com pedido. */
+export const exchanges = pgTable(
+  "exchanges",
+  {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    email: text("email").notNull(),
+    phone: text("phone").notNull(),
+    brand: text("brand").notNull(),
+    model: text("model").notNull(),
+    city: text("city").notNull(),
+    year: integer("year").notNull(),
+    km: integer("km").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("exchanges_created_at_idx").on(table.createdAt),
+    check("exchanges_year_range", sql`${table.year} between 1990 and 2030`),
+    check("exchanges_km_range", sql`${table.km} between 0 and 500000`),
+  ],
+);
+
+/** Agendamento de serviço. Sem chave estrangeira: dealer_id e product_id são texto livre. */
+export const serviceBookings = pgTable(
+  "service_bookings",
+  {
+    id: text("id").primaryKey(),
+    dealerId: text("dealer_id").notNull(),
+    productId: text("product_id").notNull(),
+    name: text("name").notNull(),
+    email: text("email").notNull(),
+    phone: text("phone").notNull(),
+    preferredDate: text("preferred_date").notNull(),
+    note: text("note").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("service_bookings_dealer_id_idx").on(table.dealerId),
+    index("service_bookings_product_id_idx").on(table.productId),
+    index("service_bookings_created_at_idx").on(table.createdAt),
+    check("service_bookings_preferred_date_format", sql`${table.preferredDate} ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'`),
+  ],
+);
+
+/** Estoque por cor, à parte de product_variants e product_colors. Sem chave estrangeira. */
+export const colorStock = pgTable(
+  "color_stock",
+  {
+    productId: text("product_id").notNull(),
+    colorId: text("color_id").notNull(),
+    stock: integer("stock").notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.productId, table.colorId], name: "color_stock_pkey" }),
+    check("color_stock_stock_non_negative", sql`${table.stock} >= 0`),
+  ],
 );
