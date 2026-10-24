@@ -31,6 +31,7 @@ import {
   tradeInBody,
   type PaymentMethod,
 } from "@lume/domain";
+import { randomBytes } from "node:crypto";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import type { Context } from "hono";
@@ -38,13 +39,17 @@ import { getCookie } from "hono/cookie";
 import { ADMIN_COOKIE, mountCatalogRoutes, sessionIsCurrent } from "./catalog-routes";
 import { clientAddress } from "./client-address";
 import { CatalogUnavailable, createCatalog, type Catalog } from "./catalog-store";
+import { resolveCorsOrigin, adminToken } from "./env";
+import { LoginError, requestLoginCode, verifyLoginCode } from "./login-code";
+import { createMailer, MailUnavailable, type Mailer } from "./mailer";
 import { publicCatalogProduct, publicDomainProduct } from "./public-product";
 import { quoteCatalogProduct, type CatalogLine } from "./quote-catalog";
-import { adminToken } from "./env";
+import { rateLimit, type RateCounter } from "./rate-limit";
 import type { UploadRequest } from "./uploads";
 
 type OrderRecord = {
   code: string;
+  publicId: string;
   status: "aguardando_pagamento" | "pago" | "em_preparo" | "em_transporte" | "entregue" | "recusado";
   couponCode?: string;
   couponCents?: number;
@@ -87,32 +92,22 @@ export type CommerceDeps = {
   banners?: Map<string, boolean>;
   blobSigner?: (input: UploadRequest) => Promise<{ clientToken: string; pathname: string }>;
   catalog?: Catalog;
+  mailer?: Mailer;
+  limiter?: RateCounter;
   /** Sem Postgres, criar/editar/arquivar produto, variante, foto, acessório e avaria responde 503. */
   persistent?: boolean;
 };
 
-const hits = new Map<string, { count: number; reset: number }>();
+export { clearRateLimit } from "./rate-limit";
 
-export function clearRateLimit() {
-  hits.clear();
-}
-
-function rateLimit(key: string, limit: number) {
-  const now = Date.now();
-  const current = hits.get(key);
-  if (!current || current.reset < now) {
-    hits.set(key, { count: 1, reset: now + 60_000 });
-    return false;
+function problem(error: unknown): { status: 400 | 429 | 500 | 503; body: { error: string; message: string } } {
+  if (error instanceof LoginError || error instanceof MailUnavailable) {
+    return { status: error.status, body: { error: error.code, message: error.message } };
   }
-  current.count += 1;
-  return current.count > limit;
-}
-
-function problem(error: unknown) {
   if (error instanceof DomainError) {
-    return { status: 400 as const, body: { error: error.code, message: error.message } };
+    return { status: 400, body: { error: error.code, message: error.message } };
   }
-  return { status: 500 as const, body: { error: "erro_interno", message: "Não foi possível concluir agora." } };
+  return { status: 500, body: { error: "erro_interno", message: "Não foi possível concluir agora." } };
 }
 
 function orderCode(now: Date) {
@@ -123,7 +118,10 @@ function orderCode(now: Date) {
 
 export function createApp(deps: CommerceDeps = {}) {
   const orders = deps.orders ?? new Map<string, OrderRecord>();
+  const sessions = new Map<string, string>();
   const bookings = deps.bookings ?? [];
+  const mailer = deps.mailer ?? createMailer();
+  const limited = (key: string, limit: number) => rateLimit(key, limit, deps.limiter);
   const extraReviews = deps.extraReviews ?? [];
   const stock = deps.stock ?? new Map<string, number>();
   const now = deps.now ?? (() => new Date());
@@ -196,15 +194,11 @@ export function createApp(deps: CommerceDeps = {}) {
     );
   });
 
-  const storefrontOrigin = process.env.STOREFRONT_ORIGIN;
   app.use(
     "*",
     cors({
-      origin: (origin) => {
-        if (!origin || !storefrontOrigin) return origin || "*";
-        return origin === storefrontOrigin ? origin : storefrontOrigin;
-      },
-      allowHeaders: ["Content-Type", "x-admin-token", "x-request-id"],
+      origin: (origin) => resolveCorsOrigin(origin),
+      allowHeaders: ["Content-Type", "Authorization", "x-admin-token", "x-request-id"],
     }),
   );
 
@@ -297,7 +291,7 @@ export function createApp(deps: CommerceDeps = {}) {
   );
 
   app.post("/v1/test-rides", async (c) => {
-    if (rateLimit(`ride:${clientAddress(c)}`, 20)) {
+    if (await limited(`ride:${clientAddress(c)}`, 20)) {
       return c.json({ error: "limite", message: "Muitas tentativas. Espere um minuto." }, 429);
     }
     return read(c, testRideBody, (input) => {
@@ -335,7 +329,7 @@ export function createApp(deps: CommerceDeps = {}) {
   );
 
   app.post("/v1/checkout", async (c) => {
-    if (rateLimit(`pay:${clientAddress(c)}`, 30)) {
+    if (await limited(`pay:${clientAddress(c)}`, 30)) {
       return c.json({ error: "limite", message: "Muitas tentativas. Espere um minuto." }, 429);
     }
     return read(c, checkoutBody, async (input) => {
@@ -370,8 +364,11 @@ export function createApp(deps: CommerceDeps = {}) {
       const moment = now();
       let code = orderCode(moment);
       while (orders.has(code)) code = orderCode(moment);
+      let publicId = randomBytes(32).toString("base64url");
+      while ([...orders.values()].some((order) => order.publicId === publicId)) publicId = randomBytes(32).toString("base64url");
       const record: OrderRecord = {
         code,
+        publicId,
         status: "aguardando_pagamento",
         method: input.method,
         provider,
@@ -414,14 +411,24 @@ export function createApp(deps: CommerceDeps = {}) {
     });
   });
 
-  app.get("/v1/orders/:code", (c) => {
-    const order = orders.get(c.req.param("code").toUpperCase());
-    if (!order) return c.json({ error: "pedido_inexistente", message: "Pedido não encontrado." }, 404);
+  app.get("/v1/orders/:code", async (c) => {
+    if (await limited(`order:${clientAddress(c)}`, 20)) {
+      return c.json({ error: "limite", message: "Muitas tentativas. Espere um minuto." }, 429);
+    }
+    const raw = c.req.param("code");
+    const display = isDisplayCode(raw);
+    const order = findOrder(orders, raw);
+    if (!order || (display && !ownsOrder(c, order, sessions))) {
+      return c.json({ error: "pedido_inexistente", message: "Pedido não encontrado." }, 404);
+    }
     return c.json({ order, tracking: trackingFor(order.status) });
   });
 
   app.post("/v1/orders/:code/sandbox", async (c) => {
-    const order = orders.get(c.req.param("code").toUpperCase());
+    if (process.env.NODE_ENV === "production") {
+      return c.json({ error: "nao_encontrado", message: "Não encontrado." }, 404);
+    }
+    const order = findOrder(orders, c.req.param("code"));
     if (!order) return c.json({ error: "pedido_inexistente", message: "Pedido não encontrado." }, 404);
     const steps = ["aguardando_pagamento", "pago", "em_preparo", "em_transporte", "entregue"] as const;
     const index = steps.indexOf(order.status as (typeof steps)[number]);
@@ -436,7 +443,6 @@ export function createApp(deps: CommerceDeps = {}) {
     });
   });
 
-  const sessions = new Map<string, string>();
   const tradeIns: { id: string; createdAt: string; brand: string; model: string; city: string }[] = [];
   const serviceBookings: { id: string; createdAt: string; dealerId: string; productId: string; preferredDate: string }[] = [];
 
@@ -464,29 +470,31 @@ export function createApp(deps: CommerceDeps = {}) {
   );
 
   app.post("/v1/auth/request", async (c) =>
-    read(c, authRequestBody, (input) => ({
-      email: input.email.toLowerCase(),
-      devCode: "LUME-SANDBOX",
-      message: "Código de sandbox. Não é um e-mail enviado.",
-    })),
+    read(c, authRequestBody, async (input) => {
+      const email = input.email.toLowerCase();
+      await requestLoginCode(email, now().getTime(), async (code) => {
+        await mailer.send({
+          to: email,
+          subject: "Código de acesso LUME",
+          text: `Seu código é ${code}. Ele vale por 10 minutos e só pode ser usado uma vez.`,
+        });
+      });
+      return { email, message: "Código enviado." };
+    }),
   );
 
   app.post("/v1/auth/verify", async (c) =>
     read(c, authVerifyBody, (input) => {
-      if (input.code.trim().toUpperCase() !== "LUME-SANDBOX") {
-        throw new DomainError("codigo_invalido", "O código de sandbox é LUME-SANDBOX.");
-      }
+      const email = verifyLoginCode(input.email, input.code, now().getTime());
       const token = crypto.randomUUID();
-      const email = input.email.toLowerCase();
       sessions.set(token, email);
       return { token, email };
     }),
   );
 
   app.get("/v1/account/orders", (c) => {
-    const token = (c.req.header("authorization") ?? "").replace(/^Bearer\s+/i, "");
-    const email = sessions.get(token);
-    if (!email) return c.json({ error: "nao_autorizado", message: "Entre de novo com o código de sandbox." }, 401);
+    const email = bearerEmail(c, sessions);
+    if (!email) return c.json({ error: "nao_autorizado", message: "Entre de novo." }, 401);
     const mine = [...orders.values()].filter((order) => order.customer.email.toLowerCase() === email);
     return c.json({ email, orders: mine });
   });
@@ -561,7 +569,7 @@ export function createApp(deps: CommerceDeps = {}) {
     catalog,
     sessions: adminSessions,
     authorized,
-    rateLimit,
+    rateLimit: limited,
     now,
     blobSigner: deps.blobSigner,
     persistent: deps.persistent,
@@ -580,6 +588,29 @@ export function createApp(deps: CommerceDeps = {}) {
 }
 
 const trackSteps = ["aguardando_pagamento", "pago", "em_preparo", "em_transporte", "entregue"] as const;
+
+function isDisplayCode(raw: string) {
+  return /^LM\d{6}$/.test(raw.toUpperCase());
+}
+
+function findOrder(orders: Map<string, OrderRecord>, raw: string) {
+  if (isDisplayCode(raw)) return orders.get(raw.toUpperCase());
+  return [...orders.values()].find((order) => order.publicId === raw);
+}
+
+function bearerEmail(c: Context, sessions: Map<string, string>) {
+  const token = (c.req.header("authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
+  if (!token) return undefined;
+  return sessions.get(token);
+}
+
+function ownsOrder(c: Context, order: OrderRecord, sessions: Map<string, string>) {
+  const customer = order.customer.email.toLowerCase();
+  const session = bearerEmail(c, sessions);
+  if (session && session === customer) return true;
+  const query = (c.req.query("email") ?? "").trim().toLowerCase();
+  return query.length > 0 && query === customer;
+}
 
 function trackingFor(status: string) {
   const index = trackSteps.indexOf(status as (typeof trackSteps)[number]);

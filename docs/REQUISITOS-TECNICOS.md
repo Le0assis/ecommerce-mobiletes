@@ -129,12 +129,12 @@ Identificadores estáveis para o backlog. O que está marcado como vitrine já e
 - RF-PAY-05. Sandbox sem credencial: avançar o status do pedido e deixar explícito que Mercado Pago e Pagar.me não capturaram valor. Etapa 3.
 - RF-PAY-02. Provedor: Pix e boleto no Mercado Pago. Cartão parcelado na Pagar.me. Stripe fica como alternativa contratual, não como adquirente principal: no varejo brasileiro o parcelado com a mecânica de loja e o boleto estão mais maduros em Mercado Pago e Pagar.me. Interface `selectProvider` no domínio. Credencial e webhook são v1.
 - RF-PAY-03. O payload de Pix de demonstração é prefixado com `LUME-MOCK-PIX` para ninguém confundir com um BR Code real.
-- RF-PED-01. Código de pedido, página de acompanhamento e lista local dos códigos feitos neste navegador. Vitrine. Status real (pago, em transporte, entregue) vem com o webhook.
+- RF-PED-01. Código `LM` só para mostrar. A página e a lista local usam um identificador longo. Status real (pago, em transporte, entregue) vem com o webhook.
 - RF-PED-02. E-mail transacional do pedido. v1.
 
 ### Conta
 
-- RF-ACC-01. Perfil de demonstração só no navegador, sem senha e sem CPF. Vitrine. A etapa 3 acrescenta sessão de sandbox por código visível na tela, não por e-mail.
+- RF-ACC-01. Perfil de demonstração só no navegador, sem senha e sem CPF. A sessão pede um código de uso único. Fora de produção, sem provedor de e-mail, o código fica no log da API.
 - RF-ACC-02. Entrada por link mágico, sessão no servidor, pedido histórico, exclusão de conta. v1. Sem Keycloak no MVP.
 
 ### Admin e conteúdo
@@ -182,9 +182,9 @@ Identificadores estáveis para o backlog. O que está marcado como vitrine já e
 
 - Preço e frete revalidados na API. O browser não é fonte do total.
 - Zod na borda. Erro de domínio vira 400 com código estável. Erro inesperado vira 500 sem stack para o cliente.
-- Admin por header `x-admin-token`. Em produção, sem `ADMIN_TOKEN` definido, a rota recusa. O token de desenvolvimento `dev-admin-token` não pode ir para o ambiente público.
-- Limite simples de escrita em checkout e test ride (memória do processo). Redis assume isso na v1.
-- CORS preso a `STOREFRONT_ORIGIN` quando a variável existe.
+- Fora de produção o admin ainda aceita `x-admin-token`. Em produção o cabeçalho não autentica, e o processo não sobe sem `ADMIN_TOKEN` de pelo menos 24 caracteres, diferente de `dev-admin-token`.
+- Limite de checkout, test ride, consulta de pedido e login de admin. Redis quando `REDIS_URL` existe; memória do processo no resto, inclusive se o Redis falhar.
+- CORS em produção só para origens listadas em `STOREFRONT_ORIGIN`. Sem a lista, nenhuma origem de browser é liberada.
 - Log em JSON com `requestId`, método, caminho, status e duração. Sem e-mail, telefone ou corpo do pedido no log.
 - Segredo fora do git. `.env` e `.env.local` não sobem. Exemplo sim.
 
@@ -297,7 +297,7 @@ Tabelas em `apps/commerce/src/db/schema.ts` e no SQL `apps/commerce/drizzle/`:
 
 O que o código de domínio trata e o schema ainda não separa em tabela própria (fica no `jsonb` do pedido até a v1): linha de acessório, pagamento e remessa. Quando o webhook existir, `payments` ganha tabela com status e id externo. Não guardar PAN nem CVV.
 
-Índices do catálogo de autopropelidos (slug, SKU, filtro, ordem e chave estrangeira) estão na migration `0003_catalogo_integridade`, junto com check de preço e estoque e o `ON DELETE` de avarias. A `0006_consultas_loja` acrescenta, com `CREATE INDEX IF NOT EXISTS`, a vitrine (`status = ativo` e `is_enabled`, categoria, marca e preço), pedidos por data, status e e-mail, reviews por produto, e as chaves de endereço, test ride e NF-e. O check de centavos do pedido entra `NOT VALID`: linha antiga permanece, insert novo não aceita valor negativo. `product_colors (product_id, color_id)` já é único. Dinheiro continua inteiro em centavos.
+Índices do catálogo de autopropelidos (slug, SKU, filtro, ordem e chave estrangeira) estão na migration `0003_catalogo_integridade`, junto com check de preço e estoque e o `ON DELETE` de avarias. A `0006_consultas_loja` acrescenta, com `CREATE INDEX IF NOT EXISTS`, a vitrine (`status = ativo` e `is_enabled`, categoria, marca e preço), pedidos por data, status e e-mail, reviews por produto, e as chaves de endereço, test ride e NF-e. O check de centavos do pedido entra `NOT VALID`: linha antiga permanece, insert novo não aceita valor negativo. A `0007_acesso_operacao` acrescenta `orders.public_id`, `sessions`, `login_codes`, `exchanges`, `service_bookings` e `color_stock`, com backfill idempotente do `publicId` no payload. `product_colors (product_id, color_id)` já é único. Dinheiro continua inteiro em centavos.
 
 Retenção: pedido e documento fiscal pelo prazo legal. Test ride sem compra, 12 meses, depois exclusão. Backup do Postgres com restore testado antes do go-live. Isso é tarefa de DBA, não de migration automática.
 

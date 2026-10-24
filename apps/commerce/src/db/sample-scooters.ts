@@ -15,7 +15,7 @@
  *
  * Largura e entre-eixos são centímetros (width_cm / wheelbase_cm), a mesma unidade
  * de autopropelidoBadge. Potência nominal é watt. Velocidade é km/h. O banco
- * (seat_height_mm) não entra no selo. medidas de exemplo, a confirmar.
+ * (seat_height_mm) não entra no selo. A descrição fecha com "Peso e medidas de exemplo."
  * Watts W1 e Shineray PT2XS cabem nos quatro tetos (≤ 1000 W, ≤ 32 km/h, ≤ 70 cm,
  * ≤ 130 cm). As outras ficam fora: a DT3 passa de largura e de entre-eixos; as
  * demais não têm potência nominal e também passam de pelo menos uma medida.
@@ -91,11 +91,10 @@ function spec(partial: Partial<SampleSpec>): SampleSpec {
 }
 
 /** Texto explícito na descrição. Não é medição do fabricante. */
-const EXAMPLE_WEIGHT_NOTE = "peso de exemplo, a confirmar";
-const EXAMPLE_MEASURE_NOTE = "medidas de exemplo, a confirmar";
+const EXAMPLE_SPEC_NOTE = "Peso e medidas de exemplo.";
 
 function describe(text: string): string {
-  return `${text} ${EXAMPLE_WEIGHT_NOTE}. ${EXAMPLE_MEASURE_NOTE}.`;
+  return `${text} ${EXAMPLE_SPEC_NOTE}`;
 }
 
 // cor de exemplo, a confirmar com Léo

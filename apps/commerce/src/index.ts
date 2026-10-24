@@ -6,9 +6,14 @@ import { createDatabase } from "./db/client";
 import { applyMigrations, publicationMigrations } from "./db/migrate";
 import { createPostgresCatalog } from "./db/postgres-catalog";
 import { persistBooking, persistOrder } from "./db/persist";
-import { loadEnvFile } from "./env";
+import { loadEnvFile, productionAdminTokenError } from "./env";
 
 loadEnvFile();
+const refused = productionAdminTokenError();
+if (refused) {
+  console.error(JSON.stringify({ msg: "boot_recusado", message: refused }));
+  process.exit(1);
+}
 
 async function openCatalog() {
   const url = process.env.DATABASE_URL;

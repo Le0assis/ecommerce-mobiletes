@@ -61,3 +61,11 @@ Uma senha só. O hash scrypt fica em `ADMIN_PASSWORD_HASH`. O cookie `lume_admin
 ## ADR 15 — Amostra das marcas pedidas e loja só com habilitado
 
 A semente de exemplo usa Yadea, Aima, MotoChefe, Shineray, MXF e Watts. A Watts é a W1, piso de demonstração de R$ 4.300, sem bateria nem autonomia inventadas. A Foston sai do seed. `rangeKm` segue na vitrine como “Autonomia (declarada)”. `isEnabled` é independente de `status`: só `ativo` e habilitado aparece na loja, na busca, no quiz, no carrinho e no checkout. Desabilitado no carrinho é removido com aviso. O catálogo de domínio responde `isEnabled: true` até viver na mesma tabela. A coluna `is_enabled` está na migration `0004`. O cadastro grava no Postgres. A API não confirma criar, editar ou arquivar só na memória: sem banco a resposta é 503. `rangeKm` é a autonomia declarada, igual a `specs.rangeKmDeclared`, e fica `null` quando a ficha não traz o número.
+
+## ADR 16 — Código de acesso, pedido e borda de produção
+
+O login do cliente gera um código de 6 dígitos por e-mail. Em repouso fica o hash SHA-256 com sal. Vale 10 minutos, cinco tentativas e um uso. Novo envio antes de 60 segundos responde 429 e mantém o código anterior. `MAILER_URL` recebe o texto. Sem provedor, fora de produção, o log `mail_log` carrega o código; em produção a rota responde 503 e não loga. `LUME-SANDBOX` só passa em `NODE_ENV=test` ou com `SANDBOX=1`/`true` fora de produção.
+
+O código `LM` continua na tela e no Pix de demonstração. A URL e a lista local usam `publicId`. `GET /v1/orders/:LM` exige o e-mail do pedido na query ou na sessão. O identificador longo abre sozinho. A consulta tem limite. `POST /v1/orders/:ref/sandbox` responde 404 em produção.
+
+`STOREFRONT_ORIGIN` é allowlist. Produção sem origem listada não devolve CORS. `ADMIN_TOKEN` fraco ou ausente impede o processo de escutar. O limite usa Redis em `REDIS_URL` e cai para a memória se o comando falhar. O contrato está em `docs/api.md`.

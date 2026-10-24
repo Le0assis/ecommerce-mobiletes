@@ -58,7 +58,7 @@ export async function seedCatalog(db: Database) {
         },
       });
 
-    // medidas de exemplo, a confirmar. Não é ficha do fabricante.
+    // Peso e medidas de exemplo. Não é ficha do fabricante.
     // O selo lê potência em W, velocidade em km/h, largura e entre-eixos em cm (não mm).
     // O upsert regrava a ficha. is_enabled continua de fora do ON CONFLICT.
     await tx

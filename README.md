@@ -215,14 +215,15 @@ O que cada linha significa:
 | --- | --- | --- |
 | `PORT` | `8787` | Porta da API. A vitrine procura a API nessa porta. |
 | `DATABASE_URL` | `postgres://lume:lume@127.0.0.1:54329/lume` | Endereço do Postgres. Usuário `lume`, senha `lume`, banco `lume`, porta **54329** no seu computador (o container escuta 5432 por dentro). |
-| `REDIS_URL` | `redis://127.0.0.1:63799` | Redis, reservado para carrinho e limite de taxa. A API sobe sem ele. |
+| `REDIS_URL` | `redis://127.0.0.1:63799` | Limite de taxa. A API sobe sem ele e usa a memória do processo. Se o Redis cair, o limite volta para a memória. |
 | `MEILI_HOST` | `http://127.0.0.1:7709` | Meilisearch, reservado para a busca. Sem ele, a busca usa o catálogo em memória. |
 | `MEILI_MASTER_KEY` | `lume-dev-master-key` | Senha do Meilisearch de desenvolvimento. Tem de ser a mesma do `docker-compose.yml`. |
 | `ADMIN_PASSWORD_HASH` | `scrypt$...$...` | Hash scrypt da senha única de admin. A senha não entra no git. Sem este valor, `POST /v1/admin/login` responde 503. |
 | `BLOB_READ_WRITE_TOKEN` | token do Blob | Token de escrita do Vercel Blob. Só no servidor. Sem ele, o upload de foto responde 503. O caminho aceito é `lume/<arquivo>`. |
 | `TRUSTED_PROXIES` | vazio | IPs que podem informar o cliente. Sem isso, o limite usa o socket e ignora `x-forwarded-for`. Na Vercel, `VERCEL=1` faz a API ler `x-vercel-forwarded-for`. |
-| `ADMIN_TOKEN` | `troque-este-token` | Cabeçalho `x-admin-token` fora de produção. Em desenvolvimento, se esta linha não existir, a API aceita `dev-admin-token`. Em produção o cabeçalho não autentica. |
-| `STOREFRONT_ORIGIN` | `http://127.0.0.1:43123` | Endereço exato da vitrine. A API só libera chamadas de browser vindas dele. Se você abrir o site por outro endereço, o checkout no browser pode falhar. |
+| `ADMIN_TOKEN` | `troque-este-token` | Cabeçalho `x-admin-token` fora de produção. Em desenvolvimento, se esta linha não existir, a API aceita `dev-admin-token`. Em produção o cabeçalho não autentica, e a API não sobe se o valor faltar, tiver menos de 24 caracteres ou for `dev-admin-token`. |
+| `STOREFRONT_ORIGIN` | `http://127.0.0.1:43123` | Origens da vitrine, separadas por vírgula. Em produção o browser só passa se a origem estiver na lista. Em desenvolvimento, sem a variável, o CORS continua aberto. |
+| `MAILER_URL` | vazio | Para onde a API manda o código de acesso. Vazio em desenvolvimento: o código sai no log da API. Em produção, vazio faz o pedido de código responder 503. |
 
 Se for rodar **sem Docker**, não deixe o `DATABASE_URL` apontando para um Postgres desligado. Apague ou comente (coloque `#` no começo) as linhas `DATABASE_URL`, `REDIS_URL`, `MEILI_HOST` e `MEILI_MASTER_KEY`. A API sobe do mesmo jeito. A loja lê a semente em memória. Criar ou editar produto no admin responde 503 até o banco existir.
 
@@ -397,7 +398,7 @@ Repita para `8787` se a API não sobe.
 
 **O checkout diz que a loja não respondeu.** A API não está no ar, ou `COMMERCE_API_URL` não é `http://127.0.0.1:8787`. Olhe o terminal do `pnpm dev`.
 
-**O navegador bloqueia o checkout por CORS.** Você abriu a vitrine por um endereço diferente de `STOREFRONT_ORIGIN` (por exemplo `localhost` no lugar de `127.0.0.1`). Use o mesmo endereço nos dois, ou apague `STOREFRONT_ORIGIN` do `.env` da API enquanto desenvolve.
+**O navegador bloqueia o checkout por CORS.** Você abriu a vitrine por um endereço diferente de `STOREFRONT_ORIGIN` (por exemplo `localhost` no lugar de `127.0.0.1`). Use o mesmo endereço nos dois. Em desenvolvimento, apagar `STOREFRONT_ORIGIN` deixa o CORS aberto. Em produção a lista vazia não libera origem nenhuma.
 
 **Pedido some depois de reiniciar.** Sem Postgres, o pedido está na memória. Com Postgres desligado e `DATABASE_URL` preenchido, o log da API mostra `postgres_indisponivel` ou `pedido_nao_gravado` e o pedido também fica só na memória.
 

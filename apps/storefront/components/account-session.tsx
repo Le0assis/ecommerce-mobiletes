@@ -20,9 +20,12 @@ export function AccountSession() {
 
   async function askCode() {
     setError("");
-    const body = await requestSandboxCode(email);
-    setHint(`${body.message} Código: ${body.devCode}`);
-    setCode(body.devCode);
+    try {
+      const body = await requestSandboxCode(email);
+      setHint(body.message);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Não foi possível enviar o código.");
+    }
   }
 
   async function enter() {
@@ -41,7 +44,7 @@ export function AccountSession() {
   return (
     <section className="grid gap-4 rounded-[1.8rem] border border-white/10 p-5">
       <h2 className="text-xl font-light">Sessão de sandbox</h2>
-      <p className="text-sm text-muted-foreground">Sem senha e sem CPF. O código aparece aqui porque nenhum e-mail é enviado.</p>
+      <p className="text-sm text-muted-foreground">Sem senha e sem CPF. O código chega no e-mail do pedido e vale uma vez. Em desenvolvimento, a API escreve o código no log.</p>
       <div className="grid gap-2">
         <Label htmlFor="session-email">E-mail do pedido</Label>
         <Input id="session-email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} className="h-12 rounded-full px-4" />
@@ -64,8 +67,8 @@ export function AccountSession() {
         ) : (
           <ul className="grid gap-2 text-sm">
             {orders.map((order) => (
-              <li key={order.code}>
-                <Link className="underline" href={`/pedido/${order.code}`}>
+              <li key={order.publicId ?? order.code}>
+                <Link className="underline" href={`/pedido/${encodeURIComponent(order.publicId || order.code)}`}>
                   {order.code}
                 </Link>
                 <span className="nums text-muted-foreground"> · {formatBRL(order.totalCents)} · {order.status.replaceAll("_", " ")}</span>

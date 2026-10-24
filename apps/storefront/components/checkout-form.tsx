@@ -71,10 +71,11 @@ export function CheckoutForm({ products, catalogMessage }: { products: StoreProd
           phone: String(formData.get("phone")),
         },
       });
+      const ref = order.publicId || order.code;
       track("checkout", { method, code: order.code });
-      shop.rememberOrder(order.code);
+      shop.rememberOrder(ref);
       shop.clear();
-      router.push(`/pedido/${order.code}`);
+      router.push(`/pedido/${encodeURIComponent(ref)}`);
     } catch (cause) {
       setError(commerceCode(cause) === "peso_invalido" ? pesoInvalidoMessage : cause instanceof Error ? cause.message : "Falha no checkout.");
       setPending(false);

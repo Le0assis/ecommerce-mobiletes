@@ -282,7 +282,8 @@ describe("API de commerce", () => {
     expect(body.product.powerNominalW).toBe(1000);
     expect(body.product.widthCm).toBe(78);
     expect(body.product.wheelbaseCm).toBe(135);
-    expect(body.product.description).toContain("medidas de exemplo, a confirmar");
+    expect(body.product.description).toContain("Peso e medidas de exemplo.");
+    expect(body.product.description.toLowerCase()).not.toContain("a confirmar");
     expect(body.accessories).toEqual(body.product.accessories);
     expect(body.reviews).toEqual([]);
 
@@ -309,8 +310,8 @@ describe("API de commerce", () => {
           item.widthCm <= 300 &&
           item.wheelbaseCm > 0 &&
           item.wheelbaseCm <= 400 &&
-          item.description.includes("peso de exemplo, a confirmar") &&
-          item.description.includes("medidas de exemplo, a confirmar") &&
+          item.description.includes("Peso e medidas de exemplo.") &&
+          !item.description.toLowerCase().includes("a confirmar") &&
           item.variants.every((variant) => variant.stock === 5 && variant.colorName.endsWith("(EXEMPLO)")),
       ),
     ).toBe(true);

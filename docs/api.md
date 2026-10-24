@@ -2,7 +2,7 @@
 
 Base local: `http://127.0.0.1:8787`. A vitrine chama `/api/commerce/...`, e o Next reescreve para `COMMERCE_API_URL` (padrão `http://127.0.0.1:8787`).
 
-Erro de domínio volta como JSON `{ error, message }` e o status adequado. A mensagem é a do `DomainError`, sem stack. Checkout: 30 pedidos por minuto por IP. Test ride: 20. Login de admin: 8. O limite é memória do processo. O IP é o do socket. `x-forwarded-for` só entra se esse socket estiver em `TRUSTED_PROXIES` (o endereço observado pelo proxy é o último hop que não é o próprio proxy). Com `VERCEL=1`, o IP é o de `x-vercel-forwarded-for`, não o `x-forwarded-for` enviado pelo cliente.
+Erro de domínio volta como JSON `{ error, message }` e o status adequado. A mensagem é a do `DomainError`, sem stack. Checkout: 30 pedidos por minuto por IP. Test ride: 20. Consulta de pedido: 20. Login de admin: 8. Com `REDIS_URL`, o limite usa Redis (`lume:rl:`). Se o Redis não responder, o processo volta para a memória. Sem `REDIS_URL`, o limite já nasce na memória. O IP é o do socket. `x-forwarded-for` só entra se esse socket estiver em `TRUSTED_PROXIES` (o endereço observado pelo proxy é o último hop que não é o próprio proxy). Com `VERCEL=1`, o IP é o de `x-vercel-forwarded-for`, não o `x-forwarded-for` enviado pelo cliente.
 
 `GET /health` → `{ ok, service: "lume-commerce", persistence: "memoria" | "postgres-configurado" }`.
 
@@ -14,7 +14,7 @@ Erro de domínio volta como JSON `{ error, message }` e o status adequado. A men
 | GET | `/v1/products/:slug` | `{ product, accessories, reviews }` ou 404. `reviews` fica vazio no produto do cadastro. Slug que existe e não está `ativo` e habilitado responde 404, mesmo que o domínio tenha o mesmo slug. |
 | GET | `/v1/reviews?produto=` | semente mais relatos pendentes do processo |
 | GET | `/v1/banners` | carrossel: só ativos, ordenados por `position`. Campos `imageUrl`, `subtitle`, `href`, `title`. |
-| GET | `/v1/orders/:code` | `{ order }` ou 404. Código em maiúsculas |
+| GET | `/v1/orders/:ref` | `{ order, tracking }`. `:ref` é o `publicId` (token longo) e abre o pedido. O código `LM` + ano + 4 dígitos é só exibição: sem o e-mail do cliente (`?email=`) ou a sessão `Authorization: Bearer` do mesmo e-mail, a resposta é 404 `pedido_inexistente`. O limite é 429 `limite`. |
 
 Cada produto, na lista e em `product`, tem a mesma forma:
 
@@ -55,17 +55,25 @@ Todos POST com JSON.
 
 `POST /v1/checkout` — `lines[]` (`productId`, `colorId`, `accessoryIds`, `batteryId?`, `qty` 1–2, no máximo 5 linhas), `cep`, `shippingServiceId` (`dedicado`), `method` (`pix` | `boleto` | `cartao`), `installments` (1 se não for cartão), `couponCode?`, `customer` (`name`, `email`, `phone`). Não há retirada em loja. Produto do cadastro entra pelo `id` ou pelo `slug`. A variante é a cor. Sem `batteryId`, a série entra com delta zero. Pix e boleto continuam nos descontos de `@lume/domain`. O frete usa `specs.weightKg` de cada linha e não inventa quilograma. Peso ausente, zero ou acima de 400 kg em qualquer linha, e a soma das linhas acima de 400 kg, responde 400 `{ error: "peso_invalido", message: "Peso fora da faixa de transporte." }` e o pedido não é criado. `POST /v1/shipping/quote` devolve o mesmo corpo quando o `weightKg` do pedido falta, é zero ou passa de 400 kg. Linha desabilitada ou fora de `ativo` responde 400 `{ error: "produto_desabilitado", message: "Esse modelo não está habilitado." }` e o pedido não é criado. Id desconhecido no cadastro segue para `@lume/domain` e, se também não existir, responde `produto_inexistente`.
 
-`POST /v1/orders/:code/sandbox` avança um passo do rastreio. A mensagem contém `LUME-SANDBOX`.
+A resposta traz `order` recalculado e a frase de que nenhum pagamento foi ao Mercado Pago ou à Pagar.me. `order.code` é `LM` + ano + 4 dígitos, só para mostrar. `order.publicId` é o token longo que a vitrine guarda e abre. Pix: `order.pix.copyPaste` começa com `LUME-MOCK-PIX-` seguido do código `LM`.
 
-`POST /v1/auth/request` e `POST /v1/auth/verify` com o código `LUME-SANDBOX`. `GET /v1/account/orders` exige `Authorization: Bearer`.
+`POST /v1/orders/:ref/sandbox` avança um passo do rastreio fora de produção. `:ref` aceita `publicId` ou o código `LM`. A mensagem contém `LUME-SANDBOX`. Com `NODE_ENV=production` a rota responde 404 `{ error: "nao_encontrado", message: "Não encontrado." }` e não muda o pedido.
 
-A resposta traz `order` recalculado e a frase de que nenhum pagamento foi ao Mercado Pago ou à Pagar.me. Pix: `order.pix.copyPaste` começa com `LUME-MOCK-PIX-`.
+`POST /v1/auth/request` com `{ email }` responde `{ email, message: "Código enviado." }`. O código tem 6 dígitos, vale 10 minutos, aceita no máximo 5 tentativas e só serve uma vez. Um novo pedido antes de 60 segundos responde 429 `{ error: "limite", message: "Espere um minuto para pedir outro código." }`. A resposta não traz o código. O envio passa por um mailer: `MAILER_URL` recebe um POST JSON `{ to, subject, text }`. Sem provedor e fora de produção, a API escreve o código no log (`mail_log`). Em produção, sem `MAILER_URL`, a rota responde 503 `{ error: "email_indisponivel", message: "Não foi possível enviar o código." }` e não grava nem loga o código.
+
+`POST /v1/auth/verify` com `{ email, code }` responde `{ token, email }`. Código errado: 400 `codigo_invalido`. Expirado: 400 `codigo_expirado`. Quinta falha: 400 `codigo_esgotado` e o código deixa de valer. `LUME-SANDBOX` só entra quando `NODE_ENV=test`, ou quando `SANDBOX` é `1` ou `true` e o processo não é produção. Em produção esse código é `codigo_invalido`, mesmo com `SANDBOX=1`.
+
+`GET /v1/account/orders` exige `Authorization: Bearer` e devolve os pedidos daquele e-mail, cada um com `code` e `publicId`.
+
+Em produção o CORS só reflete uma origem presente em `STOREFRONT_ORIGIN` (lista separada por vírgula). Sem a lista, ou com origem de fora, a resposta não traz `Access-Control-Allow-Origin`. Fora de produção, lista vazia continua aberta. `Authorization` entra nos cabeçalhos permitidos.
+
+`ADMIN_TOKEN` em produção precisa existir, ter pelo menos 24 caracteres e ser diferente de `dev-admin-token`. Sem isso o processo sai com `boot_recusado` e não escuta porta. O cabeçalho `x-admin-token` continua sem autenticar em produção.
 
 ## Admin
 
 A entrada é `POST /v1/admin/login` com `{ password }`. A senha não fica no código: `ADMIN_PASSWORD_HASH` é `scrypt$<sal hex>$<hash hex>`, gerado por `hashAdminPassword` em `apps/commerce/src/auth.ts`. O cookie `lume_admin` é `httpOnly`, `SameSite=Lax`, `Path=/` e, em produção, `Secure`. A sessão no servidor dura 12 horas e o logout a apaga. O `Set-Cookie` do logout repete `Path`, `HttpOnly`, `Secure` e `SameSite`. O login aceita 8 tentativas por minuto por IP.
 
-Fora de produção, `x-admin-token` ainda abre o admin (o valor de `ADMIN_TOKEN`, ou `dev-admin-token` se a variável não existir). Com `NODE_ENV=production` o cabeçalho não autentica.
+Fora de produção, `x-admin-token` ainda abre o admin (o valor de `ADMIN_TOKEN`, ou `dev-admin-token` se a variável não existir). Com `NODE_ENV=production` o cabeçalho não autentica, e a API não sobe se `ADMIN_TOKEN` faltar, tiver menos de 24 caracteres ou for `dev-admin-token`.
 
 `GET /v1/admin/dealers?cidade=` é a única leitura de lojas. A rota pública `/v1/dealers` não existe mais. A vitrine não lista lojas.
 
@@ -79,9 +87,9 @@ O cadastro de autopropelidos grava no Postgres quando `DATABASE_URL` conecta: pr
 
 `DELETE /v1/admin/products/:id` arquiva (`status: "arquivado"`). A linha, a ficha e as variantes continuam no banco. Apagar de verdade não está aprovado.
 
-A migration `0005_product_specs_numeric` converte as medidas de `product_specs` para `numeric(12,2)`. Também repete `products.is_enabled boolean NOT NULL DEFAULT true` com `ADD COLUMN IF NOT EXISTS` e só cria o CHECK do teto se o nome ainda não existe, para conviver com a migration do DBA. Pode rodar de novo. `32.5` volta na leitura. No arranque, a API aplica só `0004` e `0005` em cima de um banco que já passou por `db:push`. O histórico `0000`–`0003` não roda de novo nesse arranque.
+A migration `0005_product_specs_numeric` converte as medidas de `product_specs` para `numeric(12,2)`. Também repete `products.is_enabled boolean NOT NULL DEFAULT true` com `ADD COLUMN IF NOT EXISTS` e só cria o CHECK do teto se o nome ainda não existe, para conviver com a migration do DBA. Pode rodar de novo. `32.5` volta na leitura. No arranque, a API aplica `0004` a `0007` em cima de um banco que já passou por `db:push`. O histórico `0000`–`0003` não roda de novo nesse arranque. A `0007_acesso_operacao` cria `orders.public_id`, sessão, código de login, troca, agendamento de serviço e `color_stock`, sem apagar linha.
 
-Rodar de novo o seed atualiza as oito scooters pela chave e apaga `foston-x15-max`. Não recoloca `is_enabled` numa linha que o admin já desligou. A Watts da semente é a W1, piso de demonstração R$ 4.300, sem bateria nem autonomia inventadas. Largura e entre-eixos de exemplo ficam em centímetros; a potência nominal de exemplo da W1 (350 W) e da Shineray PT2XS (450 W) fica em watts, com 32 km/h, e essas duas recebem o selo. A descrição marca “medidas de exemplo, a confirmar”. Toda variante da semente nasce com estoque de exemplo 5 e cor no formato `Nome (EXEMPLO)`. O seed atualiza essa variante pelo id e não cria outra. Estoque 0 ainda responde `cor_sem_estoque`.
+Rodar de novo o seed atualiza as oito scooters pela chave e apaga `foston-x15-max`. Não recoloca `is_enabled` numa linha que o admin já desligou. A Watts da semente é a W1, piso de demonstração R$ 4.300, sem bateria nem autonomia inventadas. Largura e entre-eixos de exemplo ficam em centímetros; a potência nominal de exemplo da W1 (350 W) e da Shineray PT2XS (450 W) fica em watts, com 32 km/h, e essas duas recebem o selo. A descrição marca “Peso e medidas de exemplo.”. Toda variante da semente nasce com estoque de exemplo 5 e cor no formato `Nome (EXEMPLO)`. O seed atualiza essa variante pelo id e não cria outra. Estoque 0 ainda responde `cor_sem_estoque`.
 
 | Método | Caminho | Uso |
 | --- | --- | --- |

@@ -33,6 +33,7 @@ export function OrderStatus({ code }: { code: string }) {
 
   return (
     <div className="mt-8 grid gap-4 rounded-[1.8rem] border border-white/10 p-5">
+      <p className="nums text-3xl font-light">{order.code}</p>
       <ol className="grid gap-2">
         {tracking.map((step) => (
           <li key={step.id} className={step.done ? "text-paper" : "text-muted-foreground"}>
