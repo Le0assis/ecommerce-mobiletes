@@ -13,7 +13,7 @@ export const registrationNote: Record<RegistrationClass, string> = {
   autopropelido:
     "Resolução CONTRAN 996/2023, art. 2º, II: potência nominal máxima de até 1.000 W, velocidade máxima de fabricação de até 32 km/h, largura de até 70 cm e entre-eixos de até 130 cm. O art. 12 não sujeita esse equipamento a registro, licenciamento e emplacamento. O art. 11 manda a circulação seguir as regras das bicicletas. O autopropelido dispensa registro e habilitação.",
   ciclomotor:
-    "Ciclomotor: placa e ACC ou CNH A (CTB art. 162, I; Res. 996/2023, Anexo I). O ciclomotor também exige registro (CTB art. 141). O prazo de 31/12/2025 era só para o registro no RENAVAM.",
+    "Ciclomotor: placa e ACC ou CNH A (CTB art. 162, I; Res. 996/2023, Anexo I). O ciclomotor também exige registro (CTB art. 120; Res. 996/2023, arts. 13-14). O prazo de 31/12/2025 era só para o registro no RENAVAM.",
   moto: "Condução na categoria A, emplacamento e capacete. A potência de cada modelo só vale depois da homologação.",
 };
 
