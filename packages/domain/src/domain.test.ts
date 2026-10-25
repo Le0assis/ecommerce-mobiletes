@@ -184,7 +184,7 @@ describe("vitrine por categoria e cidade", () => {
 
   it("o FAQ de CNH cita o registro do ciclomotor", () => {
     const item = faq.find((entry) => entry.question === "Preciso de CNH?");
-    expect(item?.answer).toContain("O ciclomotor também exige registro (CTB art. 141).");
+    expect(item?.answer).toContain("O ciclomotor também exige registro (CTB art. 120; Res. 996/2023, arts. 13-14).");
     expect(item?.answer).toContain("placa e ACC ou CNH A");
   });
 
