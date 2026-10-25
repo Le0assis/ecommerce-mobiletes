@@ -4,7 +4,7 @@ Revisão da vitrine e do admin em 24 de outubro de 2026, na `feat/lume-mutirao-f
 
 ## Já nesta passagem
 
-- O FAQ “Preciso de CNH?” cita o registro do ciclomotor no CTB art. 141, junto com placa e ACC ou CNH A.
+- O FAQ “Preciso de CNH?” cita o registro do ciclomotor no CTB art. 120; Res. 996/2023, arts. 13-14, junto com placa e ACC ou CNH A.
 - O motivo do capacete no quiz atribui a dispensa de habilitação ao autopropelido.
 - O token de admin só abre a tela depois que `GET /v1/admin/overview` aceita.
 - Salvar estoque no admin recusa campo vazio antes de converter para número e mostra “O estoque deve ser um número inteiro de 0 a 999.” quando o valor sai de 0 a 999. O estoque desta tela continua sem mudar a vitrine.
