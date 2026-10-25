@@ -17,7 +17,7 @@ async function OrderBody({ params }: PageProps<"/pedido/[code]">) {
   return (
     <main id="conteudo" className="mx-auto max-w-3xl px-5 pt-28 pb-20">
       <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Acompanhamento</p>
-      <h1 className="display mt-3 text-6xl">Pedido {code}</h1>
+      <h1 className="display mt-3 text-6xl">Pedido</h1>
       <OrderStatus code={code} />
     </main>
   );

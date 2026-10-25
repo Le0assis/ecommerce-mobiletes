@@ -1,4 +1,5 @@
 import { CookieNotice } from "@/components/cookie-notice";
+import { WhatsAppButton } from "@/components/whatsapp-button";
 import { FloatingNav } from "@/components/floating-nav";
 import { ShopProvider } from "@/components/shop-provider";
 import { SiteFooter } from "@/components/site-footer";
@@ -24,11 +25,16 @@ export const metadata: Metadata = {
     template: "%s · LUME",
   },
   description:
-    "Motos e mobiletes elétricas para o Brasil. 21x sem juros no cartão, 5% no Pix, frete por CEP e test ride nas lojas.",
+    "Motos e mobiletes elétricas para o Brasil. 21x sem juros no cartão, 5% no Pix, frete por CEP e conversa no WhatsApp.",
   openGraph: {
     locale: "pt_BR",
     siteName: "LUME",
     type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: "LUME — motos e mobiletes elétricas",
+    description: "21x sem juros, Pix com 5% e frete por CEP.",
   },
 };
 
@@ -50,6 +56,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <SiteFooter />
           <Suspense fallback={null}>
             <StickyTestRide />
+            <WhatsAppButton />
           </Suspense>
           <CookieNotice />
         </ShopProvider>

@@ -2,7 +2,7 @@ const items = [
   ["21×", "Sem juros no cartão"],
   ["Pix", "5% na hora"],
   ["CEP", "Frete calculado"],
-  ["Loja", "Test ride com hora marcada"],
+  ["WhatsApp", "Conversa sobre o modelo"],
   ["Bateria", "Garantia a detalhar no contrato"],
   ["Peças", "Rede própria, não marketplace"],
 ];

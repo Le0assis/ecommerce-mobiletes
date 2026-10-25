@@ -5,6 +5,8 @@ export type Dealer = {
   city: string;
   uf: string;
   cep: string;
+  lat: number;
+  lng: number;
   phone: string;
   hours: string;
   testRideSlugs: string[];
@@ -18,14 +20,19 @@ export type Review = {
   title: string;
   body: string;
   monthsUsing: number;
+  /** Caminho público de uma foto de demonstração. Sem rosto. */
+  photo?: string;
 };
 
 export type Banner = {
   id: string;
-  slot: "home-hero" | "home-faixa";
+  slot: "home-hero" | "home-faixa" | "home-carrossel";
   eyebrow: string;
   title: string;
+  subtitle?: string;
   href: string;
+  imageUrl?: string | null;
+  position?: number;
   active: boolean;
 };
 
@@ -38,9 +45,11 @@ export const dealers: Dealer[] = [
     city: "São Paulo",
     uf: "SP",
     cep: "05435-000",
+    lat: -23.5465,
+    lng: -46.6908,
     phone: "(11) 4000-1900",
     hours: "Ter–sáb, 11h–19h",
-    testRideSlugs: ["s", "city", "via", "apex"],
+    testRideSlugs: ["s", "city", "via", "apex", "pico", "onda", "rua"],
   },
   {
     id: "rj-botafogo",
@@ -49,6 +58,8 @@ export const dealers: Dealer[] = [
     city: "Rio de Janeiro",
     uf: "RJ",
     cep: "22250-040",
+    lat: -22.9519,
+    lng: -43.1848,
     phone: "(21) 4000-1900",
     hours: "Ter–sáb, 11h–19h",
     testRideSlugs: ["city", "via", "serra"],
@@ -60,6 +71,8 @@ export const dealers: Dealer[] = [
     city: "Belo Horizonte",
     uf: "MG",
     cep: "30130-000",
+    lat: -19.9386,
+    lng: -43.9332,
     phone: "(31) 4000-1900",
     hours: "Ter–sáb, 11h–19h",
     testRideSlugs: ["s", "city", "serra"],
@@ -71,6 +84,8 @@ export const dealers: Dealer[] = [
     city: "Curitiba",
     uf: "PR",
     cep: "80420-000",
+    lat: -25.4422,
+    lng: -49.2892,
     phone: "(41) 4000-1900",
     hours: "Ter–sáb, 11h–19h",
     testRideSlugs: ["city", "via", "serra"],
@@ -82,6 +97,8 @@ export const dealers: Dealer[] = [
     city: "Porto Alegre",
     uf: "RS",
     cep: "90560-000",
+    lat: -30.0277,
+    lng: -51.2014,
     phone: "(51) 4000-1900",
     hours: "Ter–sáb, 11h–19h",
     testRideSlugs: ["via", "serra", "apex"],
@@ -97,6 +114,7 @@ export const reviews: Review[] = [
     title: "O silêncio muda o caminho",
     body: "Uso a Apex na Marginal e o que impressiona não é a velocidade. É chegar sem o barulho do dia. A carga em casa cobre a semana.",
     monthsUsing: 4,
+    photo: "/reviews/apex.svg",
   },
   {
     id: "rv-city-rj",
@@ -106,6 +124,7 @@ export const reviews: Review[] = [
     title: "Substituiu o carro na semana",
     body: "Botafogo–Centro todo dia, com folga de bateria. O para-brisa alto vale o acessório quando venta na orla.",
     monthsUsing: 7,
+    photo: "/reviews/city.svg",
   },
   {
     id: "rv-s-bh",
@@ -133,7 +152,10 @@ export const banners: Banner[] = [
     slot: "home-hero",
     eyebrow: "Coleção 2026",
     title: "A cidade em silêncio.",
+    subtitle: "Apex em destaque",
     href: "/motos/apex",
+    imageUrl: null,
+    position: 0,
     active: true,
   },
   {
@@ -141,7 +163,10 @@ export const banners: Banner[] = [
     slot: "home-faixa",
     eyebrow: "Pagamento",
     title: "5% no Pix. 21x sem juros no cartão.",
+    subtitle: "",
     href: "/motos/apex",
+    imageUrl: null,
+    position: 1,
     active: true,
   },
 ];

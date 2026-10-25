@@ -2,14 +2,18 @@
 
 import { ProductCard } from "@/components/product-card";
 import { useShop } from "@/components/shop-provider";
-import { getMotorcycle } from "@/lib/catalog";
+import type { StoreProduct } from "@/lib/catalog";
 import Link from "next/link";
 
-export function WishlistView() {
+export function WishlistView({ products, catalogMessage }: { products: StoreProduct[]; catalogMessage: string | null }) {
   const shop = useShop();
-  const products = shop.wishlist.map((slug) => getMotorcycle(slug)).filter((item) => item !== undefined);
+  const saved = shop.wishlist.map((slug) => products.find((item) => item.slug === slug)).filter((item) => item !== undefined);
 
-  if (products.length === 0) {
+  if (catalogMessage) {
+    return <p className="text-sm text-signal">{catalogMessage}</p>;
+  }
+
+  if (shop.wishlist.length === 0) {
     return (
       <div className="rounded-[1.8rem] border border-white/10 p-6">
         <h2 className="text-2xl font-light">A lista está vazia.</h2>
@@ -22,10 +26,13 @@ export function WishlistView() {
   }
 
   return (
-    <div className="grid gap-4 md:grid-cols-2">
-      {products.map((product) => (
-        <ProductCard key={product.id} product={product} />
-      ))}
+    <div className="grid gap-4">
+      {saved.length < shop.wishlist.length ? <p className="text-sm text-muted-foreground">Algum modelo salvo não está mais no catálogo.</p> : null}
+      <div className="grid gap-4 md:grid-cols-2">
+        {saved.map((product) => (
+          <ProductCard key={product.id} product={product} />
+        ))}
+      </div>
     </div>
   );
 }

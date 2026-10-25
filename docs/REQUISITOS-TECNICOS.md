@@ -6,7 +6,7 @@ Os números de produto deste repositório (preço, kW, autonomia, estoque, lojas
 
 ## 1. O que a loja tem de vender
 
-A LUME não é um marketplace de peças. É uma marca com poucos modelos, configuração visível e uma decisão de compra rápida: ver a moto, ver o preço, ver a parcela, pagar no Pix ou reservar um test ride.
+A LUME não é um marketplace de peças. É uma loja com a marca da casa e poucas linhas parceiras de demonstração, configuração visível e uma decisão de compra rápida: ver a moto, ver o preço, ver a parcela, pagar no Pix ou reservar um test ride.
 
 A pesquisa visual entra como restrição de interface, não como tema para copiar.
 
@@ -25,10 +25,23 @@ A pesquisa visual entra como restrição de interface, não como tema para copia
 | Polestar | Vídeo escuro em tela cheia e a forma de pagar já na primeira dobra. | Assinatura de carro. Vira 21x e Pix. |
 | Rivian | Menu em cartão flutuante e um CTA claro. | Frota de aventura. |
 | Rad Power Bikes | Quiz, mapa de loja, ícones de confiança. | O visual de bicicleta utilitária. |
-| Eletrycos | Busca por categoria e cidade. Varejistas em círculos, como stories. | A grade de multimarca. A LUME mostra as próprias lojas. |
+| Eletrycos | Busca por categoria, cidade e marca. Varejistas em círculos, como stories. | O inventário real de terceiros. As marcas parceiras da vitrine (VOLTIS, BRUMA, SENDA) são nomes de demonstração. |
+| Segway, NIU, Super Soco, Yadea | Densidade de catálogo: várias carrocerias, preço de entrada e ficha curta no card. | Nome, foto e preço desses fabricantes. Nada aqui é SKU deles. |
 | Voltage | 21x sem juros em evidência e Pix marcado. | A página de oferta genérica. O número entra no hero, no card e no checkout. |
+| Varejo brasileiro | Pix com desconto, parcelado sem juros, frete por CEP, botão de WhatsApp, e o enquadramento por categoria: autopropelido, ciclomotor ou moto. | Prometer CNH ou placa sem o jurídico. O texto da página é referência, não parecer. |
 
-Direção fechada: visual VanMoof/Cowboy (preto grafite, tipo fino enorme, produto flutuando, menu em cartão) com conversão brasileira (21x sem juros, Pix, test ride grudado, quiz, busca por categoria e cidade).
+Direção fechada: visual VanMoof/Cowboy (preto grafite, tipo fino enorme, produto flutuando, menu em cartão), configurador e filme no espírito Polestar/Rivian/LiveWire, quiz e lojas no espírito Rad, grade densa no espírito dos catálogos asiáticos, busca multimarca no espírito Eletrycos, e conversão brasileira (21x sem juros, Pix com desconto, boleto, CEP, WhatsApp, test ride, enquadramento de habilitação).
+
+## 1.1 Plano em etapas
+
+O dono aprovou a construção em seis etapas, cada uma num pull request empilhado sobre a anterior, sem merge até a revisão. O status de cada requisito diz em que etapa ele fecha.
+
+1. Fundação: sistema visual, layout, home, navegação, catálogo com filtro de marca e busca, página do modelo com galeria, ficha e autonomia, e este documento com todas as referências.
+2. Configurador de cor, bateria e acessório com preço ao vivo, comparador, quiz e calculadora de autonomia e de economia contra gasolina.
+3. Carrinho e checkout: frete por CEP, desconto de Pix, boleto, parcelas, sandbox de Mercado Pago e Pagar.me, cupom, conta, pedidos e rastreio.
+4. Simulação de financiamento, test ride, lojas com mapa, WhatsApp e pedido de troca do usado.
+5. Conteúdo: CMS de demonstração, guias, legislação e CNH, reviews com foto, FAQ, garantia e agendamento de serviço.
+6. Admin, SEO, analytics, desempenho, acessibilidade, LGPD, testes de ponta a ponta e guia de deploy.
 
 ## 2. Diretrizes de design
 
@@ -73,7 +86,8 @@ Identificadores estáveis para o backlog. O que está marcado como vitrine já e
 ### Catálogo
 
 - RF-CAT-01. Listar modelos com categoria, preço de entrada, autonomia, velocidade, 21x e Pix. Vitrine.
-- RF-CAT-02. Filtrar por categoria (mobilete, scooter, naked, adventure, sport) e por cidade da loja. A cidade filtra onde há test ride daquele modelo, não o frete. Vitrine.
+- RF-CAT-02. Filtrar por categoria (mobilete, scooter, naked, adventure, sport), por marca e por cidade da loja. A cidade filtra onde há test ride daquele modelo, não o frete. Etapa 1.
+- RF-CAT-06. Marcas parceiras de demonstração na mesma grade da casa, com busca textual também no nome da marca. Não usar SKU, foto ou preço de Segway, NIU, Super Soco, Yadea ou Eletrycos. Etapa 1.
 - RF-CAT-03. Busca textual simples no nome, na categoria e no texto, com ordem por preço, autonomia ou velocidade. Vitrine em memória. Meilisearch é o índice da v1.
 - RF-CAT-04. Estado vazio quando a cidade não tem loja, com caminho para ver a linha inteira e seguir por CEP. Vitrine.
 - RF-CAT-05. Selo de estoque por cor. Cor com estoque zero não entra no preço. Vitrine.
@@ -85,6 +99,10 @@ Identificadores estáveis para o backlog. O que está marcado como vitrine já e
 - RF-PDP-03. Pix a 5% e boleto a 3% sobre o subtotal configurado. O frete não leva desconto. Vitrine.
 - RF-PDP-04. 21x sem juros sobre o total configurado, campanha de lançamento. A taxa mora no código (`LAUNCH_INTEREST_FREE_UP_TO`) para o financeiro reduzir a carência sem reescrever o checkout. A Tabela Price está testada para quando o sem juros voltar a 6x. Vitrine.
 - RF-PDP-05. Calculadora de autonomia: modo eco, cidade ou esporte, velocidade e peso extra. É estimativa, não ciclo de homologação, e o texto diz isso. Vitrine.
+- RF-PDP-11. Galeria com vistas lateral, detalhe e frente antes do 360°. Etapa 1.
+- RF-PDP-12. Ficha de habilitação por classe: autopropelido, ciclomotor ou moto, com aviso de que não é parecer jurídico. Etapa 1.
+- RF-PDP-13. Opção de bateria no configurador, com delta de preço e de autonomia. A de série tem delta zero, então o preço publicado não muda até a pessoa escolher o pacote maior. Etapa 2.
+- RF-PDP-14. Economia estimada contra gasolina: preço do kWh, da gasolina, km/mês e consumo do carro de referência. Estimativa, não estudo de TCO. Etapa 2.
 - RF-PDP-06. Viewer 360°. Hoje é uma massa simples em React Three Fiber, carregada só no clique, com a ilustração SVG no primeiro paint. O glTF real, com fallback de fotos para Android de entrada, é v1.
 - RF-PDP-07. Reservar leva a configuração ao checkout. A API recalcula e ignora preço vindo do browser. Vitrine.
 - RF-PDP-08. Lista de desejos neste navegador. Vitrine. Conta de verdade sincroniza na v1.
@@ -97,27 +115,31 @@ Identificadores estáveis para o backlog. O que está marcado como vitrine já e
 - RF-QUIZ-01. Perguntas de uso, km/dia, velocidade, orçamento, tomada e garupa. Duas recomendações com motivo. Vitrine, calculado no domínio. A API expõe o mesmo contrato.
 - RF-RIDE-01. Agendar test ride: modelo, loja que tenha o modelo, nome, e-mail, telefone e data. Vitrine. Confirmação humana da loja é v1.
 - RF-LOJA-01. Lista de lojas e filtro por cidade, com atalho para o test ride. Endereço comercial real substitui o de demonstração. Vitrine.
-- RF-LOJA-02. Mapa com coordenada real. v1, quando o ponto existir. A vitrine mostra um esquema do Brasil, explicitamente não geográfico.
+- RF-LOJA-02. Mapa com coordenada. Etapa 4 plota latitude e longitude de demonstração numa projeção simples, sem tile de terceiro. O endereço comercial real continua pendente.
+- RF-WA-01. Botão de WhatsApp com mensagem pronta. O número padrão é o das lojas de demonstração. Etapa 4.
+- RF-TRD-01. Pedido de avaliação do usado, sem preço automático. Etapa 4.
 
 ### Carrinho, frete e checkout
 
 - RF-CAR-01. Carrinho local com quantidade até 2, preço refeito a partir da configuração. Vitrine.
-- RF-FRE-01. CEP com 8 dígitos. `00000000` é inválido. Tabela por prefixo, dois serviços quando a região tem loja: retirada e transporte dedicado. Vitrine. Não é cotação dos Correios.
+- RF-FRE-01. CEP com 8 dígitos. `00000000` é inválido. Tabela por prefixo, um serviço: transporte dedicado até em casa. Sem retirada em loja. Vitrine. Não é cotação dos Correios.
 - RF-FRE-02. ViaCEP para preencher rua e cidade, e Melhor Envio ou transportadora dedicada no lugar da tabela. v1.
 - RF-PAY-01. Métodos: Pix, boleto, cartão 1 a 21x. Pix e boleto são à vista. Vitrine simulada, com prévia de frete e parcela no checkout.
+- RF-PAY-04. Cupom sobre o subtotal configurado, antes do desconto do meio e sem atingir o frete. Códigos de demonstração LUME10 e OFICINA. Etapa 3.
+- RF-PAY-05. Sandbox sem credencial: avançar o status do pedido e deixar explícito que Mercado Pago e Pagar.me não capturaram valor. Etapa 3.
 - RF-PAY-02. Provedor: Pix e boleto no Mercado Pago. Cartão parcelado na Pagar.me. Stripe fica como alternativa contratual, não como adquirente principal: no varejo brasileiro o parcelado com a mecânica de loja e o boleto estão mais maduros em Mercado Pago e Pagar.me. Interface `selectProvider` no domínio. Credencial e webhook são v1.
 - RF-PAY-03. O payload de Pix de demonstração é prefixado com `LUME-MOCK-PIX` para ninguém confundir com um BR Code real.
-- RF-PED-01. Código de pedido, página de acompanhamento e lista local dos códigos feitos neste navegador. Vitrine. Status real (pago, em transporte, entregue) vem com o webhook.
+- RF-PED-01. Código `LM` só para mostrar. A página e a lista local usam um identificador longo. Status real (pago, em transporte, entregue) vem com o webhook.
 - RF-PED-02. E-mail transacional do pedido. v1.
 
 ### Conta
 
-- RF-ACC-01. Perfil de demonstração só no navegador, sem senha e sem CPF. Vitrine.
+- RF-ACC-01. Perfil de demonstração só no navegador, sem senha e sem CPF. A sessão pede um código de uso único. Fora de produção, sem provedor de e-mail, o código fica no log da API.
 - RF-ACC-02. Entrada por link mágico, sessão no servidor, pedido histórico, exclusão de conta. v1. Sem Keycloak no MVP.
 
 ### Admin e conteúdo
 
-- RF-ADM-01. Visão de estoque por cor e de banners, com token. Vitrine. O ajuste de estoque desta versão vale para a memória do processo, não para a vitrine, que lê o catálogo do código.
+- RF-ADM-01. Visão de estoque por cor, variantes de bateria, banners, cupons, guias, pedidos recentes, trocas e serviços, com token. Etapa 6. O ajuste de estoque grava `color_stock` (Postgres quando conecta; memória fora de produção). A vitrine lê `GET /v1/products`, então o card acompanha esse número. Sem a linha, o catálogo de domínio continua com o estoque do código. Serviço e troca ficam na mesma memória até o processo cair.
 - RF-ADM-02. CRUD de produto, preço, cor, acessório, banner e pedido, com papel de operador. v1.
 - RF-CMS-01. Páginas de campanha e filme editáveis no Payload, no mesmo Postgres. v1, depois que a compra funcionar. Não usar Sanity: o conteúdo ficaria fora da conta e o time passaria a operar outro idioma de conteúdo.
 
@@ -133,12 +155,12 @@ Identificadores estáveis para o backlog. O que está marcado como vitrine já e
 - LCP abaixo de 2,5 s em 4G mediano. O hero não espera o mp4: o canvas (ou o poster) pinta primeiro. O vídeo entra quando o arquivo existir e o browser puder tocá-lo.
 - INP abaixo de 200 ms. O configurador não faz requisição para mudar cor ou acessório.
 - CLS abaixo de 0,1. Fonte via `next/font`, preços com casa estável.
-- O bundle do Three.js fica fora da home. Só o clique “Ver em 360°” o pede.
+- O bundle do Three.js fica fora da home. Só o clique “Ver em 360°” o pede, por import dinâmico. Etapa 6 confirma que GSAP não entra.
 - Orçamento de JavaScript da home, sem o viewer: manter o que o build já separa e não acrescentar GSAP nem um segundo player.
 
 ### SEO
 
-- Título e descrição por modelo, `lang="pt-BR"`, canonical via `metadataBase`, sitemap e robots. Rotas em português. Admin, checkout e conta fora do índice. Vitrine.
+- Título e descrição por modelo, `lang="pt-BR"`, canonical via `metadataBase`, Open Graph, cartão do Twitter, sitemap e robots. JSON-LD de produto, de guia e de FAQ. Rotas em português. Admin, checkout e conta fora do índice. Etapa 6.
 - Páginas de modelo são o ativo de busca. Não depender de render só no cliente para o nome, o preço e o texto.
 
 ### Acessibilidade
@@ -147,22 +169,22 @@ Identificadores estáveis para o backlog. O que está marcado como vitrine já e
 - Configurador por teclado, com `aria-pressed` em cor e acessório.
 - O 360° não é a única forma de ver a cor. A ilustração permanece.
 - Foco visível no vermelho. Contraste do botão: texto quase preto sobre `#ff2d2d`.
-- Link “Pular para o conteúdo”.
+- Link “Pular para o conteúdo”. O botão de WhatsApp tem nome acessível. Etapa 6.
 
 ### LGPD e consumo
 
 - Página de privacidade com o que se coleta, a finalidade, o compartilhamento futuro, o prazo e os direitos. Vitrine. O nome do operador e do encarregado entram antes do go-live.
 - Sem CPF no MVP. Sem número de cartão no nosso servidor: o cartão tokeniza no provedor.
-- Carrinho e cookie essencial explicados. Sem anúncio de terceiro nesta versão.
+- Carrinho e cookie explicados. O aviso oferece essencial ou medição local. O valor antigo `ok` continua aceito e não liga medição. `NEXT_PUBLIC_ANALYTICS=console` escreve o evento no console só com a escolha de medição. Sem anúncio de terceiro. Etapa 6.
 - Compra online: lembrar o arrependimento de 7 dias do CDC no fluxo real, com a ressalva do jurídico para veículo.
 
 ### Segurança
 
 - Preço e frete revalidados na API. O browser não é fonte do total.
 - Zod na borda. Erro de domínio vira 400 com código estável. Erro inesperado vira 500 sem stack para o cliente.
-- Admin por header `x-admin-token`. Em produção, sem `ADMIN_TOKEN` definido, a rota recusa. O token de desenvolvimento `dev-admin-token` não pode ir para o ambiente público.
-- Limite simples de escrita em checkout e test ride (memória do processo). Redis assume isso na v1.
-- CORS preso a `STOREFRONT_ORIGIN` quando a variável existe.
+- Fora de produção o admin ainda aceita `x-admin-token` com o `ADMIN_TOKEN` do ambiente. Em produção o cabeçalho não autentica. O processo não sobe sem `ADMIN_TOKEN` de pelo menos 128 bits (`openssl rand -base64 32`). Caractere único ou período repetido não passa. Não há token padrão.
+- Limite de checkout, test ride, consulta de pedido e login de admin. Redis quando `REDIS_URL` existe; memória do processo no resto, inclusive se o Redis falhar.
+- CORS só para origens listadas em `CORS_ORIGINS`, que substitui `STOREFRONT_ORIGIN`. Sem a lista, nenhuma origem de browser é liberada, em qualquer ambiente. `POST /v1/orders/:ref/sandbox` só avança com `LUME_ENABLE_SANDBOX=1` ou `true`. O código de login `LUME-SANDBOX` só entra com `LUME_SANDBOX=1` ou `true`.
 - Log em JSON com `requestId`, método, caminho, status e duração. Sem e-mail, telefone ou corpo do pedido no log.
 - Segredo fora do git. `.env` e `.env.local` não sobem. Exemplo sim.
 
@@ -199,7 +221,7 @@ flowchart LR
 
 O browser pede a página ao Next. O catálogo e a conta de preço vêm de `@lume/domain`, importado pela vitrine e pela API, então os dois não divergem. Mutação (checkout, test ride, admin) passa pela API. O Next reescreve `/api/commerce/*` para o processo da API, e o browser não precisa conhecer a porta 8787.
 
-Postgres é o sistema de registro que o schema já descreve. Nesta fundação, o catálogo canônico ainda é o código, o seed espelha isso no banco, e pedido/test ride são gravados no Postgres quando `DATABASE_URL` conecta. Redis e Meilisearch estão no Compose para o time ligar, sem serem obrigatórios para a página abrir.
+Postgres é o sistema de registro que o schema já descreve. O catálogo canônico de demonstração ainda é o código, o seed espelha isso no banco, e pedido, sessão, código de login, test ride, troca, serviço e estoque por cor gravam e leem no Postgres quando `DATABASE_URL` conecta. Fora de produção, sem a variável, isso fica na memória do processo. Em produção a API não sobe. Redis e Meilisearch estão no Compose para o time ligar, sem serem obrigatórios para a página abrir.
 
 ### Por que o commerce é nosso, e não Medusa ou Saleor
 
@@ -250,6 +272,13 @@ erDiagram
   CUSTOMERS ||--o{ ADDRESSES : tem
   CUSTOMERS ||--o{ ORDERS : faz
   PRODUCTS ||--o{ PRODUCT_COLORS : pinta
+  PRODUCTS ||--o| PRODUCT_SPECS : ficha
+  PRODUCTS ||--o{ PRODUCT_VARIANTS : varia
+  PRODUCTS ||--o{ PRODUCT_IMAGES : ilustra
+  PRODUCTS ||--o{ PRODUCT_ACCESSORIES : combina
+  ACCESSORIES ||--o{ PRODUCT_ACCESSORIES : combina
+  PRODUCTS ||--o{ DAMAGES : avaria
+  DAMAGES ||--o{ DAMAGE_IMAGES : foto
   PRODUCTS ||--o{ ORDER_LINES : entra
   ORDERS ||--o| FISCAL_DOCUMENTS : "NF-e futura"
   DEALERS ||--o{ TEST_RIDE_BOOKINGS : recebe
@@ -259,16 +288,16 @@ erDiagram
 Tabelas em `apps/commerce/src/db/schema.ts` e no SQL `apps/commerce/drizzle/`:
 
 - `customers`, `addresses` — conta e CEP. CPF não está na coluna.
-- `products`, `product_colors`, `accessories` — espelho do catálogo.
+- `products`, `product_specs`, `product_variants`, `product_images`, `product_colors`, `accessories`, `product_accessories`, `damages`, `damage_images` — catálogo de autopropelidos. `product_colors` fica da migration inicial; o admin usa a variante. O seed de exemplo marca `is_sample`. A vitrine lê a API, que mistura domínio e esse Postgres. O CRUD de produto grava aqui. As medidas da ficha são `numeric(12,2)` desde a migration `0005`. Sem `DATABASE_URL` a escrita responde 503.
 - `dealers` — loja.
 - `test_ride_bookings` — agendamento.
 - `orders` — cabeçalho, método, provedor, parcelas, totais e o payload da configuração em `jsonb`.
-- `reviews`, `banners`.
+- `reviews`, `banners` — o banner também tem `image_url`, `position` e `subtitle`.
 - `fiscal_documents` — reserva, sem emissão.
 
 O que o código de domínio trata e o schema ainda não separa em tabela própria (fica no `jsonb` do pedido até a v1): linha de acessório, pagamento e remessa. Quando o webhook existir, `payments` ganha tabela com status e id externo. Não guardar PAN nem CVV.
 
-Índices que o DBA cria junto com o tráfego real: `orders.customer_email`, `orders.created_at`, `test_ride_bookings.dealer_id`, `product_colors (product_id, color_id)` já é único.
+Índices do catálogo de autopropelidos (slug, SKU, filtro, ordem e chave estrangeira) estão na migration `0003_catalogo_integridade`, junto com check de preço e estoque e o `ON DELETE` de avarias. A `0006_consultas_loja` acrescenta, com `CREATE INDEX IF NOT EXISTS`, a vitrine (`status = ativo` e `is_enabled`, categoria, marca e preço), pedidos por data, status e e-mail, reviews por produto, e as chaves de endereço, test ride e NF-e. O check de centavos do pedido entra `NOT VALID`: linha antiga permanece, insert novo não aceita valor negativo. A `0007_acesso_operacao` acrescenta `orders.public_id`, `sessions`, `login_codes`, `exchanges`, `service_bookings` e `color_stock`, com backfill idempotente do `publicId` no payload. A `0008_public_id_restante` preenche o que ainda ficou NULL, sem copiar valor vazio, repetido ou já usado. `product_colors (product_id, color_id)` já é único. Dinheiro continua inteiro em centavos.
 
 Retenção: pedido e documento fiscal pelo prazo legal. Test ride sem compra, 12 meses, depois exclusão. Backup do Postgres com restore testado antes do go-live. Isso é tarefa de DBA, não de migration automática.
 
@@ -282,7 +311,7 @@ Monorepo, domínio testado, direção visual, API com checkout simulado, Compose
 
 ### Vitrine — este repositório
 
-Páginas e fluxos com dado de demonstração: home, catálogo com filtro e ordem, PDP com cor, acessório, 360°, autonomia, parcelas, review e modelos próximos, comparação, quiz, test ride, lojas com esquema, carrinho, checkout com prévia, conta local, pedidos, desejos e páginas institucionais. `apps/storefront/lib/catalog.ts` e `lib/shop-api.ts` são o ponto de troca quando o banco passar a mandar.
+Páginas e fluxos com dado de demonstração: home, catálogo com filtro e ordem, PDP com cor, 360°, autonomia, parcelas, review e modelos próximos, comparação, quiz, WhatsApp, carrinho, checkout com prévia, conta local, pedidos, desejos e páginas institucionais. A leitura de modelo está em `apps/storefront/lib/catalog.ts` (`GET /v1/products`). A escrita continua em `lib/shop-api.ts`.
 
 ### MVP-a — cobrar de verdade
 

@@ -22,7 +22,7 @@
 
 1. Peça de loja em `apps/storefront/components/`. Primitiva (botão, campo, diálogo) já está em `components/ui`. Não desenhe outra.
 2. Componente sem estado pode ser Server Component. Estado, `localStorage` ou clique pedem `"use client"` na folha, não na página inteira.
-3. Preço vem de `@/lib/catalog`. Escrita vem de `@/lib/shop-api`.
+3. A ficha vem de `@/lib/catalog` (`GET /v1/products`). Pix, parcela e frete de prévia usam as funções do domínio em cima desses números. Escrita vem de `@/lib/shop-api`.
 4. Link com cara de botão usa `buttonVariants`, não `Button render={<Link>}`.
 5. Respeite `prefers-reduced-motion` se houver deslocamento.
 6. Nomeie em função do que a pessoa vê (`InstallmentTable`), não da tecnologia.

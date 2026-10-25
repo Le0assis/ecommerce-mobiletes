@@ -17,5 +17,7 @@ Leia nesta ordem se for a primeira vez:
 11. [Como fazer](como-fazer.md) — produto, página, componente, meio de pagamento.
 12. [Decisões](decisoes.md) — ADRs.
 13. [Roadmap](roadmap.md) — o que já está e o que falta, por dependência.
+14. [Deploy](deploy.md) — publicar vitrine e API sem credencial de pagamento.
+15. [Propostas](propostas.md) — o que a revisão da vitrine ainda não fez.
 
 `apps/storefront/AGENTS.md` é o guia de versão do Next.js. Não é este índice.

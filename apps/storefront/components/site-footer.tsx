@@ -1,3 +1,4 @@
+import { whatsappGreeting, whatsappHref } from "@/lib/whatsapp";
 import Link from "next/link";
 
 export function SiteFooter() {
@@ -18,13 +19,19 @@ export function SiteFooter() {
           <Link href="/comparar">Comparar</Link>
           <Link href="/me-ajude-a-escolher">Me ajude a escolher</Link>
           <Link href="/financiamento">21× e Pix</Link>
-          <Link href="/lojas">Lojas</Link>
-          <Link href="/test-ride">Test ride</Link>
+          <a href={whatsappHref(whatsappGreeting)} target="_blank" rel="noreferrer">
+            WhatsApp
+          </a>
+          <Link href="/troca">Troca do usado</Link>
         </div>
         <div className="flex flex-col gap-2 text-sm text-muted-foreground">
           <Link href="/sobre">Sobre</Link>
           <Link href="/energia">Energia</Link>
           <Link href="/garantia">Garantia</Link>
+          <Link href="/servico">Serviço</Link>
+          <Link href="/guias">Guias</Link>
+          <Link href="/legislacao">CNH</Link>
+          <Link href="/faq">FAQ</Link>
           <Link href="/trocas">Trocas</Link>
           <Link href="/contato">Contato</Link>
           <Link href="/conta">Conta</Link>

@@ -14,7 +14,7 @@ Vitrine: [http://127.0.0.1:43123](http://127.0.0.1:43123). API: [http://127.0.0.
 
 O Next precisa do hostname `127.0.0.1`. Em `localhost` o dev server do Next 16 bloqueia o asset e a página não hidrata: a cor não muda o preço. `allowedDevOrigins` inclui os dois, e os scripts `dev` e `start` já prendem o host.
 
-Sem Docker a loja abre. `persistence` fica `memoria`. Postgres, Redis e Meilisearch são o Compose, portas 54329, 63799 e 7709. Docker não é obrigatório para ver a vitrine.
+Sem Docker a loja abre em dev e teste. `persistence` fica `memoria`. Postgres, Redis e Meilisearch são o Compose, portas 54329, 63799 e 7709. Docker não é obrigatório para ver a vitrine. Em produção a API não sobe sem `DATABASE_URL`.
 
 ## Testar
 
@@ -25,14 +25,16 @@ pnpm test
 pnpm --filter @lume/storefront exec playwright test
 ```
 
-`pnpm test` cobre o domínio (preço, 21x, juros quando a carência cai, CEP, quiz) e a API (checkout simulado). O Playwright abre a home, troca a Apex para Cobre, espera R$ 64.700,00 e cai no checkout. Ele exige `html[data-configurator=ready]`.
+`pnpm db:audit` lê o Postgres e não apaga nada. Exige `DATABASE_URL`. Lista centavos negativos em `orders` (`subtotal_cents`, `shipping_cents`, `total_cents`), `customers.email` repetido sem diferenciar maiúsculas, `test_ride_bookings` sem dealer ou sem produto, e pedido com `status` fora de `aguardando_pagamento | pago | em_preparo | em_transporte | entregue | recusado` ou `installments` fora de 1 a 21. Sai 0 sem achado e 1 se houver linha para o DBA olhar antes do `VALIDATE`.
+
+`pnpm test` cobre o domínio (preço, 21x, juros quando a carência cai, CEP, quiz) e a API (checkout simulado, cupom, troca, serviço e a visão do admin). O Playwright abre a home, troca a Apex para Cobre, espera R$ 64.700,00 e cai no checkout. Ele exige `html[data-configurator=ready]`. Outro teste filtra `marca=VOLTIS` e abre a legislação.
 
 O typecheck da vitrine roda `next typegen` antes do `tsc`, porque `PageProps` e `LayoutProps` nascem aí.
 
 ## Publicar
 
-Ainda não há ambiente de produção. O CI (`.github/workflows/ci.yml`) faz lint, typecheck, teste, build da vitrine e, noutro job, Playwright contra `next start`.
+O passo a passo está em [deploy.md](deploy.md). O CI (`.github/workflows/ci.yml`) faz lint, typecheck, teste, build da vitrine e, noutro job, Playwright contra `next start`.
 
-Quando houver hospedagem: vitrine na Vercel ou OpenNext; API e Postgres em sa-east-1; `STOREFRONT_ORIGIN` travando o CORS; `ADMIN_TOKEN` obrigatório em produção; segredo fora do git. Não publique com o token `dev-admin-token`.
+Vitrine na Vercel ou OpenNext. API e Postgres em sa-east-1. `CORS_ORIGINS` substitui `STOREFRONT_ORIGIN` como allowlist de CORS, separada por vírgula. Sem essa lista o browser não recebe origem permitida, em qualquer ambiente. `LUME_ENABLE_SANDBOX=1` liga o avanço de rastreio; sem a flag a rota responde 404. `LUME_SANDBOX=1` aceita o código de login `LUME-SANDBOX`; sem a flag o código não entra. Falha de migração ou de Postgres encerra a API. `LUME_ALLOW_MEMORY_FALLBACK=1` é a única queda para a memória. Em produção o admin entra com `ADMIN_PASSWORD_HASH` (scrypt) e cookie httpOnly, com sessão de 12 horas no servidor. `BLOB_READ_WRITE_TOKEN` assina o upload de foto em `lume/`. O limite por IP usa Redis quando `REDIS_URL` existe e a memória do processo quando não existe ou o Redis falha. O IP é o do socket, `TRUSTED_PROXIES` ou, na Vercel, `x-vercel-forwarded-for`. Segredo fora do git. `ADMIN_TOKEN` não autentica quando `NODE_ENV=production`, e o processo não sobe se esse token faltar, ficar abaixo de 128 bits ou for um caractere único ou um período repetido. Gere com `openssl rand -base64 32`. Não há token padrão.
 
 Build local da vitrine: `pnpm --filter @lume/storefront build`. Páginas dinâmicas que leem `params` precisam do `Suspense` já usado em `/motos/[slug]` e `/pedido/[code]`.

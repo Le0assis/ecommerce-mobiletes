@@ -11,6 +11,7 @@ flowchart LR
   pg[(Postgres)]
 
   browser --> web
+  web -->|leitura do catálogo| api
   web --> domain
   web -->|mutação| api
   api --> domain
@@ -25,20 +26,20 @@ flowchart LR
 | Vitrine | Apresentar, guardar carrinho neste navegador, chamar a API nas mutações | Inventar centavos |
 | API | Recalcular o pedido, gravar pedido e test ride, validar com Zod | Confiar no total que o browser mandou |
 
-A vitrine importa o domínio por `apps/storefront/lib/catalog.ts`. As escritas passam por `apps/storefront/lib/shop-api.ts`, que fala com `/api/commerce` (rewrite para o Hono). Trocar a fonte do catálogo para o Postgres é substituir as funções desses dois arquivos, não espalhar `fetch` nas páginas.
+A vitrine lê modelos em `GET /v1/products` por `apps/storefront/lib/catalog.ts`. Pix, boleto, parcela e a prévia de frete continuam nas funções de `@lume/domain`, aplicadas aos números da API. As escritas passam por `apps/storefront/lib/shop-api.ts`, que fala com `/api/commerce` (rewrite para o Hono). Sem a API, a página mostra erro. Não há fallback para o array de motos do código.
 
-## Por que o catálogo não vem do banco hoje
+## De onde vem o catálogo
 
-A página abre com a API desligada. O configurador muda cor e acessório sem esperar a rede. O seed do Postgres espelha o mesmo catálogo, mas a vitrine não o lê. Um ajuste de estoque no admin vale para a memória do processo da API e não muda o card da loja. Isso é deliberado até o MVP-a.
+`GET /v1/products` junta o catálogo de `@lume/domain` com os produtos `ativo` e habilitados do cadastro. Com Postgres, o CRUD do admin grava esse cadastro e o checkout usa o `basePriceCents` e a variante. Sem banco, a escrita do cadastro responde 503 e a leitura pública fica na semente do processo. O modelo que só existe em `@lume/domain` continua com o preço do código. O estoque da ficha vem de `color_stock` quando a linha existe. `PATCH /v1/admin/stock` não altera a variante do Postgres.
 
 ## O que fica no navegador
 
 Chave `lume-shop-v1`: linhas do carrinho, slugs da lista de desejos e códigos de pedido. Carrinho antigo, sem `orderCodes`, continua válido: o parse assume lista vazia.
 
-Também locais: perfil (`lume-profile`), aceite de cookie (`lume-cookies`), reviews pendentes (`lume-reviews-pending`), mensagens de contato (`lume-messages`) e token de admin na `sessionStorage` (`lume-admin-token`).
+Também locais: perfil (`lume-profile`), aviso de cookie (`lume-cookies`: `ok`, `essential` ou `analytics`), reviews pendentes (`lume-reviews-pending`) e mensagens de contato (`lume-messages`). O token de admin não vai para `sessionStorage`: fica na memória da página e some no recarregamento. A senha não fica no navegador. A sessão prevista é cookie httpOnly.
 
 Nada disso é conta. Não há CPF.
 
 ## Persistência da API
 
-Sem `DATABASE_URL`, pedido e test ride morrem quando o processo cai. Com Postgres alcançável, a API tenta gravar e, se falhar, ainda responde sucesso e registra o erro. Redis e Meilisearch sobem no Compose e não entram no caminho do pedido.
+Fora de produção, sem `DATABASE_URL`, pedido, sessão, código de login, test ride, troca, serviço e estoque por cor morrem quando o processo cai, e o cadastro de produto não aceita escrita (503). Em produção a API não sobe sem `DATABASE_URL` nem se o Postgres não conectar. Com o banco alcançável, o cadastro, o pedido, a sessão, o código, o test ride, a troca, o serviço e o `color_stock` gravam e leem de lá. Redis e Meilisearch sobem no Compose e não entram no caminho do pedido.

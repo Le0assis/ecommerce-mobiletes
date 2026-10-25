@@ -1,10 +1,9 @@
 "use client";
 
-import { motorcycles } from "@lume/domain";
 import { useRouter } from "next/navigation";
 import type { FormEvent } from "react";
 
-export function ComparePicker({ selected }: { selected: string[] }) {
+export function ComparePicker({ options, selected }: { options: { slug: string; name: string }[]; selected: string[] }) {
   const router = useRouter();
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
@@ -16,8 +15,8 @@ export function ComparePicker({ selected }: { selected: string[] }) {
 
   return (
     <form onSubmit={onSubmit} className="mt-6 flex flex-wrap gap-3">
-      {motorcycles.map((product) => (
-        <label key={product.id} className="flex items-center gap-2 rounded-full border border-white/15 px-3 py-2 text-sm">
+      {options.map((product) => (
+        <label key={product.slug} className="flex items-center gap-2 rounded-full border border-white/15 px-3 py-2 text-sm">
           <input type="checkbox" name="pick" value={product.slug} defaultChecked={selected.includes(product.slug)} />
           {product.name.replace("LUME ", "")}
         </label>

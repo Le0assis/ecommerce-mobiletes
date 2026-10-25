@@ -8,14 +8,17 @@
     "start": "tsx src/index.ts",
     "lint": "eslint src",
     "typecheck": "tsc --noEmit",
+    "build": "tsc --noEmit",
     "test": "vitest run",
     "db:push": "drizzle-kit push",
     "db:generate": "drizzle-kit generate",
-    "db:seed": "tsx src/db/seed.ts"
+    "db:seed": "tsx src/db/seed.ts",
+    "db:audit": "tsx src/db/audit-cli.ts"
   },
   "dependencies": {
     "@hono/node-server": "^1.19.6",
     "@lume/domain": "workspace:*",
+    "@vercel/blob": "1.1.1",
     "drizzle-orm": "^0.45.1",
     "hono": "^4.10.7",
     "ioredis": "^5.8.2",
@@ -23,6 +26,7 @@
     "zod": "^4.1.12"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "0.5.11",
     "@types/node": "^22",
     "drizzle-kit": "^0.31.7",
     "eslint": "^9",

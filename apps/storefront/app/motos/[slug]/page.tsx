@@ -1,17 +1,20 @@
+import { CatalogDown } from "@/components/catalog-state";
 import { Configurator } from "@/components/configurator";
-import { formatBRL, getMotorcycle, motorcycles } from "@lume/domain";
+import { formatBRL, loadProduct, loadProducts, relatedProducts } from "@/lib/catalog";
+import { jsonLdScript } from "@/lib/json-ld";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
 export function generateStaticParams() {
-  return motorcycles.map((product) => ({ slug: product.slug }));
+  return [{ slug: "apex" }];
 }
 
 export async function generateMetadata({ params }: PageProps<"/motos/[slug]">): Promise<Metadata> {
   const { slug } = await params;
-  const product = getMotorcycle(slug);
-  if (!product) return { title: "Modelo" };
+  const loaded = await loadProduct(slug);
+  if (!loaded.ok) return { title: "Modelo" };
+  const product = loaded.data.product;
   return {
     title: product.name,
     description: `${product.tagline} ${formatBRL(product.basePriceCents)} ou 21x sem juros. Pix com 5%.`,
@@ -28,14 +31,20 @@ export default function MotoPage(props: PageProps<"/motos/[slug]">) {
 
 async function MotoBody({ params }: PageProps<"/motos/[slug]">) {
   const { slug } = await params;
-  const product = getMotorcycle(slug);
-  if (!product) notFound();
+  const loaded = await loadProduct(slug);
+  if (!loaded.ok) {
+    if (loaded.notFound) notFound();
+    return <CatalogDown message={loaded.message} />;
+  }
+  const { product, reviews } = loaded.data;
+  const list = await loadProducts();
+  const related = list.ok ? relatedProducts(list.data, product) : [];
   const offer = {
     "@context": "https://schema.org",
     "@type": "Product",
     name: product.name,
     description: product.description,
-    brand: "LUME",
+    brand: product.brand,
     offers: {
       "@type": "Offer",
       priceCurrency: "BRL",
@@ -46,8 +55,8 @@ async function MotoBody({ params }: PageProps<"/motos/[slug]">) {
 
   return (
     <main id="conteudo">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(offer) }} />
-      <Configurator product={product} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdScript(offer) }} />
+      <Configurator product={product} related={related} reviews={reviews} />
     </main>
   );
 }
